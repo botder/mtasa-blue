@@ -17,10 +17,16 @@
 // be enforced at this level).
 
 #include "StdInc.h"
+#include "CClientEntity.h"
 
 using std::list;
 
 extern CClientGame* g_pClientGame;
+
+CElementGroup::CElementGroup(CResource* const pResource)
+    : m_pResource(pResource)
+{
+}
 
 CElementGroup::~CElementGroup()
 {

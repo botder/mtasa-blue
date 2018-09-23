@@ -59,7 +59,7 @@ bool CResourceMapItem::Start(void)
     if (!m_pElementGroup)
     {
         m_pVM = m_resource->GetVirtualMachine();
-        m_pElementGroup = new CElementGroup();
+        m_pElementGroup = new CElementGroup(m_resource);
 
         LoadMap(m_strResourceFileName.c_str());
         return true;

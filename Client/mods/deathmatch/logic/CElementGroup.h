@@ -8,21 +8,23 @@
  *  Multi Theft Auto is available from http://www.multitheftauto.com/
  *
  *****************************************************************************/
-
-class CElementGroup;
-
 #pragma once
 
-#include "CClientEntity.h"
+class CClientEntity;
+class CResource;
 
 class CElementGroup
 {
 private:
     CFastList<CClientEntity*> m_elements;
+    CResource*           m_pResource;
 
 public:
+    CElementGroup(CResource* const pResource);
     ~CElementGroup();
+
     void         Add(CClientEntity* element);
     void         Remove(CClientEntity* element);
     unsigned int GetCount(void);
+    CResource*   GetResource() const { return m_pResource; }
 };

@@ -848,7 +848,7 @@ bool CResource::Start(list<CResource*>* dependents, bool bStartedManually, bool 
         m_bIsPersistent = false;
 
         // Create an element group for us
-        m_pDefaultElementGroup = new CElementGroup();            // for use by scripts
+        m_pDefaultElementGroup = new CElementGroup(this);            // for use by scripts
 
         // Grab the root element
         m_pRootElement = g_pGame->GetMapManager()->GetRootElement();

@@ -35,7 +35,7 @@ public:
 
     // Element create/destroy
     static CDummy*   CreateElement(CResource* pResource, const char* szTypeName, const char* szID);
-    static bool      DestroyElement(CElement* pElement);
+    static bool      DestroyElement(CElement* pElement, CResource* pContextResource = nullptr);
     static CElement* CloneElement(CResource* pResource, CElement* pElement, const CVector& vecPosition, bool bCloneElement);
 
     // Element get funcs

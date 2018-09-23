@@ -66,6 +66,7 @@ void CLuaElementDefs::LoadFunctions(void)
         {"isElementLowLOD", IsElementLowLod},
         {"isElementCallPropagationEnabled", IsElementCallPropagationEnabled},
         {"isElementWaitingForGroundToLoad", IsElementWaitingForGroundToLoad},
+        {"isElementResourceProtected", IsElementResourceProtected},
 
         // Element set funcs
         {"createElement", CreateElement},
@@ -94,6 +95,7 @@ void CLuaElementDefs::LoadFunctions(void)
         {"setElementFrozen", SetElementFrozen},
         {"setLowLODElement", SetLowLodElement},
         {"setElementCallPropagationEnabled", SetElementCallPropagationEnabled},
+        {"setElementResourceProtected", SetElementResourceProtected},
     };
 
     // Add functions
@@ -1713,14 +1715,28 @@ int CLuaElementDefs::CreateElement(lua_State* luaVM)
 int CLuaElementDefs::DestroyElement(lua_State* luaVM)
 {
     // Verify the argument
-    CClientEntity*   pEntity = NULL;
+    CClientEntity*   pEntity = nullptr;
     CScriptArgReader argStream(luaVM);
     argStream.ReadUserData(pEntity);
 
     if (!argStream.HasErrors())
     {
-        // Destroy it
-        if (CStaticFunctionDefinitions::DestroyElement(*pEntity))
+        CLuaMain*  pLuaMain = m_pLuaManager->GetVirtualMachine(luaVM);
+        CResource* pResource = pLuaMain ? pLuaMain->GetResource() : nullptr;
+
+        if (pLuaMain && pEntity->IsResourceProtected())
+        {
+            CResource* pEntityResource = pEntity->GetElementGroup()->GetResource();
+            CLuaMain*  pEntityLuaMain = pEntityResource ? pEntityResource->GetVM() : nullptr;
+
+            if (pLuaMain != pEntityLuaMain)
+            {
+                lua_pushboolean(luaVM, false);
+                return 1;
+            }
+        }
+
+        if (CStaticFunctionDefinitions::DestroyElement(*pEntity, pResource))
         {
             lua_pushboolean(luaVM, true);
             return 1;
@@ -1729,7 +1745,6 @@ int CLuaElementDefs::DestroyElement(lua_State* luaVM)
     else
         m_pScriptDebugging->LogCustom(luaVM, argStream.GetFullErrorMessage());
 
-    // Failed
     lua_pushboolean(luaVM, false);
     return 1;
 }
@@ -2615,6 +2630,57 @@ int CLuaElementDefs::IsElementWaitingForGroundToLoad(lua_State* luaVM)
         {
             lua_pushboolean(luaVM, bEnabled);
             return 1;
+        }
+    }
+    else
+        m_pScriptDebugging->LogCustom(luaVM, argStream.GetFullErrorMessage());
+
+    lua_pushboolean(luaVM, false);
+    return 1;
+}
+
+int CLuaElementDefs::IsElementResourceProtected(lua_State* luaVM)
+{
+    CClientEntity*   pEntity;
+    CScriptArgReader argStream(luaVM);
+    argStream.ReadUserData(pEntity);
+
+    if (!argStream.HasErrors())
+    {
+        lua_pushboolean(luaVM, pEntity->IsResourceProtected());
+        return 1;
+    }
+    else
+        m_pScriptDebugging->LogCustom(luaVM, argStream.GetFullErrorMessage());
+
+    lua_pushboolean(luaVM, false);
+    return 1;
+}
+
+int CLuaElementDefs::SetElementResourceProtected(lua_State* luaVM)
+{
+    // bool setElementResourceProtected ( element theElement, bool protected )
+    CClientEntity* pEntity;
+    bool           bProtected;
+
+    CScriptArgReader argStream(luaVM);
+    argStream.ReadUserData(pEntity);
+    argStream.ReadBool(bProtected);
+
+    if (!argStream.HasErrors())
+    {
+        if (pEntity->IsLocalEntity())
+        {
+            CResource* pEntityResource = pEntity->GetElementGroup()->GetResource();
+            CLuaMain*  pEntityLuaMain = pEntityResource ? pEntityResource->GetVM() : nullptr;
+            CLuaMain*  pLuaMain = m_pLuaManager->GetVirtualMachine(luaVM);
+
+            if (pLuaMain && pLuaMain == pEntityLuaMain)
+            {
+                pEntity->SetResourceProtected(bProtected);
+                lua_pushboolean(luaVM, true);
+                return 1;
+            }
         }
     }
     else

@@ -938,13 +938,13 @@ CClientDummy* CStaticFunctionDefinitions::CreateElement(CResource& Resource, con
     return NULL;
 }
 
-bool CStaticFunctionDefinitions::DestroyElement(CClientEntity& Entity)
+bool CStaticFunctionDefinitions::DestroyElement(CClientEntity& Entity, CResource* pContextResource)
 {
     // Run us on all its children
     CChildListType ::const_iterator iter = Entity.IterBegin();
     while (iter != Entity.IterEnd())
     {
-        if (DestroyElement(**iter))
+        if (DestroyElement(**iter, pContextResource))
             iter = Entity.IterBegin();
         else
             ++iter;
@@ -957,6 +957,12 @@ bool CStaticFunctionDefinitions::DestroyElement(CClientEntity& Entity)
     // We can't delete our root
     if (&Entity == m_pRootEntity)
         return false;
+
+    if (pContextResource != nullptr)
+    {
+        if (Entity.IsResourceProtected() && Entity.GetElementGroup()->GetResource() != pContextResource)
+            return false;
+    }
 
     // Use the element deleter to delete it if it's local and not system
     if (Entity.IsLocalEntity() && !Entity.IsSystemEntity())

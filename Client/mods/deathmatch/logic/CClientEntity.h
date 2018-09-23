@@ -322,6 +322,9 @@ public:
     bool         IsCallPropagationEnabled(void) { return m_bCallPropagationEnabled; }
     virtual void SetCallPropagationEnabled(bool bEnabled) { m_bCallPropagationEnabled = bEnabled; }
 
+    bool IsResourceProtected() const { return m_bResourceProtected; }
+    void SetResourceProtected(bool bProtected) { m_bResourceProtected = bProtected; }
+
 protected:
     CClientManager*       m_pManager;
     CClientEntity*        m_pParent;
@@ -355,6 +358,7 @@ protected:
 
     bool                              m_bBeingDeleted;
     bool                              m_bSystemEntity;
+    bool                              m_bResourceProtected;      // Protect against destruction by non-owning resource
     CMapEventManager*                 m_pEventManager;
     CModelInfo*                       m_pModelInfo;
     CFastList<class CClientColShape*> m_Collisions;

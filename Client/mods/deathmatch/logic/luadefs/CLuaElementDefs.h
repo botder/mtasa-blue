@@ -67,6 +67,7 @@ public:
     LUA_DECLARE(IsElementLowLod);
     LUA_DECLARE(IsElementCallPropagationEnabled);
     LUA_DECLARE(IsElementWaitingForGroundToLoad);
+    LUA_DECLARE(IsElementResourceProtected);
 
     // Element set funcs
     LUA_DECLARE(CreateElement);
@@ -95,4 +96,5 @@ public:
     LUA_DECLARE(SetElementFrozen);
     LUA_DECLARE(SetLowLodElement);
     LUA_DECLARE(SetElementCallPropagationEnabled);
+    LUA_DECLARE(SetElementResourceProtected);
 };

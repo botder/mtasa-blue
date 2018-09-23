@@ -20,6 +20,11 @@
 
 extern CGame* g_pGame;
 
+CElementGroup::CElementGroup(CResource* pResource)
+    : m_pResource(pResource)
+{
+}
+
 CElementGroup::~CElementGroup()
 {
     // Delete all the elements

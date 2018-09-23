@@ -231,6 +231,9 @@ public:
     bool IsCallPropagationEnabled(void) { return m_bCallPropagationEnabled; }
     void SetCallPropagationEnabled(bool bEnabled) { m_bCallPropagationEnabled = bEnabled; }
 
+    bool IsResourceProtected() const { return m_bResourceProtected; }
+    void SetResourceProtected(bool bProtected) { m_bResourceProtected = bProtected; }
+
 protected:
     CElement*    GetRootElement(void);
     virtual bool ReadSpecialData(void) = 0;
@@ -281,6 +284,7 @@ protected:
     bool                   m_bDoubleSided;
     bool                   m_bUpdatingSpatialData;
     bool                   m_bCallPropagationEnabled;
+    bool                   m_bResourceProtected;
 
     // Optimization for getElementsByType starting at root
 public:

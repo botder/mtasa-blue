@@ -23,6 +23,7 @@ CClientEntity::CClientEntity(ElementID ID) : ClassInit(this)
     m_pParent = NULL;
     m_usDimension = 0;
     m_bSystemEntity = false;
+    m_bResourceProtected = false;
     m_ucSyncTimeContext = 0;
     m_ucInterior = 0;
     m_bDoubleSided = false;

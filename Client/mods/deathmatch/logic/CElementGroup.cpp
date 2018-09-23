@@ -22,6 +22,11 @@ using std::list;
 
 extern CClientGame* g_pClientGame;
 
+CElementGroup::CElementGroup(CResource* pResource)
+    : m_pResource(pResource)
+{
+}
+
 CElementGroup::~CElementGroup()
 {
     CElementDeleter* deleter = g_pClientGame->GetElementDeleter();

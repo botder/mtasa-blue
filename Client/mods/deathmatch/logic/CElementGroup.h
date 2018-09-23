@@ -15,14 +15,19 @@ class CElementGroup;
 
 #include "CClientEntity.h"
 
+class CResource;
+
 class CElementGroup
 {
 private:
     CFastList<CClientEntity*> m_elements;
+    CResource*                m_pResource;
 
 public:
+    CElementGroup(CResource* pResource);
     ~CElementGroup();
     void         Add(CClientEntity* element);
     void         Remove(CClientEntity* element);
     unsigned int GetCount(void);
+    CResource*   GetResource() const { return m_pResource; }
 };

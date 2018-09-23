@@ -244,13 +244,13 @@ CDummy* CStaticFunctionDefinitions::CreateElement(CResource* pResource, const ch
     return NULL;
 }
 
-bool CStaticFunctionDefinitions::DestroyElement(CElement* pElement)
+bool CStaticFunctionDefinitions::DestroyElement(CElement* pElement, CResource* pContextResource)
 {
     // Run us on all its children
     CChildListType ::const_iterator iter = pElement->IterBegin();
     while (iter != pElement->IterEnd())
     {
-        if (DestroyElement(*iter))
+        if (DestroyElement(*iter, pContextResource))
             iter = pElement->IterBegin();
         else
             ++iter;
@@ -258,6 +258,12 @@ bool CStaticFunctionDefinitions::DestroyElement(CElement* pElement)
 
     if (pElement->IsBeingDeleted())
         return false;
+
+    if (pContextResource != nullptr)
+    {
+        if (pElement->IsResourceProtected() && pElement->GetElementGroup()->GetResource() != pContextResource)
+            return false;
+    }
 
     // We can't destroy the root or a player/remote client/console
     int iType = pElement->GetType();

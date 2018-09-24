@@ -18,6 +18,7 @@ extern CGame* g_pGame;
 #endif
 
 CElement::CElement(CElement* pParent, CXMLNode* pNode)
+    : m_AccessLevel(eElementAccessLevel::PUBLIC)
 {
     // Allocate us an unique ID
     m_ID = CElementIDs::PopUniqueID(this);

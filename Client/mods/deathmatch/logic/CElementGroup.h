@@ -17,7 +17,7 @@ class CElementGroup
 {
 private:
     CFastList<CClientEntity*> m_elements;
-    CResource*           m_pResource;
+    CResource*                m_pResource;
 
 public:
     CElementGroup(CResource* const pResource);

@@ -835,6 +835,11 @@ bool CStaticFunctionDefinitions::IsElementCallPropagationEnabled(CElement* pElem
     return true;
 }
 
+eElementAccessLevel CStaticFunctionDefinitions::GetElementAccessLevel(CElement* pElement)
+{
+    return pElement->GetAccessLevel();
+}
+
 bool CStaticFunctionDefinitions::SetElementCallPropagationEnabled(CElement* pElement, bool bEnable)
 {
     if (bEnable != pElement->IsCallPropagationEnabled())
@@ -850,6 +855,27 @@ bool CStaticFunctionDefinitions::SetElementCallPropagationEnabled(CElement* pEle
         }
     }
     return false;
+}
+
+bool CStaticFunctionDefinitions::SetElementAccessLevel(CElement* pElement, eElementAccessLevel accessLevel)
+{
+    if (pElement == GetRootElement())
+        return false;
+
+    CElementGroup* const pElementGroup = pElement->GetElementGroup();
+
+    if (!pElementGroup || !pElementGroup->GetResource())
+        return false;
+
+    if (pElement->GetAccessLevel() == accessLevel)
+        return false;
+
+    pElement->SetAccessLevel(accessLevel);
+
+    CBitStream BitStream;
+    BitStream->Write(static_cast<unsigned char>(accessLevel));
+    m_pPlayerManager->BroadcastOnlyJoined(CElementRPCPacket(pElement, SET_ELEMENT_ACCESS_LEVEL, *BitStream.pBitStream));
+    return true;
 }
 
 bool CStaticFunctionDefinitions::SetElementID(CElement* pElement, const char* szID)

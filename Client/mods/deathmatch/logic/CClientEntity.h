@@ -322,6 +322,9 @@ public:
     bool         IsCallPropagationEnabled(void) { return m_bCallPropagationEnabled; }
     virtual void SetCallPropagationEnabled(bool bEnabled) { m_bCallPropagationEnabled = bEnabled; }
 
+    eElementAccessLevel GetAccessLevel() const { return m_AccessLevel; }
+    void                SetAccessLevel(eElementAccessLevel accessLevel) { m_AccessLevel = accessLevel; }
+
 protected:
     CClientManager*       m_pManager;
     CClientEntity*        m_pParent;
@@ -339,10 +342,11 @@ protected:
     unsigned int m_uiLine;
 
 private:
-    unsigned int m_uiTypeHash;
-    SString      m_strTypeName;
-    SString      m_strName;
-    bool         m_bSmartPointer;
+    unsigned int        m_uiTypeHash;
+    SString             m_strTypeName;
+    SString             m_strName;
+    eElementAccessLevel m_AccessLevel;
+    bool                m_bSmartPointer;
 
 protected:
     unsigned char m_ucSyncTimeContext;

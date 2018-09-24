@@ -153,6 +153,9 @@ bool CEntityAddPacket::Write(NetBitStreamInterface& BitStream) const
             if (BitStream.Version() >= 0x56)
                 BitStream.WriteBit(pElement->IsCallPropagationEnabled());
 
+            if (BitStream.Version() >= 0x6D)
+                BitStream.Write(static_cast<unsigned char>(pElement->GetAccessLevel()));
+
             // Write custom data
             CCustomData* pCustomData = pElement->GetCustomDataPointer();
             assert(pCustomData);

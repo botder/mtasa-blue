@@ -48,6 +48,7 @@ void CElementRPCs::LoadFunctions(void)
     AddHandler(SET_WEAPON_OWNER, SetWeaponOwner, "setWeaponOwner");
     AddHandler(SET_CUSTOM_WEAPON_FLAGS, SetWeaponConfig, "setWeaponFlags");
     AddHandler(SET_PROPAGATE_CALLS_ENABLED, SetCallPropagationEnabled, "setCallPropagationEnabled");
+    AddHandler(SET_ELEMENT_ACCESS_LEVEL, SetElementAccessLevel, "setElementAccessLevel");
 }
 
 #define RUN_CHILDREN_SERVER(func) \
@@ -706,5 +707,18 @@ void CElementRPCs::SetCallPropagationEnabled(CClientEntity* pSource, NetBitStrea
     if (bitStream.ReadBit(bEnabled))
     {
         pSource->SetCallPropagationEnabled(bEnabled);
+    }
+}
+
+void CElementRPCs::SetElementAccessLevel(CClientEntity* pSource, NetBitStreamInterface& bitStream)
+{
+    unsigned char ucAccessLevel;
+
+    if (bitStream.Read(ucAccessLevel))
+    {
+        if (ucAccessLevel <= static_cast<unsigned char>(eElementAccessLevel::PRIVATE))
+        {
+            pSource->SetAccessLevel(static_cast<eElementAccessLevel>(ucAccessLevel));
+        }
     }
 }

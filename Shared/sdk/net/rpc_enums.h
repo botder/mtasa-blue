@@ -262,6 +262,7 @@ enum eElementRPCFunctions
     SET_ELEMENT_ANGULAR_VELOCITY,
 
     SET_PED_ANIMATION_SPEED,
+    SET_ELEMENT_ACCESS_LEVEL,
 
     NUM_RPC_FUNCS // Add above this line
 };

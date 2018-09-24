@@ -2656,13 +2656,14 @@ retry:
         EntityAddDebugNext(EntityIndex, bitStream.GetReadOffsetAsBits());
 
         // Read out the entity type id and the entity id
-        ElementID      EntityID;
-        unsigned char  ucEntityTypeID;
-        ElementID      ParentID;
-        unsigned char  ucInterior;
-        unsigned short usDimension;
-        bool           bCollisonsEnabled;
-        bool           bCallPropagationEnabled;
+        ElementID           EntityID;
+        unsigned char       ucEntityTypeID;
+        ElementID           ParentID;
+        unsigned char       ucInterior;
+        unsigned short      usDimension;
+        bool                bCollisonsEnabled;
+        bool                bCallPropagationEnabled;
+        eElementAccessLevel accessLevel = eElementAccessLevel::PUBLIC;
 
         if (bitStream.Read(EntityID) && bitStream.Read(ucEntityTypeID) && bitStream.Read(ParentID) && bitStream.Read(ucInterior) &&
             bitStream.ReadCompressed(usDimension) && bitStream.ReadBit(bIsAttached))
@@ -2681,6 +2682,9 @@ retry:
                 bitStream.ReadBit(bCallPropagationEnabled);
             else
                 bCallPropagationEnabled = true;
+
+            if (bitStream.Version() >= 0x6D)
+                bitStream.Read(reinterpret_cast<unsigned char&>(accessLevel));
 
             // Read custom data
             CCustomData*   pCustomData = new CCustomData;
@@ -3955,6 +3959,7 @@ retry:
                 pEntity->SetSyncTimeContext(ucSyncTimeContext);
                 pEntity->GetCustomDataPointer()->Copy(pCustomData);
                 pEntity->SetCallPropagationEnabled(bCallPropagationEnabled);
+                pEntity->SetAccessLevel(accessLevel);
 
                 // Save any entity-dependant stuff for later
                 SEntityDependantStuff* pStuff = new SEntityDependantStuff;
@@ -5236,13 +5241,14 @@ SString CPacketHandler::EntityAddDebugRead(NetBitStreamInterface& bitStream)
     ElementID            EntityAttachedToID;
 
     // Read out the entity type id and the entity id
-    ElementID      EntityID;
-    unsigned char  ucEntityTypeID;
-    ElementID      ParentID;
-    unsigned char  ucInterior;
-    unsigned short usDimension;
-    bool           bCollisonsEnabled;
-    bool           bCallPropagationEnabled;
+    ElementID           EntityID;
+    unsigned char       ucEntityTypeID;
+    ElementID           ParentID;
+    unsigned char       ucInterior;
+    unsigned short      usDimension;
+    bool                bCollisonsEnabled;
+    bool                bCallPropagationEnabled;
+    eElementAccessLevel accessLevel = eElementAccessLevel::PUBLIC;
 
     if (bitStream.Read(EntityID) && bitStream.Read(ucEntityTypeID) && bitStream.Read(ParentID) && bitStream.Read(ucInterior) &&
         bitStream.ReadCompressed(usDimension) && bitStream.ReadBit(bIsAttached))
@@ -5261,6 +5267,9 @@ SString CPacketHandler::EntityAddDebugRead(NetBitStreamInterface& bitStream)
             bitStream.ReadBit(bCallPropagationEnabled);
         else
             bCallPropagationEnabled = true;
+
+        if (bitStream.Version() >= 0x6D)
+            bitStream.Read(reinterpret_cast<unsigned char&>(accessLevel));
 
         // Read custom data
         // CCustomData* pCustomData = new CCustomData;

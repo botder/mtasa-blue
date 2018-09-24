@@ -39,38 +39,39 @@ public:
     static CElement* CloneElement(CResource* pResource, CElement* pElement, const CVector& vecPosition, bool bCloneElement);
 
     // Element get funcs
-    static CElement*      GetElementByID(const char* szID, unsigned int uiIndex);
-    static CElement*      GetElementByIndex(const char* szType, unsigned int uiIndex);
-    static CElement*      GetElementChild(CElement* pElement, unsigned int uiIndex);
-    static bool           GetElementChildrenCount(CElement* pElement, unsigned int& uiCount);
-    static CLuaArgument*  GetElementData(CElement* pElement, const char* szName, bool bInherit);
-    static CLuaArguments* GetAllElementData(CElement* pElement, CLuaArguments* table);
-    static CElement*      GetElementParent(CElement* pElement);
-    static bool           GetElementMatrix(CElement* pElement, CMatrix& matrix);
-    static bool           GetElementPosition(CElement* pElement, CVector& vecPosition);
-    static bool           GetElementRotation(CElement* pElement, CVector& vecRotation, eEulerRotationOrder rotationOrder);
-    static bool           GetElementVelocity(CElement* pElement, CVector& vecVelocity);
-    static bool           GetElementTurnVelocity(CElement* pElement, CVector& vecTurnVelocity);
-    static bool           GetElementInterior(CElement* pElement, unsigned char& ucInterior);
-    static bool           IsElementWithinColShape(CElement* pElement, CColShape* pColShape, bool& bWithin);
-    static bool           IsElementWithinMarker(CElement* pElement, CMarker* pMarker, bool& bWithin);
-    static bool           GetElementDimension(CElement* pElement, unsigned short& usDimension);
-    static bool           GetElementZoneName(CElement* pElement, SString& strOutName, bool bCitiesOnly = false);
-    static bool           IsElementAttached(CElement* pElement);
-    static CElement*      GetElementAttachedTo(CElement* pElement);
-    static CColShape*     GetElementColShape(CElement* pElement);
-    static bool           GetElementAlpha(CElement* pElement, unsigned char& ucAlpha);
-    static bool           IsElementDoubleSided(CElement* pElement, bool& bDoubleSided);
-    static bool           GetElementHealth(CElement* pElement, float& fHealth);
-    static bool           GetElementModel(CElement* pElement, unsigned short& usModel);
-    static bool           IsElementInWater(CElement* pElement, bool& bInWater);
-    static bool           GetElementAttachedOffsets(CElement* pElement, CVector& vecPosition, CVector& vecRotation);
-    static CElement*      GetElementSyncer(CElement* pElement);
-    static bool           GetElementCollisionsEnabled(CElement* pElement);
-    static bool           IsElementFrozen(CElement* pElement, bool& bFrozen);
-    static bool           GetLowLodElement(CElement* pElement, CElement*& pOutLowLodElement);
-    static bool           IsElementLowLod(CElement* pElement, bool& bOutLowLod);
-    static bool           IsElementCallPropagationEnabled(CElement* pElement, bool& bOutEnabled);
+    static CElement*           GetElementByID(const char* szID, unsigned int uiIndex);
+    static CElement*           GetElementByIndex(const char* szType, unsigned int uiIndex);
+    static CElement*           GetElementChild(CElement* pElement, unsigned int uiIndex);
+    static bool                GetElementChildrenCount(CElement* pElement, unsigned int& uiCount);
+    static CLuaArgument*       GetElementData(CElement* pElement, const char* szName, bool bInherit);
+    static CLuaArguments*      GetAllElementData(CElement* pElement, CLuaArguments* table);
+    static CElement*           GetElementParent(CElement* pElement);
+    static bool                GetElementMatrix(CElement* pElement, CMatrix& matrix);
+    static bool                GetElementPosition(CElement* pElement, CVector& vecPosition);
+    static bool                GetElementRotation(CElement* pElement, CVector& vecRotation, eEulerRotationOrder rotationOrder);
+    static bool                GetElementVelocity(CElement* pElement, CVector& vecVelocity);
+    static bool                GetElementTurnVelocity(CElement* pElement, CVector& vecTurnVelocity);
+    static bool                GetElementInterior(CElement* pElement, unsigned char& ucInterior);
+    static bool                IsElementWithinColShape(CElement* pElement, CColShape* pColShape, bool& bWithin);
+    static bool                IsElementWithinMarker(CElement* pElement, CMarker* pMarker, bool& bWithin);
+    static bool                GetElementDimension(CElement* pElement, unsigned short& usDimension);
+    static bool                GetElementZoneName(CElement* pElement, SString& strOutName, bool bCitiesOnly = false);
+    static bool                IsElementAttached(CElement* pElement);
+    static CElement*           GetElementAttachedTo(CElement* pElement);
+    static CColShape*          GetElementColShape(CElement* pElement);
+    static bool                GetElementAlpha(CElement* pElement, unsigned char& ucAlpha);
+    static bool                IsElementDoubleSided(CElement* pElement, bool& bDoubleSided);
+    static bool                GetElementHealth(CElement* pElement, float& fHealth);
+    static bool                GetElementModel(CElement* pElement, unsigned short& usModel);
+    static bool                IsElementInWater(CElement* pElement, bool& bInWater);
+    static bool                GetElementAttachedOffsets(CElement* pElement, CVector& vecPosition, CVector& vecRotation);
+    static CElement*           GetElementSyncer(CElement* pElement);
+    static bool                GetElementCollisionsEnabled(CElement* pElement);
+    static bool                IsElementFrozen(CElement* pElement, bool& bFrozen);
+    static bool                GetLowLodElement(CElement* pElement, CElement*& pOutLowLodElement);
+    static bool                IsElementLowLod(CElement* pElement, bool& bOutLowLod);
+    static bool                IsElementCallPropagationEnabled(CElement* pElement, bool& bOutEnabled);
+    static eElementAccessLevel GetElementAccessLevel(CElement* pElement);
 
     // Element set funcs
     static bool ClearElementVisibleTo(CElement* pElement);
@@ -98,6 +99,7 @@ public:
     static bool SetElementFrozen(CElement* pElement, bool bFrozen);
     static bool SetLowLodElement(CElement* pElement, CElement* pLowLodElement);
     static bool SetElementCallPropagationEnabled(CElement* pElement, bool bEnable);
+    static bool SetElementAccessLevel(CElement* pElement, eElementAccessLevel accessLevel);
 
     // Player get funcs
     static unsigned int       GetPlayerCount(void);

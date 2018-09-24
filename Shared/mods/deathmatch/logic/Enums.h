@@ -68,3 +68,18 @@ DECLARE_ENUM_CLASS(PasswordHashFunction);
 DECLARE_ENUM_CLASS(StringEncryptFunction);
 
 DECLARE_ENUM(ePacketID);
+
+/* Describes the level, at which any resource can mutate an element. The owner of an element (the resource it belongs to) has always full access.
+ *
+ * PUBLIC:      Every resource can mutate the state (default)
+ * SEMI_PUBLIC: Like PUBLIC, but only owner resource can destroy it
+ * PROTECTED:   Like SEMI_PUBLIC, but only owner can mutate the state, others can only read
+ * PRIVATE:     Element is only visible to the owner resource
+ */
+enum class eElementAccessLevel : unsigned char
+{
+    PUBLIC,
+    SEMI_PUBLIC,
+    PROTECTED,
+    PRIVATE,
+};

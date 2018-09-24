@@ -231,6 +231,9 @@ public:
     bool IsCallPropagationEnabled(void) { return m_bCallPropagationEnabled; }
     void SetCallPropagationEnabled(bool bEnabled) { m_bCallPropagationEnabled = bEnabled; }
 
+    eElementAccessLevel GetAccessLevel() const { return m_AccessLevel; }
+    void                SetAccessLevel(eElementAccessLevel accessLevel) { m_AccessLevel = accessLevel; }
+
 protected:
     CElement*    GetRootElement(void);
     virtual bool ReadSpecialData(void) = 0;
@@ -245,12 +248,13 @@ protected:
     CMapEventManager* m_pEventManager;
     CCustomData*      m_pCustomData;
 
-    EElementType m_iType;
-    ElementID    m_ID;
-    CElement*    m_pParent;
-    CXMLNode*    m_pXMLNode;
-    unsigned int m_uiLine;
-    bool         m_bIsBeingDeleted;
+    EElementType        m_iType;
+    ElementID           m_ID;
+    CElement*           m_pParent;
+    CXMLNode*           m_pXMLNode;
+    unsigned int        m_uiLine;
+    eElementAccessLevel m_AccessLevel;
+    bool                m_bIsBeingDeleted;
 
     CVector m_vecPosition;
 

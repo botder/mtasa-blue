@@ -51,33 +51,34 @@ public:
     static bool IsTrayNotificationEnabled(void);
 
     // Element get funcs
-    static CClientEntity* GetRootElement(void);
-    static CClientEntity* GetElementByID(const char* szID, unsigned int uiIndex);
-    static CClientEntity* GetElementByIndex(const char* szType, unsigned int uiIndex);
-    static CClientEntity* GetElementChild(CClientEntity& Entity, unsigned int uiIndex);
-    static bool           GetElementMatrix(CClientEntity& Entity, CMatrix& matrix);
-    static bool           GetElementPosition(CClientEntity& Entity, CVector& vecPosition);
-    static bool           GetElementRotation(CClientEntity& Entity, CVector& vecRotation, eEulerRotationOrder rotationOrder);
-    static bool           GetElementVelocity(CClientEntity& Entity, CVector& vecVelocity);
-    static bool           GetElementTurnVelocity(CClientEntity& Entity, CVector& vecTurnVelocity);
-    static bool           GetElementInterior(CClientEntity& Entity, unsigned char& ucInterior);
-    static bool           GetElementBoundingBox(CClientEntity& Entity, CVector& vecMin, CVector& vecMax);
-    static bool           GetElementRadius(CClientEntity& Entity, float& fRadius);
-    static CClientEntity* GetElementAttachedTo(CClientEntity& Entity);
-    static bool           GetElementDistanceFromCentreOfMassToBaseOfModel(CClientEntity& Entity, float& fDistance);
-    static bool           GetElementAttachedOffsets(CClientEntity& Entity, CVector& vecPosition, CVector& vecRotation);
-    static bool           GetElementAlpha(CClientEntity& Entity, unsigned char& ucAlpha);
-    static bool           IsElementOnScreen(CClientEntity& Entity, bool& bOnScreen);
-    static bool           GetElementHealth(CClientEntity& Entity, float& fHealth);
-    static bool           GetElementModel(CClientEntity& Entity, unsigned short& usModel);
-    static bool           IsElementInWater(CClientEntity& Entity, bool& bInWater);
-    static bool           IsElementSyncer(CClientEntity& Entity, bool& bIsSyncer);
-    static bool           IsElementCollidableWith(CClientEntity& Entity, CClientEntity& ThisEntity, bool& bCanCollide);
-    static bool           GetElementCollisionsEnabled(CClientEntity& Entity);
-    static bool           IsElementFrozen(CClientEntity& Entity, bool& bFrozen);
-    static bool           GetLowLodElement(CClientEntity& Entity, CClientEntity*& pOutLowLodEntity);
-    static bool           IsElementLowLod(CClientEntity& Entity, bool& bOutIsLowLod);
-    static bool           IsElementCallPropagationEnabled(CClientEntity& Entity, bool& bOutEnabled);
+    static CClientEntity*      GetRootElement(void);
+    static CClientEntity*      GetElementByID(const char* szID, unsigned int uiIndex);
+    static CClientEntity*      GetElementByIndex(const char* szType, unsigned int uiIndex);
+    static CClientEntity*      GetElementChild(CClientEntity& Entity, unsigned int uiIndex);
+    static bool                GetElementMatrix(CClientEntity& Entity, CMatrix& matrix);
+    static bool                GetElementPosition(CClientEntity& Entity, CVector& vecPosition);
+    static bool                GetElementRotation(CClientEntity& Entity, CVector& vecRotation, eEulerRotationOrder rotationOrder);
+    static bool                GetElementVelocity(CClientEntity& Entity, CVector& vecVelocity);
+    static bool                GetElementTurnVelocity(CClientEntity& Entity, CVector& vecTurnVelocity);
+    static bool                GetElementInterior(CClientEntity& Entity, unsigned char& ucInterior);
+    static bool                GetElementBoundingBox(CClientEntity& Entity, CVector& vecMin, CVector& vecMax);
+    static bool                GetElementRadius(CClientEntity& Entity, float& fRadius);
+    static CClientEntity*      GetElementAttachedTo(CClientEntity& Entity);
+    static bool                GetElementDistanceFromCentreOfMassToBaseOfModel(CClientEntity& Entity, float& fDistance);
+    static bool                GetElementAttachedOffsets(CClientEntity& Entity, CVector& vecPosition, CVector& vecRotation);
+    static bool                GetElementAlpha(CClientEntity& Entity, unsigned char& ucAlpha);
+    static bool                IsElementOnScreen(CClientEntity& Entity, bool& bOnScreen);
+    static bool                GetElementHealth(CClientEntity& Entity, float& fHealth);
+    static bool                GetElementModel(CClientEntity& Entity, unsigned short& usModel);
+    static bool                IsElementInWater(CClientEntity& Entity, bool& bInWater);
+    static bool                IsElementSyncer(CClientEntity& Entity, bool& bIsSyncer);
+    static bool                IsElementCollidableWith(CClientEntity& Entity, CClientEntity& ThisEntity, bool& bCanCollide);
+    static bool                GetElementCollisionsEnabled(CClientEntity& Entity);
+    static bool                IsElementFrozen(CClientEntity& Entity, bool& bFrozen);
+    static bool                GetLowLodElement(CClientEntity& Entity, CClientEntity*& pOutLowLodEntity);
+    static bool                IsElementLowLod(CClientEntity& Entity, bool& bOutIsLowLod);
+    static bool                IsElementCallPropagationEnabled(CClientEntity& Entity, bool& bOutEnabled);
+    static eElementAccessLevel GetElementAccessLevel(CClientEntity& Entity);
 
     // Element set funcs
     static CClientDummy* CreateElement(CResource& Resource, const char* szTypeName, const char* szID);
@@ -105,6 +106,7 @@ public:
     static bool          SetLowLodElement(CClientEntity& Entity, CClientEntity* pLowLodEntity);
     static bool          SetElementCallPropagationEnabled(CClientEntity& Entity, bool bEnabled);
     static bool          IsElementFrozenWaitingForGroundToLoad(CClientEntity& Entity, bool& bWaitingForGroundToLoad);
+    static bool          SetElementAccessLevel(CClientEntity& Entity, eElementAccessLevel accessLevel);
 
     // Radio funcs
     static bool SetRadioChannel(unsigned char& ucChannel);

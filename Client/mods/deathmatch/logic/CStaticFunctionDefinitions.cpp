@@ -3716,6 +3716,11 @@ bool CStaticFunctionDefinitions::IsElementCallPropagationEnabled(CClientEntity& 
     return true;
 }
 
+eElementAccessLevel CStaticFunctionDefinitions::GetElementAccessLevel(CClientEntity& Entity)
+{
+    return Entity.GetAccessLevel();
+}
+
 bool CStaticFunctionDefinitions::SetElementCallPropagationEnabled(CClientEntity& Entity, bool bEnabled)
 {
     if (Entity.IsCallPropagationEnabled() != bEnabled && Entity.IsLocalEntity())
@@ -3751,6 +3756,23 @@ bool CStaticFunctionDefinitions::IsElementFrozenWaitingForGroundToLoad(CClientEn
             return false;
     }
     return false;
+}
+
+bool CStaticFunctionDefinitions::SetElementAccessLevel(CClientEntity& Entity, eElementAccessLevel accessLevel)
+{
+    if (!Entity.IsLocalEntity())
+        return false;
+
+    if (&Entity == GetRootElement())
+        return false;
+
+    CElementGroup* const pElementGroup = Entity.GetElementGroup();
+
+    if (!pElementGroup || !pElementGroup->GetResource())
+        return false;
+
+    Entity.SetAccessLevel(accessLevel);
+    return true;
 }
 
 CClientObject* CStaticFunctionDefinitions::CreateObject(CResource& Resource, unsigned short usModelID, const CVector& vecPosition, const CVector& vecRotation,

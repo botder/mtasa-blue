@@ -241,25 +241,6 @@ CElement* CElement::FindChildByType(const char* szType, unsigned int uiIndex, bo
     return FindChildByTypeIndex(uiTypeHash, uiIndex, uiCurrentIndex, bRecursive);
 }
 
-void CElement::FindAllChildrenByType(const char* szType, lua_State* pLua)
-{
-    assert(szType);
-    assert(pLua);
-
-    // Add all children of the given type to the table
-    unsigned int uiIndex = 0;
-    unsigned int uiTypeHash = GetTypeHashFromString(szType);
-
-    if (this == g_pGame->GetMapManager()->GetRootElement())
-    {
-        GetEntitiesFromRoot(uiTypeHash, pLua);
-    }
-    else
-    {
-        FindAllChildrenByTypeIndex(uiTypeHash, pLua, uiIndex);
-    }
-}
-
 // Includes this (if the type matches), unless it is the root element.
 // - Fast if called on root or an end node.
 void CElement::GetDescendantsByType(std::vector<CElement*>& outResult, EElementType elementType)
@@ -287,44 +268,6 @@ void CElement::GetDescendantsByTypeSlow(std::vector<CElement*>& outResult, uint 
             outResult.push_back(pChild);
         if (!pChild->m_Children.empty())
             pChild->GetDescendantsByTypeSlow(outResult, uiTypeHash);
-    }
-}
-
-void CElement::GetChildren(lua_State* pLua)
-{
-    assert(pLua);
-
-    // Add all our children to the table on top of the given lua main's stack
-    unsigned int                    uiIndex = 0;
-    CChildListType ::const_iterator iter = m_Children.begin();
-    for (; iter != m_Children.end(); iter++)
-    {
-        // Add it to the table
-        lua_pushnumber(pLua, ++uiIndex);
-        lua_pushelement(pLua, *iter);
-        lua_settable(pLua, -3);
-    }
-}
-
-void CElement::GetChildrenByType(const char* szType, lua_State* pLua)
-{
-    assert(szType);
-    assert(pLua);
-
-    // Add all our children to the table on top of the given lua main's stack
-    unsigned int                    uiIndex = 0;
-    unsigned int                    uiTypeHash = GetTypeHashFromString(szType);
-    CChildListType ::const_iterator iter = m_Children.begin();
-    for (; iter != m_Children.end(); iter++)
-    {
-        // Name matches?
-        if ((*iter)->GetTypeHash() == uiTypeHash)
-        {
-            // Add it to the table
-            lua_pushnumber(pLua, ++uiIndex);
-            lua_pushelement(pLua, *iter);
-            lua_settable(pLua, -3);
-        }
     }
 }
 
@@ -997,27 +940,6 @@ CElement* CElement::FindChildByTypeIndex(unsigned int uiTypeHash, unsigned int u
     return NULL;
 }
 
-void CElement::FindAllChildrenByTypeIndex(unsigned int uiTypeHash, lua_State* pLua, unsigned int& uiIndex)
-{
-    assert(pLua);
-
-    // Our type matches?
-    if (uiTypeHash == m_uiTypeHash)
-    {
-        // Add it to the table
-        lua_pushnumber(pLua, ++uiIndex);
-        lua_pushelement(pLua, this);
-        lua_settable(pLua, -3);
-    }
-
-    // Call us on the children
-    CChildListType ::const_iterator iter = m_Children.begin();
-    for (; iter != m_Children.end(); iter++)
-    {
-        (*iter)->FindAllChildrenByTypeIndex(uiTypeHash, pLua, uiIndex);
-    }
-}
-
 void CElement::CallEventNoParent(const char* szName, const CLuaArguments& Arguments, CElement* pSource, CPlayer* pCaller)
 {
     // Call it on us if this isn't the same class it was raised on
@@ -1246,10 +1168,8 @@ bool CElement::CanUpdateSync(unsigned char ucRemote)
 }
 
 // Entities from root optimization for getElementsByType
-typedef CFastList<CElement*>                          CFromRootListType;
-typedef CFastHashMap<unsigned int, CFromRootListType> t_mapEntitiesFromRoot;
-static t_mapEntitiesFromRoot                          ms_mapEntitiesFromRoot;
-static bool                                           ms_bEntitiesFromRootInitialized = false;
+static t_mapEntitiesFromRoot ms_mapEntitiesFromRoot;
+static bool                  ms_bEntitiesFromRootInitialized = false;
 
 // CFastHashMap helpers
 unsigned int GetEmptyMapKey(unsigned int*)
@@ -1267,6 +1187,16 @@ void CElement::StartupEntitiesFromRoot()
     {
         ms_bEntitiesFromRootInitialized = true;
     }
+}
+
+const CFromRootListType* CElement::GetEntityListByType(unsigned int uiTypeHash)
+{
+    t_mapEntitiesFromRoot::const_iterator find = ms_mapEntitiesFromRoot.find(uiTypeHash);
+
+    if (find == ms_mapEntitiesFromRoot.end())
+        return nullptr;
+
+    return &find->second;
 }
 
 // Returns true if top parent is root
@@ -1324,31 +1254,6 @@ void CElement::RemoveEntityFromRoot(unsigned int uiTypeHash, CElement* pEntity)
     CChildListType ::const_iterator iter = pEntity->IterBegin();
     for (; iter != pEntity->IterEnd(); iter++)
         CElement::RemoveEntityFromRoot((*iter)->GetTypeHash(), *iter);
-}
-
-void CElement::GetEntitiesFromRoot(unsigned int uiTypeHash, lua_State* pLua)
-{
-#if CHECK_ENTITIES_FROM_ROOT
-    _CheckEntitiesFromRoot(uiTypeHash);
-#endif
-
-    t_mapEntitiesFromRoot::iterator find = ms_mapEntitiesFromRoot.find(uiTypeHash);
-    if (find != ms_mapEntitiesFromRoot.end())
-    {
-        CFromRootListType& listEntities = find->second;
-        CElement*          pEntity;
-        unsigned int       uiIndex = 0;
-
-        for (CChildListType::const_reverse_iterator i = listEntities.rbegin(); i != listEntities.rend(); ++i)
-        {
-            pEntity = *i;
-
-            // Add it to the table
-            lua_pushnumber(pLua, ++uiIndex);
-            lua_pushelement(pLua, pEntity);
-            lua_settable(pLua, -3);
-        }
-    }
 }
 
 void CElement::GetEntitiesFromRoot(unsigned int uiTypeHash, std::vector<CElement*>& outResult)

@@ -36,7 +36,7 @@ CElement* lua_toelement(lua_State* luaVM, int iArgument)
     return NULL;
 }
 
-void lua_pushelement(lua_State* luaVM, CElement* pElement)
+void lua_pushelement(lua_State* luaVM, const CElement* pElement)
 {
     if (pElement)
     {

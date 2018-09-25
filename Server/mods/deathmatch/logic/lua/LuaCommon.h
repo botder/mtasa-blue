@@ -26,7 +26,7 @@ CLuaFunctionRef luaM_toref(lua_State* luaVM, int iArgument);
 class CElement* lua_toelement(lua_State* luaVM, int iArgument);
 
 // Lua push macros for our datatypes
-void lua_pushelement(lua_State* luaVM, class CElement* pElement);
+void lua_pushelement(lua_State* luaVM, const class CElement* pElement);
 void lua_pushacl(lua_State* luaVM, class CAccessControlList* pACL);
 void lua_pushaclgroup(lua_State* luaVM, class CAccessControlListGroup* pACL);
 void lua_pushaccount(lua_State* luaVM, class CAccount* pAccount);

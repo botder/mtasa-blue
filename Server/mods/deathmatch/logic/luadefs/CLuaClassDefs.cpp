@@ -308,7 +308,7 @@ const char* CLuaClassDefs::GetQueryClass(CDbJobData* pJobData)
 }
 
 // absolutely ugly, need a better way
-const char* CLuaClassDefs::GetElementClass(CElement* pElement)
+const char* CLuaClassDefs::GetElementClass(const CElement* pElement)
 {
     assert(pElement);
     switch (pElement->GetType())

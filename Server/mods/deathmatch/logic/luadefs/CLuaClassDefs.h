@@ -41,5 +41,5 @@ public:
     static const char* GetTextItemClass(CTextItem* pItem);
     static const char* GetBanClass(CBan* pBan);
     static const char* GetQueryClass(CDbJobData* pJobData);
-    static const char* GetElementClass(CElement* pElement);
+    static const char* GetElementClass(const CElement* pElement);
 };

@@ -356,14 +356,34 @@ int CLuaElementDefs::getElementChildren(lua_State* luaVM)
 
     if (!argStream.HasErrors())
     {
-        // Create a new table
         lua_newtable(luaVM);
 
-        // Add all the elements with a matching type to it
         if (strType == "")
-            pElement->GetChildren(luaVM);
+        {
+            unsigned int uiIndex = 0;
+
+            for (auto iter = pElement->IterBegin(); iter != pElement->IterEnd(); ++iter)
+            {
+                lua_pushnumber(luaVM, ++uiIndex);
+                lua_pushelement(luaVM, *iter);
+                lua_settable(luaVM, -3);
+            }
+        }
         else
-            pElement->GetChildrenByType(strType, luaVM);
+        {
+            unsigned int       uiIndex = 0;
+            const unsigned int uiTypeHash = pElement->GetTypeHash();
+
+            for (auto iter = pElement->IterBegin(); iter != pElement->IterEnd(); ++iter)
+            {
+                if (pElement->GetTypeHash() == uiTypeHash)
+                {
+                    lua_pushnumber(luaVM, ++uiIndex);
+                    lua_pushelement(luaVM, *iter);
+                    lua_settable(luaVM, -3);
+                }
+            }
+        }
 
         return 1;
     }
@@ -916,19 +936,55 @@ int CLuaElementDefs::getElementsByType(lua_State* luaVM)
 {
     //  table getElementsByType ( string theType, [ element startat=getRootElement() ] )
     SString   strType;
-    CElement* startAt;
+    CElement* pStartAt;
 
     CScriptArgReader argStream(luaVM);
     argStream.ReadString(strType);
-    argStream.ReadUserData(startAt, m_pRootElement);
+    argStream.ReadUserData(pStartAt, m_pRootElement);
 
     if (!argStream.HasErrors())
     {
         // Create a new table
         lua_newtable(luaVM);
 
-        // Add all the elements with a matching type to it
-        startAt->FindAllChildrenByType(strType, luaVM);
+        if (pStartAt == m_pRootElement)
+        {
+            unsigned int                   uiIndex = 0;
+            const unsigned int             uiTypeHash = CElement::GetTypeHashFromString(strType.c_str());
+            const CFromRootListType* const pElementList = CElement::GetEntityListByType(uiTypeHash);
+            
+            if (pElementList)
+            {
+                for (const CElement* const pElement : *pElementList)
+                {
+                    lua_pushnumber(luaVM, ++uiIndex);
+                    lua_pushelement(luaVM, pElement);
+                    lua_settable(luaVM, -3);
+                }
+            }
+        }
+        else
+        {
+            unsigned int       uiIndex = 0;
+            const unsigned int uiTypeHash = CElement::GetTypeHashFromString(strType.c_str());
+
+            std::function<void(CElement* const)> FindAllChildrenByTypeIndex;
+
+            FindAllChildrenByTypeIndex = [&](CElement* const pElement) {
+                if (pElement->GetTypeHash() == uiTypeHash)
+                {
+                    lua_pushnumber(luaVM, ++uiIndex);
+                    lua_pushelement(luaVM, pElement);
+                    lua_settable(luaVM, -3);
+                }
+
+                for (auto iter = pElement->IterBegin(); iter != pElement->IterEnd(); ++iter)
+                    FindAllChildrenByTypeIndex(*iter);
+            };
+
+            FindAllChildrenByTypeIndex(pStartAt);
+        }
+        
         return 1;
     }
     else

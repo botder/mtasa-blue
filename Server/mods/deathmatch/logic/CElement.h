@@ -43,6 +43,9 @@
 typedef CFastList<CElement*> CChildListType;
 typedef CFastList<CElement*> CElementListType;
 
+typedef CFastList<CElement*>                          CFromRootListType;
+typedef CFastHashMap<unsigned int, CFromRootListType> t_mapEntitiesFromRoot;
+
 // List of elements which is auto deleted when the last user calls Release()
 class CElementListSnapshot : public std::vector<CElement*>, public CRefCountableST
 {
@@ -89,11 +92,11 @@ public:
     virtual CElement* Clone(bool* bAddEntity, CResource* pResource) { return nullptr; }
     bool              IsCloneable(void);
 
-    bool         IsBeingDeleted(void) { return m_bIsBeingDeleted; };
+    bool         IsBeingDeleted(void) const { return m_bIsBeingDeleted; };
     void         SetIsBeingDeleted(bool bBeingDeleted) { m_bIsBeingDeleted = bBeingDeleted; };
     virtual void Unlink(void) = 0;
 
-    ElementID GetID(void) { return m_ID; };
+    ElementID GetID(void) const { return m_ID; };
 
     virtual const CVector& GetPosition(void);
     virtual void           SetPosition(const CVector& vecPosition);
@@ -106,9 +109,6 @@ public:
 
     CElement* FindChild(const char* szName, unsigned int uiIndex, bool bRecursive);
     CElement* FindChildByType(const char* szType, unsigned int uiIndex, bool bRecursive);
-    void      FindAllChildrenByType(const char* szType, lua_State* pLua);
-    void      GetChildren(lua_State* pLua);
-    void      GetChildrenByType(const char* szType, lua_State* pLua);
     bool      IsMyChild(CElement* pElement, bool bRecursive);
     bool      IsMyParent(CElement* pElement, bool bRecursive);
     void      ClearChildren(void);
@@ -158,7 +158,7 @@ public:
     CElementListSnapshot*                   GetChildrenListSnapshot(void);
 
     static uint        GetTypeHashFromString(const SString& strTypeName);
-    EElementType       GetType(void) { return m_iType; };
+    EElementType       GetType(void) const { return m_iType; };
     virtual bool       IsEntity(void) { return false; };
     unsigned int       GetTypeHash(void) { return m_uiTypeHash; };
     const std::string& GetTypeName(void) { return m_strTypeName; };
@@ -237,7 +237,6 @@ protected:
 
     CElement* FindChildIndex(const char* szName, unsigned int uiIndex, unsigned int& uiCurrentIndex, bool bRecursive);
     CElement* FindChildByTypeIndex(unsigned int uiTypeHash, unsigned int uiIndex, unsigned int& uiCurrentIndex, bool bRecursive);
-    void      FindAllChildrenByTypeIndex(unsigned int uiTypeHash, lua_State* pLua, unsigned int& uiIndex);
 
     void CallEventNoParent(const char* szName, const CLuaArguments& Arguments, CElement* pSource, CPlayer* pCaller = NULL);
     void CallParentEvent(const char* szName, const CLuaArguments& Arguments, CElement* pSource, CPlayer* pCaller = NULL);
@@ -282,15 +281,15 @@ protected:
     bool                   m_bUpdatingSpatialData;
     bool                   m_bCallPropagationEnabled;
 
-    // Optimization for getElementsByType starting at root
 public:
-    static void StartupEntitiesFromRoot();
+    // Optimization for getElementsByType starting at root
+    static void                     StartupEntitiesFromRoot();
+    static const CFromRootListType* GetEntityListByType(unsigned int uiTypeHash);
 
 private:
     static bool IsFromRoot(CElement* pEntity);
     static void AddEntityFromRoot(unsigned int uiTypeHash, CElement* pEntity, bool bDebugCheck = true);
     static void RemoveEntityFromRoot(unsigned int uiTypeHash, CElement* pEntity);
-    static void GetEntitiesFromRoot(unsigned int uiTypeHash, lua_State* pLua);
     static void GetEntitiesFromRoot(unsigned int uiTypeHash, std::vector<CElement*>& outResult);
 
 #if CHECK_ENTITIES_FROM_ROOT

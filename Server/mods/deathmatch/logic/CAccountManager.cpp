@@ -789,91 +789,32 @@ bool CAccountManager::CopyAccountData(CAccount* pFromAccount, CAccount* pToAccou
         return false;
 }
 
-bool CAccountManager::GetAllAccountData(CAccount* pAccount, lua_State* pLua)
+bool CAccountManager::GetAllAccountData(CAccount* pAccount, std::vector<CAccountData>& outAccountData)
 {
     if (!pAccount->IsRegistered())
     {
-        std::map<SString, CAccountData>::iterator iter = pAccount->DataBegin();
-        for (; iter != pAccount->DataEnd(); iter++)
-        {
-            if (iter->second.GetType() == LUA_TNIL)
-            {
-                lua_pushstring(pLua, iter->second.GetKey().c_str());
-                lua_pushnil(pLua);
-                lua_settable(pLua, -3);
-            }
-            if (iter->second.GetType() == LUA_TBOOLEAN)
-            {
-                lua_pushstring(pLua, iter->second.GetKey().c_str());
-                lua_pushboolean(pLua, iter->second.GetStrValue() == "true" ? true : false);
-                lua_settable(pLua, -3);
-            }
-            if (iter->second.GetType() == LUA_TNUMBER)
-            {
-                lua_pushstring(pLua, iter->second.GetKey().c_str());
-                lua_pushnumber(pLua, strtod(iter->second.GetStrValue().c_str(), NULL));
-                lua_settable(pLua, -3);
-            }
-            else
-            {
-                lua_pushstring(pLua, iter->second.GetKey().c_str());
-                lua_pushstring(pLua, iter->second.GetStrValue().c_str());
-                lua_settable(pLua, -3);
-            }
-        }
+        for (auto iter = pAccount->DataBegin(); iter != pAccount->DataEnd(); ++iter)
+            outAccountData.emplace_back(iter->second);
+
         return true;
     }
 
-    // Get the user ID
-    int iUserID = pAccount->GetID();
-    // create a new registry result for the query return
     CRegistryResult result;
-    SString         strKey;
+    m_pDatabaseManager->QueryWithResultf(m_hDbConnection, &result, "SELECT key,value,type from userdata where userid=?", SQLITE_INTEGER, pAccount->GetID());
 
-    // Select the value and type from the database where the user is our user and the key is the required key
-    m_pDatabaseManager->QueryWithResultf(m_hDbConnection, &result, "SELECT key,value,type from userdata where userid=?", SQLITE_INTEGER, iUserID);
+    if (result->nRows <= 0)
+        return false;
 
-    // Do we have any results?
-    if (result->nRows > 0)
+    for (CRegistryResultIterator iter = result->begin(); iter != result->end(); ++iter)
     {
-        // Loop through until i is the same as the number of rows
-        for (CRegistryResultIterator iter = result->begin(); iter != result->end(); ++iter)
-        {
-            const CRegistryResultRow& row = *iter;
-            // Get our key
-            strKey = (const char*)row[0].pVal;
-            // Get our type
-            int iType = static_cast<int>(row[2].nVal);
-            // Account data is stored as text so we don't need to check what type it is just return it
-            if (iType == LUA_TNIL)
-            {
-                lua_pushstring(pLua, strKey);
-                lua_pushnil(pLua);
-                lua_settable(pLua, -3);
-            }
-            if (iType == LUA_TBOOLEAN)
-            {
-                SString strResult = (const char*)row[1].pVal;
-                lua_pushstring(pLua, strKey);
-                lua_pushboolean(pLua, strResult == "true" ? true : false);
-                lua_settable(pLua, -3);
-            }
-            if (iType == LUA_TNUMBER)
-            {
-                lua_pushstring(pLua, strKey);
-                lua_pushnumber(pLua, strtod((const char*)row[1].pVal, NULL));
-                lua_settable(pLua, -3);
-            }
-            else
-            {
-                lua_pushstring(pLua, strKey);
-                lua_pushstring(pLua, ((const char*)row[1].pVal));
-                lua_settable(pLua, -3);
-            }
-        }
-        return true;
+        const CRegistryResultRow& row = *iter;
+        auto szKey = reinterpret_cast<const char*>(row[0].pVal);
+        auto szValue = reinterpret_cast<const char*>(row[1].pVal);
+        auto iType = static_cast<int>(row[2].nVal);
+        outAccountData.emplace_back(std::string(szKey), std::string(szValue), iType);
     }
-    return false;
+
+    return true;
 }
 
 void CAccountManager::GetAccountsBySerial(const SString& strSerial, std::vector<CAccount*>& outAccounts)

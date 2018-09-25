@@ -136,7 +136,7 @@ public:
     std::shared_ptr<CLuaArgument> GetAccountData(CAccount* pAccount, const char* szKey);
     bool                          SetAccountData(CAccount* pAccount, const char* szKey, const SString& strValue, int iType);
     bool                          CopyAccountData(CAccount* pFromAccount, CAccount* pToAccount);
-    bool                          GetAllAccountData(CAccount* pAccount, lua_State* pLua);
+    bool                          GetAllAccountData(CAccount* pAccount, std::vector<CAccountData>& outAccountData);
 
     void      GetAccountsBySerial(const SString& strSerial, std::vector<CAccount*>& outAccounts);
     void      GetAccountsByIP(const SString& strIP, std::vector<CAccount*>& outAccounts);

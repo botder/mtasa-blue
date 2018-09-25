@@ -10903,7 +10903,34 @@ bool CStaticFunctionDefinitions::GetAllAccountData(lua_State* pLua, CAccount* pA
 {
     assert(pLua);
     assert(pAccount);
-    m_pAccountManager->GetAllAccountData(pAccount, pLua);
+    std::vector<CAccountData> vecAccountData;
+
+    if (!m_pAccountManager->GetAllAccountData(pAccount, vecAccountData))
+        return false;
+
+    for (CAccountData& accountData : vecAccountData)
+    {
+        lua_pushstring(pLua, accountData.GetKey().c_str());
+
+        switch (accountData.GetType())
+        {
+        case LUA_TNIL:
+            lua_pushnil(pLua);
+            break;
+        case LUA_TBOOLEAN:
+            lua_pushboolean(pLua, accountData.GetStrValue() == "true" ? true : false);
+            break;
+        case LUA_TNUMBER:
+            lua_pushnumber(pLua, strtod(accountData.GetStrValue().c_str(), NULL));
+            break;
+        default:
+            lua_pushstring(pLua, accountData.GetStrValue().c_str());
+            break;
+        }
+
+        lua_settable(pLua, -3);
+    }
+
     return true;
 }
 

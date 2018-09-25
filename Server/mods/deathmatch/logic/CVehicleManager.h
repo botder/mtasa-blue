@@ -16,7 +16,6 @@ class CVehicleManager;
 #include "CVehicle.h"
 #include "CVehicleColorManager.h"
 #include <list>
-#include "lua/CLuaMain.h"
 
 // Undefined number of passengers (to disable custom passenger seats overriding in CVehicle)
 #define VEHICLE_PASSENGERS_UNDEFINED    255
@@ -54,8 +53,6 @@ public:
 
     CVehicleColorManager* GetColorManager(void) { return &m_ColorManager; };
     CVehicleColor         GetRandomColor(unsigned short usModel);
-
-    void GetVehiclesOfType(unsigned int uiModel, lua_State* luaVM);
 
     list<CVehicle*>::const_iterator IterBegin(void) { return m_List.begin(); };
     list<CVehicle*>::const_iterator IterEnd(void) { return m_List.end(); };

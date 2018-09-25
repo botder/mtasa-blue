@@ -1101,7 +1101,20 @@ int CLuaVehicleDefs::GetVehiclesOfType(lua_State* luaVM)
         lua_newtable(luaVM);
 
         // Add all the vehicles with a matching model
-        m_pVehicleManager->GetVehiclesOfType(uiModel, luaVM);
+        unsigned int uiIndex = 0;
+
+        for (auto iter = m_pVehicleManager->IterBegin(); iter != m_pVehicleManager->IterEnd(); ++iter)
+        {
+            CVehicle* const pVehicle = *iter;
+
+            if (pVehicle->GetModel() == uiModel)
+            {
+                lua_pushnumber(luaVM, ++uiIndex);
+                lua_pushelement(luaVM, *iter);
+                lua_settable(luaVM, -3);
+            }
+        }
+
         return 1;
     }
     else

@@ -596,8 +596,14 @@ VOID _declspec(naked) HOOK_CAutomobile__ProcessControl()
     _asm
     {
         popad
+        push    ecx
         mov     edx, FUNC_CAutomobile__ProcessControl
         call    edx
+        pop     ecx
+        push    eax
+        mov     edx, FUNC_CVehicle__ProcessWeapons
+        call    edx
+        pop     eax
         pushad
     }
 
@@ -625,8 +631,14 @@ VOID _declspec(naked) HOOK_CMonsterTruck__ProcessControl()
     _asm
     {
         popad
+        push    ecx
         mov     edx, FUNC_CMonsterTruck__ProcessControl
         call    edx
+        pop     ecx
+        push    eax
+        mov     edx, FUNC_CVehicle__ProcessWeapons
+        call    edx
+        pop     eax
         pushad
     }
 
@@ -654,8 +666,14 @@ VOID _declspec(naked) HOOK_CTrailer__ProcessControl()
     _asm
     {
         popad
+        push    ecx
         mov     edx, FUNC_CTrailer__ProcessControl
         call    edx
+        pop     ecx
+        push    eax
+        mov     edx, FUNC_CVehicle__ProcessWeapons
+        call    edx
+        pop     eax
         pushad
     }
 
@@ -683,8 +701,14 @@ VOID _declspec(naked) HOOK_CQuadBike__ProcessControl()
     _asm
     {
         popad
+        push    ecx
         mov     edx, FUNC_CQuadBike__ProcessControl
         call    edx
+        pop     ecx
+        push    eax
+        mov     edx, FUNC_CVehicle__ProcessWeapons
+        call    edx
+        pop     eax
         pushad
     }
 
@@ -741,8 +765,14 @@ VOID _declspec(naked) HOOK_CBmx__ProcessControl()
     _asm
     {
         popad
+        push    ecx
         mov     edx, FUNC_CBmx__ProcessControl
         call    edx
+        pop     ecx
+        push    eax
+        mov     edx, FUNC_CVehicle__ProcessWeapons
+        call    edx
+        pop     eax
         pushad
     }
 
@@ -770,8 +800,14 @@ VOID _declspec(naked) HOOK_CTrain__ProcessControl()
     _asm
     {
         popad
+        push    ecx
         mov     edx, FUNC_CTrain__ProcessControl
         call    edx
+        pop     ecx
+        push    eax
+        mov     edx, FUNC_CVehicle__ProcessWeapons
+        call    edx
+        pop     eax
         pushad
     }
 
@@ -799,8 +835,14 @@ VOID _declspec(naked) HOOK_CBoat__ProcessControl()
     _asm
     {
         popad
+        push    ecx
         mov     edx, FUNC_CBoat__ProcessControl
         call    edx
+        pop     ecx
+        push    eax
+        mov     edx, FUNC_CVehicle__ProcessWeapons
+        call    edx
+        pop     eax
         pushad
     }
 
@@ -828,8 +870,14 @@ VOID _declspec(naked) HOOK_CBike__ProcessControl()
     _asm
     {
         popad
+        push    ecx
         mov     edx, FUNC_CBike__ProcessControl
         call    edx
+        pop     ecx
+        push    eax
+        mov     edx, FUNC_CVehicle__ProcessWeapons
+        call    edx
+        pop     eax
         pushad
     }
 

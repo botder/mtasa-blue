@@ -74,6 +74,7 @@ VOID HOOK_CHeli__ProcessControl();
 
 //#define FUNC_CVehicle__ProcessUnknown     0x593030
 //#define VTBL_CVehicle__ProcessUnknown     0x69ADB0
+#define FUNC_CVehicle__ProcessWeapons       0x6E3950
 
 #define CODE_SetTargetRotation              0x535851
 

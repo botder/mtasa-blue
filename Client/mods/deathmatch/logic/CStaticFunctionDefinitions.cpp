@@ -151,24 +151,52 @@ bool CStaticFunctionDefinitions::TriggerServerEvent(const char* szName, CClientE
         return false;
 
     NetBitStreamInterface* pBitStream = g_pNet->AllocateNetBitStream();
-    if (pBitStream)
-    {
-        unsigned short usNameLength = static_cast<unsigned short>(strlen(szName));
-        pBitStream->WriteCompressed(usNameLength);
-        pBitStream->Write(szName, usNameLength);
-        pBitStream->Write(CallWithEntity.GetID());
-        if (!Arguments.WriteToBitStream(*pBitStream))
-        {
-            g_pNet->DeallocateNetBitStream(pBitStream);
-            return false;
-        }
-        g_pNet->SendPacket(PACKET_ID_LUA_EVENT, pBitStream, PACKET_PRIORITY_HIGH, PACKET_RELIABILITY_RELIABLE_ORDERED);
-        g_pNet->DeallocateNetBitStream(pBitStream);
 
-        return true;
+    if (!pBitStream)
+        return false;
+
+    unsigned short usNameLength = static_cast<unsigned short>(strlen(szName));
+    pBitStream->WriteCompressed(usNameLength);
+    pBitStream->Write(szName, usNameLength);
+    pBitStream->Write(CallWithEntity.GetID());
+
+    if (!Arguments.WriteToBitStream(*pBitStream))
+    {
+        g_pNet->DeallocateNetBitStream(pBitStream);
+        return false;
     }
 
-    return false;
+    if (pBitStream->Version() >= 0x06D)
+    {
+        if (g_pClientGame->GetDevelopmentMode())
+        {
+            CLuaMain* pLuaMain = g_pClientGame->GetScriptDebugging()->GetTopLuaMain();
+
+            if (pLuaMain)
+            {
+                const SLuaDebugInfo& luaDebugInfo = g_pClientGame->GetScriptDebugging()->GetLuaDebugInfo(pLuaMain->GetVirtualMachine());
+
+                if (luaDebugInfo.infoType == DEBUG_INFO_FILE_AND_LINE && !luaDebugInfo.strFile.empty())
+                {
+                    SString strDebugInfo("(in resource %s in file %s on line %d)", pLuaMain->GetScriptName(), luaDebugInfo.strFile.c_str(), 
+                                         luaDebugInfo.iLine);
+                    pBitStream->WriteBit(true);
+                    pBitStream->WriteString(strDebugInfo);
+                }
+                else
+                    pBitStream->WriteBit(false);
+            }
+            else
+                pBitStream->WriteBit(false);
+        }
+        else
+            pBitStream->WriteBit(false);
+    }
+
+    g_pNet->SendPacket(PACKET_ID_LUA_EVENT, pBitStream, PACKET_PRIORITY_HIGH, PACKET_RELIABILITY_RELIABLE_ORDERED);
+    g_pNet->DeallocateNetBitStream(pBitStream);
+
+    return true;
 }
 
 bool CStaticFunctionDefinitions::TriggerLatentServerEvent(const char* szName, CClientEntity& CallWithEntity, CLuaArguments& Arguments, int iBandwidth,

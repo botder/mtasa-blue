@@ -22,26 +22,56 @@ CLuaEventPacket::CLuaEventPacket(const char* szName, ElementID ID, CLuaArguments
     m_strName.AssignLeft(szName, MAX_EVENT_NAME_LENGTH);
     m_ElementID = ID;
     m_pArguments = pArguments;            // Use a pointer to save copying the arguments
+
+    if (g_pGame->GetDevelopmentMode())
+    {
+        CLuaMain* pLuaMain = g_pGame->GetScriptDebugging()->GetTopLuaMain();
+
+        if (pLuaMain)
+        {
+            const SLuaDebugInfo& luaDebugInfo = g_pGame->GetScriptDebugging()->GetLuaDebugInfo(pLuaMain->GetVirtualMachine());
+
+            if (luaDebugInfo.infoType == DEBUG_INFO_FILE_AND_LINE && !luaDebugInfo.strFile.empty())
+            {
+                m_strDebugInfo = SString("(in resource %s in file %s on line %d)", pLuaMain->GetScriptName(), luaDebugInfo.strFile.c_str(), 
+                                         luaDebugInfo.iLine);
+            }
+        }
+    }
 }
 
 bool CLuaEventPacket::Read(NetBitStreamInterface& BitStream)
 {
     unsigned short usNameLength;
-    if (BitStream.ReadCompressed(usNameLength))
-    {
-        if (usNameLength < (MAX_EVENT_NAME_LENGTH - 1) && BitStream.ReadStringCharacters(m_strName, usNameLength) && BitStream.Read(m_ElementID))
-        {
-            // Faster than using a constructor
-            m_ArgumentsStore.DeleteArguments();
-            if(!m_ArgumentsStore.ReadFromBitStream(BitStream))
-                return false;
-            m_pArguments = &m_ArgumentsStore;
 
-            return true;
+    if (!BitStream.ReadCompressed(usNameLength))
+        return false;
+
+    if (usNameLength > (MAX_EVENT_NAME_LENGTH - 1))
+        return false;
+
+    if (!BitStream.ReadStringCharacters(m_strName, usNameLength) || !BitStream.Read(m_ElementID))
+        return false;
+
+    // Faster than using a constructor
+    m_ArgumentsStore.DeleteArguments();
+
+    if (!m_ArgumentsStore.ReadFromBitStream(BitStream))
+        return false;
+
+    m_pArguments = &m_ArgumentsStore;
+
+    // Read optional debug information
+    if (BitStream.Version() >= 0x06D)
+    {
+        if (BitStream.ReadBit())
+        {
+            if (!BitStream.ReadString(m_strDebugInfo))
+                return false;
         }
     }
 
-    return false;
+    return true;
 }
 
 bool CLuaEventPacket::Write(NetBitStreamInterface& BitStream) const
@@ -51,6 +81,17 @@ bool CLuaEventPacket::Write(NetBitStreamInterface& BitStream) const
     BitStream.WriteStringCharacters(m_strName, usNameLength);
     BitStream.Write(m_ElementID);
     m_pArguments->WriteToBitStream(BitStream);
+
+    if (BitStream.Version() >= 0x06D)
+    {
+        if (!m_strDebugInfo.empty())
+        {
+            BitStream.WriteBit(true);
+            BitStream.WriteString(m_strDebugInfo);
+        }
+        else
+            BitStream.WriteBit(false);
+    }
 
     return true;
 }

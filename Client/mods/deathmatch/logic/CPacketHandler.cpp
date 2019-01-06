@@ -4660,49 +4660,75 @@ void CPacketHandler::Packet_LuaEvent(NetBitStreamInterface& bitStream)
 {
     // Read out the event name length
     unsigned short usNameLength;
-    if (bitStream.ReadCompressed(usNameLength))
+
+    if (!bitStream.ReadCompressed(usNameLength))
+        return;
+    
+    // Error?
+    if (usNameLength > (MAX_EVENT_NAME_LENGTH - 1))
     {
-        // Error?
-        if (usNameLength > (MAX_EVENT_NAME_LENGTH - 1))
+        RaiseFatalError(13);
+        return;
+    }
+
+    // Read out the name
+    std::unique_ptr<char[]> szName = std::make_unique<char[]>(usNameLength + 1);
+
+    if (!bitStream.Read(szName.get(), usNameLength))
+        return;
+
+    // Null-terminate it
+    szName[usNameLength] = 0;
+
+    // Grab the entity
+    ElementID EntityID;
+
+    if (!bitStream.Read(EntityID))
+        return;
+
+    CClientEntity* pEntity = CElementIDs::GetElement(EntityID);
+
+    if (!pEntity)
+        return;
+
+    // Read out the arguments aswell
+    CLuaArguments Arguments(bitStream);
+
+    // Read optional debug information
+    std::string strDebugInfo;
+
+    if (bitStream.Version() >= 0x06D)
+    {
+        if (bitStream.ReadBit())
         {
-            RaiseFatalError(13);
-            return;
+            if (!bitStream.ReadString(strDebugInfo))
+                return;
         }
+    }
 
-        // Read out the name and the entity id
-        char*     szName = new char[usNameLength + 1];
-        ElementID EntityID;
-        if (bitStream.Read(szName, usNameLength) && bitStream.Read(EntityID))
-        {
-            // Null-terminate it
-            szName[usNameLength] = 0;
+    // Make sure the event exists and that it allows serverside triggering
+    SEvent* pEvent = g_pClientGame->m_Events.Get(szName.get());
 
-            // Read out the arguments aswell
-            CLuaArguments Arguments(bitStream);
+    if (pEvent && pEvent->bAllowRemoteTrigger)
+    {
+        pEntity->CallEvent(szName.get(), Arguments, true);
+        return;
+    }
 
-            // Grab the event. Does it exist and is it remotly triggerable?
-            SEvent* pEvent = g_pClientGame->m_Events.Get(szName);
-            if (pEvent)
-            {
-                if (pEvent->bAllowRemoteTrigger)
-                {
-                    // Grab the element we trigger it on
-                    CClientEntity* pEntity = CElementIDs::GetElement(EntityID);
-                    if (pEntity)
-                    {
-                        pEntity->CallEvent(szName, Arguments, true);
-                    }
-                }
-                else
-                    g_pClientGame->m_pScriptDebugging->LogError(NULL, "Server triggered clientside event %s, but event is not marked as remotly triggerable",
-                                                                szName);
-            }
-            else
-                g_pClientGame->m_pScriptDebugging->LogError(NULL, "Server triggered clientside event %s, but event is not added clientside", szName);
-        }
+    const char* szError = "added clientside";
 
-        // Delete event name again
-        delete[] szName;
+    if (pEvent && !pEvent->bAllowRemoteTrigger)
+        szError = "marked as remotely triggerable";
+
+    SString strDebugMessage("Server triggered clientside event %s, but event is not %s", szName.get(), szError);
+
+    if (!strDebugInfo.empty())
+    {
+        g_pClientGame->GetScriptDebugging()->LogError(nullptr, "%s %s", strDebugMessage.c_str(), strDebugInfo.c_str());
+    }
+    else
+    {
+        g_pClientGame->GetScriptDebugging()->LogError(nullptr, strDebugMessage.c_str());
     }
 }
 

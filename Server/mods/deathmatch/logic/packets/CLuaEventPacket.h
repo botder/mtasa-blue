@@ -29,10 +29,12 @@ public:
     const char*    GetName(void) { return m_strName; }
     ElementID      GetElementID(void) { return m_ElementID; }
     CLuaArguments* GetArguments(void) { return m_pArguments; }
+    const SString& GetDebugInfo() const noexcept { return m_strDebugInfo; }
 
 private:
     SString        m_strName;
     ElementID      m_ElementID;
     CLuaArguments  m_ArgumentsStore;
     CLuaArguments* m_pArguments;
+    SString        m_strDebugInfo;
 };

@@ -2423,30 +2423,42 @@ void CGame::RelayNearbyPacket(CPacket& Packet)
 
 void CGame::Packet_LuaEvent(CLuaEventPacket& Packet)
 {
-    // Grab the source player, even name, element id and the arguments passed
-    CPlayer*       pCaller = Packet.GetSourcePlayer();
-    const char*    szName = Packet.GetName();
-    ElementID      ElementID = Packet.GetElementID();
-    CLuaArguments* pArguments = Packet.GetArguments();
-
     // Grab the element
+    ElementID ElementID = Packet.GetElementID();
+
     CElement* pElement = CElementIDs::GetElement(ElementID);
-    if (pElement)
+
+    if (!pElement)
+        return;
+
+    // Make sure the event exists and that it allows clientside triggering
+    const char* szName = Packet.GetName();
+    CPlayer*    pCaller = Packet.GetSourcePlayer();
+    SEvent*     pEvent = m_Events.Get(szName);
+
+    if (pEvent && pEvent->bAllowRemoteTrigger)
     {
-        // Make sure the event exists and that it allows clientside triggering
-        SEvent* pEvent = m_Events.Get(szName);
-        if (pEvent)
-        {
-            if (pEvent->bAllowRemoteTrigger)
-            {
-                pElement->CallEvent(szName, *pArguments, pCaller);
-            }
-            else
-                m_pScriptDebugging->LogError(NULL, "Client (%s) triggered serverside event %s, but event is not marked as remotly triggerable",
-                                             pCaller->GetNick(), szName);
-        }
-        else
-            m_pScriptDebugging->LogError(NULL, "Client (%s) triggered serverside event %s, but event is not added serverside", pCaller->GetNick(), szName);
+        CLuaArguments* pArguments = Packet.GetArguments();
+        pElement->CallEvent(szName, *pArguments, pCaller);
+        return;
+    }
+
+    const char* szError = "added serverside";
+
+    if (pEvent && !pEvent->bAllowRemoteTrigger)
+        szError = "marked as remotely triggerable";
+
+    SString strDebugMessage("Client (%s) triggered serverside event %s, but event is not %s", pCaller->GetNick(), szName, szError);
+
+    const SString& strDebugInfo = Packet.GetDebugInfo();
+
+    if (!strDebugInfo.empty())
+    {
+        m_pScriptDebugging->LogError(nullptr, "%s %s", strDebugMessage.c_str(), strDebugInfo.c_str());
+    }
+    else
+    {
+        m_pScriptDebugging->LogError(nullptr, strDebugMessage.c_str());
     }
 }
 

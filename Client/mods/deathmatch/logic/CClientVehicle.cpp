@@ -2887,6 +2887,8 @@ void CClientVehicle::Create()
 
         // Tell the streamer we've created this object
         NotifyCreate();
+
+        OUTPUT_VTABLE_DEBUG("INFO", (intptr_t)m_pVehicle->GetInterface());
     }
 }
 
@@ -2895,6 +2897,8 @@ void CClientVehicle::Destroy()
     // If the vehicle exists
     if (m_pVehicle)
     {
+        OUTPUT_VTABLE_DEBUG("INFO", (intptr_t)m_pVehicle->GetInterface());
+
         #ifdef MTA_DEBUG
         g_pCore->GetConsole()->Printf("CClientVehicle::Destroy %d", GetModel());
         #endif

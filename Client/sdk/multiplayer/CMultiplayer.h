@@ -101,7 +101,7 @@ typedef bool(ProcessCollisionHandler)(class CEntitySAInterface* pThisInterface, 
 typedef bool(VehicleCollisionHandler)(class CVehicleSAInterface*& pCollidingVehicle, class CEntitySAInterface* pCollidedVehicle, int iModelIndex,
                                       float fDamageImpulseMag, float fCollidingDamageImpulseMag, uint16 usPieceType, CVector vecCollisionPos,
                                       CVector vecCollisionVelocity);
-typedef bool(VehicleDamageHandler)(CEntitySAInterface* pVehicle, float fLoss, CEntitySAInterface* pAttacker, eWeaponType weaponType,
+typedef bool(VehicleDamageHandler)(CVehicleSAInterface*& pVehicle, float fLoss, CEntitySAInterface* pAttacker, eWeaponType weaponType,
                                    const CVector& vecDamagePos, uchar ucTyre);
 typedef bool(HeliKillHandler)(class CVehicleSAInterface* pVehicle, class CEntitySAInterface* pHitInterface);
 typedef bool(ObjectDamageHandler)(class CObjectSAInterface* pObject, float fLoss, class CEntitySAInterface* pAttacker);

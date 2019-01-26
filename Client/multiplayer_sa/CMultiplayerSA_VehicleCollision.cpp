@@ -29,6 +29,8 @@ void TriggerVehicleCollisionEvent()
     if (!pEntity)
         return;
 
+    OUTPUT_VTABLE_DEBUG("PRE", pCollisionVehicle);
+
     TIMING_CHECKPOINT("+TriggerVehColEvent");
     if (pEntity->nType == ENTITY_TYPE_VEHICLE)
     {
@@ -45,6 +47,8 @@ void TriggerVehicleCollisionEvent()
             pCollisionVehicle->m_vecCollisionImpactVelocity);
     }
     TIMING_CHECKPOINT("-TriggerVehColEvent");
+
+    OUTPUT_VTABLE_DEBUG("POST", pCollisionVehicle);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////

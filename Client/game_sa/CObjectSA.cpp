@@ -187,12 +187,12 @@ CObjectSA::~CObjectSA()
         DWORD dwInterface = (DWORD)this->GetInterface();
         if (dwInterface)
         {
-            if ((DWORD)this->GetInterface()->vtbl != VTBL_CPlaceable)
+            if (m_pInterface->vtbl && (DWORD)m_pInterface->vtbl != VTBL_CPlaceable)
             {
                 CWorldSA* world = (CWorldSA*)pGame->GetWorld();
-                world->Remove(this->GetInterface(), CObject_Destructor);
+                world->Remove(m_pInterface, CObject_Destructor);
 
-                DWORD dwFunc = this->GetInterface()->vtbl->SCALAR_DELETING_DESTRUCTOR;            // we use the vtbl so we can be type independent
+                DWORD dwFunc = m_pInterface->vtbl->SCALAR_DELETING_DESTRUCTOR;            // we use the vtbl so we can be type independent
                 _asm
                 {
                     mov     ecx, dwInterface

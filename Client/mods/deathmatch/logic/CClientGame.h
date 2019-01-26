@@ -508,7 +508,7 @@ private:
     static bool StaticVehicleCollisionHandler(CVehicleSAInterface*& pThisInterface, CEntitySAInterface* pOtherInterface, int iModelIndex,
                                               float fDamageImpulseMag, float fCollidingDamageImpulseMag, uint16 usPieceType, CVector vecCollisionPos,
                                               CVector vecCollisionVelocity);
-    static bool StaticVehicleDamageHandler(CEntitySAInterface* pVehicleInterface, float fLoss, CEntitySAInterface* pAttackerInterface, eWeaponType weaponType,
+    static bool StaticVehicleDamageHandler(CVehicleSAInterface*& pVehicleInterface, float fLoss, CEntitySAInterface* pAttackerInterface, eWeaponType weaponType,
                                            const CVector& vecDamagePos, uchar ucTyre);
     static bool StaticHeliKillHandler(CVehicleSAInterface* pHeli, CEntitySAInterface* pHitInterface);
     static bool StaticObjectDamageHandler(CObjectSAInterface* pObjectInterface, float fLoss, CEntitySAInterface* pAttackerInterface);
@@ -550,7 +550,7 @@ private:
     bool        ProcessCollisionHandler(CEntitySAInterface* pThisInterface, CEntitySAInterface* pOtherInterface);
     bool        VehicleCollisionHandler(CVehicleSAInterface*& pCollidingVehicle, CEntitySAInterface* pCollidedVehicle, int iModelIndex, float fDamageImpulseMag,
                                         float fCollidingDamageImpulseMag, uint16 usPieceType, CVector vecCollisionPos, CVector vecCollisionVelocity);
-    bool        VehicleDamageHandler(CEntitySAInterface* pVehicleInterface, float fLoss, CEntitySAInterface* pAttackerInterface, eWeaponType weaponType,
+    bool        VehicleDamageHandler(CVehicleSAInterface*& pVehicleInterface, float fLoss, CEntitySAInterface* pAttackerInterface, eWeaponType weaponType,
                                      const CVector& vecDamagePos, uchar ucTyre);
     bool        HeliKillHandler(CVehicleSAInterface* pHeli, CEntitySAInterface* pHitInterface);
     bool        ObjectDamageHandler(CObjectSAInterface* pObjectInterface, float fLoss, CEntitySAInterface* pAttackerInterface);

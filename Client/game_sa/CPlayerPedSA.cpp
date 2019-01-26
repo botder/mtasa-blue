@@ -128,9 +128,7 @@ CPlayerPedSA::~CPlayerPedSA()
     DEBUG_TRACE("CPlayerPedSA::~CPlayerPedSA( )");
     if (!this->BeingDeleted && DoNotRemoveFromGame == false)
     {
-        DWORD dwInterface = (DWORD)m_pInterface;
-
-        if ((DWORD)this->GetInterface()->vtbl != VTBL_CPlaceable)
+        if (m_pInterface->vtbl && (DWORD)m_pInterface->vtbl != VTBL_CPlaceable)
         {
             CWorldSA* world = (CWorldSA*)pGame->GetWorld();
             world->Remove(m_pInterface, CPlayerPed_Destructor);

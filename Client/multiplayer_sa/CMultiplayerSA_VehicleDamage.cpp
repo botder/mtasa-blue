@@ -24,6 +24,8 @@ namespace
     CVector             ms_SavedDamagedPos;
 
     VehicleDamageHandler* m_pVehicleDamageHandler = NULL;
+
+    CVehicleSAInterface* pHookVehicle = nullptr;
 }            // namespace
 
 //////////////////////////////////////////////////////////////////////////////////////////
@@ -34,9 +36,11 @@ namespace
 // Called when an inflated vehicle tyre is hit by a bullet
 //
 //////////////////////////////////////////////////////////////////////////////////////////
-bool OnMY_CVehicle_BurstTyre(CVehicleSAInterface* pVehicle, uchar ucTyre)
+bool OnMY_CVehicle_BurstTyre(uchar ucTyre)
 {
-    if (m_pVehicleDamageHandler)
+    OUTPUT_VTABLE_DEBUG("PRE", pHookVehicle);
+
+    if (pHookVehicle && m_pVehicleDamageHandler)
     {
         eWeaponType weaponType = WEAPONTYPE_INVALID;
 
@@ -50,10 +54,11 @@ bool OnMY_CVehicle_BurstTyre(CVehicleSAInterface* pVehicle, uchar ucTyre)
                 weaponType = pWeapon->GetType();
         }
 
-        if (!m_pVehicleDamageHandler(pVehicle, 0, pBulletImpactInitiator, weaponType, vecSavedBulletImpactEndPosition, ucTyre))
+        if (!m_pVehicleDamageHandler(pHookVehicle, 0, pBulletImpactInitiator, weaponType, vecSavedBulletImpactEndPosition, ucTyre))
             return false;
     }
-
+    
+    OUTPUT_VTABLE_DEBUG("POST", pHookVehicle);
     return true;
 }
 
@@ -68,19 +73,21 @@ void _declspec(naked) HOOK_CAutomobile_BurstTyre()
     _asm
     {
         pushad
+        mov     pHookVehicle, esi
         push    edi
-        push    esi
         call    OnMY_CVehicle_BurstTyre
-        add     esp, 4*2
+        add     esp, 4*1
 
         test    al, al
         jnz     cont
 
         popad
+        mov     esi, pHookVehicle
         jmp     RETURN_CAutomobile_BurstTyre_B
 cont:
 
         popad
+        mov     esi, pHookVehicle
         push    1
         push    edi
         mov     ecx, ebx
@@ -105,20 +112,22 @@ void _declspec(naked) HOOK_CBike_BurstTyre()
     _asm
     {
         pushad
+        mov     pHookVehicle, esi
         movzx   eax, bl
         push    eax
-        push    esi
         call    OnMY_CVehicle_BurstTyre
-        add     esp, 4*2
+        add     esp, 4*1
 
         test    al, al
         jnz     cont
 
         popad
+        mov     esi, pHookVehicle
         jmp     RETURN_CBike_BurstTyre_B
 cont:
 
         popad
+        mov     esi, pHookVehicle
         push    0
         push    5Ah
         lea     ecx, [esi+138h]
@@ -133,14 +142,17 @@ cont:
 // Called when a bullet, projectile or flame causes the vehicle damage
 //
 //////////////////////////////////////////////////////////////////////////////////////////
-bool OnMY_CVehicle_InflictDamage(CVehicleSAInterface* pVehicle, CEntitySAInterface* pAttacker, eWeaponType weaponType, float fDamage, CVector vecDamagePos)
+bool OnMY_CVehicle_InflictDamage(CEntitySAInterface* pAttacker, eWeaponType weaponType, float fDamage, CVector vecDamagePos)
 {
-    if (m_pVehicleDamageHandler)
+    OUTPUT_VTABLE_DEBUG("PRE", pHookVehicle);
+
+    if (pHookVehicle && m_pVehicleDamageHandler)
     {
-        if (!m_pVehicleDamageHandler(pVehicle, fDamage, pAttacker, weaponType, vecDamagePos, UCHAR_INVALID_INDEX))
+        if (!m_pVehicleDamageHandler(pHookVehicle, fDamage, pAttacker, weaponType, vecDamagePos, UCHAR_INVALID_INDEX))
             return false;
     }
 
+    OUTPUT_VTABLE_DEBUG("POST", pHookVehicle);
     return true;
 }
 
@@ -159,24 +171,26 @@ void _declspec(naked) HOOK_CVehicle_InflictDamage()
     _asm
     {
         pushad
+        mov     pHookVehicle, esi
         push    [esp+32+4*6]
         push    [esp+32+4*6]
         push    [esp+32+4*6]
         push    [esp+32+4*6]
         push    [esp+32+4*6]
         push    [esp+32+4*6]
-        push    ecx
         call    OnMY_CVehicle_InflictDamage
-        add     esp, 4*6+4
+        add     esp, 4*6
 
         test    al, al
         jnz     cont
 
         popad
+        mov     esi, pHookVehicle
         retn    18h
 cont:
 
         popad
+        mov     esi, pHookVehicle
         push    0FFFFFFFFh
         jmp     RETURN_CVehicle_InflictDamage_BOTH
     }
@@ -239,13 +253,15 @@ void _declspec(naked) HOOK_CAutomobile_VehicleDamage1()
 // Trigger event
 //
 //////////////////////////////////////////////////////////////////////////////////////////
-float OnMY_CVehicle_VehicleDamage2(CVehicleSAInterface* pVehicle, float fDamage)
+float OnMY_CVehicle_VehicleDamage2(float fDamage)
 {
-    if (m_pVehicleDamageHandler)
+    OUTPUT_VTABLE_DEBUG("PRE", pHookVehicle);
+
+    if (pHookVehicle && m_pVehicleDamageHandler)
     {
         eWeaponType         weaponType = WEAPONTYPE_INVALID;
-        CEntitySAInterface* pAttacker = pVehicle->m_pCollidedEntity;
-        CVector             vecDamagePos = pVehicle->m_vecCollisionPosition;
+        CEntitySAInterface* pAttacker = pHookVehicle->m_pCollidedEntity;
+        CVector             vecDamagePos = pHookVehicle->m_vecCollisionPosition;
 
         if (ms_HasSavedData)
         {
@@ -255,9 +271,11 @@ float OnMY_CVehicle_VehicleDamage2(CVehicleSAInterface* pVehicle, float fDamage)
             vecDamagePos = ms_SavedDamagedPos;
         }
 
-        if (!m_pVehicleDamageHandler(pVehicle, fDamage, pAttacker, weaponType, vecDamagePos, UCHAR_INVALID_INDEX))
+        if (!m_pVehicleDamageHandler(pHookVehicle, fDamage, pAttacker, weaponType, vecDamagePos, UCHAR_INVALID_INDEX))
             fDamage = 0;
     }
+
+    OUTPUT_VTABLE_DEBUG("POST", pHookVehicle);
     ms_HasSavedData = false;
     return fDamage;
 }
@@ -272,12 +290,13 @@ void _declspec(naked) HOOK_CAutomobile_VehicleDamage2()
     _asm
     {
         pushad
+        mov     pHookVehicle, esi
         fstp    [esp-4] // Pop loss
         push    [esp-4]
-        push    esi
         call    OnMY_CVehicle_VehicleDamage2
-        add     esp, 4*2
+        add     esp, 4*1
         popad
+        mov     esi, pHookVehicle
 
         // Loss is on fp stack (from function return)
         // Continue replaced code
@@ -338,12 +357,13 @@ void _declspec(naked) HOOK_CPlane_VehicleDamage2()
     _asm
     {
         pushad
+        mov     pHookVehicle, esi
         fstp    [esp-4] // Pop loss
         push    [esp-4]
-        push    esi
         call    OnMY_CVehicle_VehicleDamage2
-        add     esp, 4*2
+        add     esp, 4*1
         popad
+        mov     esi, pHookVehicle
 
         // Loss is on fp stack (from function return)
         // Continue replaced code
@@ -404,17 +424,52 @@ void _declspec(naked) HOOK_CBike_VehicleDamage2()
     _asm
     {
         pushad
+        mov     pHookVehicle, esi
         fstp    [esp-4] // Pop loss
         push    [esp-4]
-        push    esi
         call    OnMY_CVehicle_VehicleDamage2
-        add     esp, 4*2
+        add     esp, 4*1
         popad
+        mov     esi, pHookVehicle
 
         // Loss is on fp stack (from function return)
         // Continue replaced code
         fsubr   dword ptr [esi+4C0h]
         jmp     RETURN_CBike_VehicleDamage2
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////
+//
+// CPlaceable::~CPlaceable()
+//
+// Destructor for CPlaceable. Replace the vftable pointer with nullptr
+// to make debugging easier
+//
+//////////////////////////////////////////////////////////////////////////////////////////
+//     0054F496 | 85 C0             | test  eax, eax
+// >>> 0054F498 | C7 06 40 3C 86 00 | mov   dword ptr [esi], offset CPlaceable::vftable
+//     0054F49E | 74 0B             | jz    short loc_54F4AB
+#define HOOKPOS_CPlaceable_Destructor         0x54F498
+#define HOOKSIZE_CPlaceable_Destructor        6
+#define HOOKCHECK_CPlaceable_Destructor       0xC7
+static DWORD CONTINUE_CPlaceable_Destructor = 0x54F49E;
+
+static void Print_CPlaceable_Destructor_DebugInfo()
+{
+    // OUTPUT_VTABLE_DEBUG("INFO", pHookVehicle);
+}
+
+static void _declspec(naked) HOOK_CPlaceable_Destructor()
+{
+    _asm
+    {
+        // pushad
+        // mov     pHookVehicle, esi
+        // call    Print_CPlaceable_Destructor_DebugInfo
+        // popad
+        mov     dword ptr [esi], 0
+        jmp     CONTINUE_CPlaceable_Destructor
     }
 }
 
@@ -448,4 +503,7 @@ void CMultiplayerSA::InitHooks_VehicleDamage()
     EZHookInstallChecked(CPlane_VehicleDamage2);
     EZHookInstallChecked(CBike_VehicleDamage1);
     EZHookInstallChecked(CBike_VehicleDamage2);
+#ifdef MTA_DEBUG
+    EZHookInstallChecked(CPlaceable_Destructor);
+#endif
 }

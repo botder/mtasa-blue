@@ -98,6 +98,8 @@ bool CClientExplosionManager::Hook_ExplosionCreation(CEntity* pGameExplodingEnti
         return bAllowExplosion;
     }
 
+    OUTPUT_VTABLE_DEBUG("INFO", pResponsibleGameEntity->GetInterface());
+
     // All explosions are handled server side (ATTENTION: always 'return false;' below)
     CClientPlayer* pLocalPlayer = m_pManager->GetPlayerManager()->GetLocalPlayer();
 

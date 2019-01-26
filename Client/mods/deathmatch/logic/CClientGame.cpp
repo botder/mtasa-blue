@@ -3702,7 +3702,7 @@ bool CClientGame::StaticVehicleCollisionHandler(CVehicleSAInterface*& pColliding
                                                   vecCollisionPos, vecCollisionVelocity);
 }
 
-bool CClientGame::StaticVehicleDamageHandler(CEntitySAInterface* pVehicleInterface, float fLoss, CEntitySAInterface* pAttackerInterface, eWeaponType weaponType,
+bool CClientGame::StaticVehicleDamageHandler(CVehicleSAInterface*& pVehicleInterface, float fLoss, CEntitySAInterface* pAttackerInterface, eWeaponType weaponType,
                                              const CVector& vecDamagePos, uchar ucTyre)
 {
     return g_pClientGame->VehicleDamageHandler(pVehicleInterface, fLoss, pAttackerInterface, weaponType, vecDamagePos, ucTyre);
@@ -4716,7 +4716,7 @@ bool CClientGame::HeliKillHandler(CVehicleSAInterface* pHeliInterface, CEntitySA
     return true;
 }
 
-bool CClientGame::VehicleDamageHandler(CEntitySAInterface* pVehicleInterface, float fLoss, CEntitySAInterface* pAttackerInterface, eWeaponType weaponType,
+bool CClientGame::VehicleDamageHandler(CVehicleSAInterface*& pVehicleInterface, float fLoss, CEntitySAInterface* pAttackerInterface, eWeaponType weaponType,
                                        const CVector& vecDamagePos, uchar ucTyre)
 {
     bool                       bAllowDamage = true;
@@ -4756,6 +4756,9 @@ bool CClientGame::VehicleDamageHandler(CEntitySAInterface* pVehicleInterface, fl
         {
             bAllowDamage = false;
         }
+
+        // Update the damaged vehicle, because it might have been invalidated in onClientVehicleDamage (e.g. setElementHealth)
+        pVehicleInterface = reinterpret_cast<CVehicleSAInterface*>(pClientVehicle->GetGameEntity()->GetInterface());
     }
 
     return bAllowDamage;

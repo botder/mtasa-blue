@@ -705,6 +705,8 @@ VOID _declspec(naked) HOOK_CPlane__ProcessControl()
 
     SwitchContext((CVehicleSAInterface*)dwCurrentVehicle);
 
+    // OUTPUT_VTABLE_DEBUG("PRE", dwCurrentVehicle);
+
     _asm
     {
         popad
@@ -712,6 +714,8 @@ VOID _declspec(naked) HOOK_CPlane__ProcessControl()
         call    edx
         pushad
     }
+
+    // OUTPUT_VTABLE_DEBUG("POST", dwCurrentVehicle);
 
     ReturnContextToLocalPlayer();
 

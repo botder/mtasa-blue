@@ -26,6 +26,10 @@
 extern CGame* pGameInterface;
 // extern CMultiplayerSA* pMultiplayer;
 
+void internal_OUTPUT_VTABLE_DEBUG(const char* szLocation, const char* szTag, intptr_t variable);
+void internal_OUTPUT_VTABLE_DEBUG(const char* szLocation, const char* szTag, CVehicleSAInterface* variable);
+#define OUTPUT_VTABLE_DEBUG(tag,var) internal_OUTPUT_VTABLE_DEBUG(__FUNCTION__, tag, var)
+
 /** Buffer overrun trace - attach debugger and watch out for EXCEPTION_GUARD_PAGE (0x80000001) **/
 #ifdef IJSIFY
     #pragma message(__LOC__ "YOU HAVE ENABLED THE BOUNDS CHECKER. This may cause performance and/or stability issues!")

@@ -331,15 +331,17 @@ void CVehicleSA::Init()
     // dump the frames
     VehicleDump(this);
     FinalizeFramesList();
+    OUTPUT_VTABLE_DEBUG("INFO", m_pInterface);
 }
 
 // DESTRUCTOR
 CVehicleSA::~CVehicleSA()
 {
+    OUTPUT_VTABLE_DEBUG("INFO", m_pInterface);
     DEBUG_TRACE("CVehicleSA::~CVehicleSA()");
     if (!this->BeingDeleted)
     {
-        if ((DWORD)m_pInterface->vtbl != VTBL_CPlaceable)
+        if (m_pInterface->vtbl && (DWORD)m_pInterface->vtbl != VTBL_CPlaceable)
         {
             GetVehicleInterface()->m_pVehicle = NULL;
 
@@ -1552,6 +1554,7 @@ FLOAT CVehicleSA::GetHealth()
 //-----------------------------------------------------------
 void CVehicleSA::SetHealth(FLOAT fHealth)
 {
+    OUTPUT_VTABLE_DEBUG("INFO", m_pInterface);
     CVehicleSAInterface* vehicle = (CVehicleSAInterface*)this->GetInterface();
     vehicle->m_nHealth = fHealth;
     if (fHealth >= 250.0f)
@@ -1646,6 +1649,7 @@ CDamageManager* CVehicleSA::GetDamageManager()
 
 void CVehicleSA::BlowUp(CEntity* pCreator, unsigned long ulUnknown)
 {
+    OUTPUT_VTABLE_DEBUG("INFO", m_pInterface);
     CVehicleSAInterfaceVTBL* vehicleVTBL = (CVehicleSAInterfaceVTBL*)(this->GetInterface()->vtbl);
     DWORD                    dwThis = (DWORD)m_pInterface;
     DWORD                    dwFunc = vehicleVTBL->BlowUpCar;

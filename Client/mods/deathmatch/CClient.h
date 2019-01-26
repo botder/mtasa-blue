@@ -13,6 +13,11 @@
 
 #include <core/CClientBase.h>
 
+void internal_OUTPUT_VTABLE_DEBUG(const char* szLocation, const char* szTag, intptr_t variable);
+void internal_OUTPUT_VTABLE_DEBUG(const char* szLocation, const char* szTag, CVehicleSAInterface* variable);
+void internal_OUTPUT_VTABLE_DEBUG(const char* szLocation, const char* szTag, CEntity* variable);
+#define OUTPUT_VTABLE_DEBUG(tag,var) internal_OUTPUT_VTABLE_DEBUG(__FUNCTION__, tag, var)
+
 class CClient : public CClientBase
 {
 public:

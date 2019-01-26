@@ -82,7 +82,7 @@ void CWorldSA::Add(CEntity* pEntity, eDebugCaller CallerId)
     if (pEntitySA)
     {
         CEntitySAInterface* pInterface = pEntitySA->GetInterface();
-        if ((DWORD)pInterface->vtbl == VTBL_CPlaceable)
+        if (!pInterface->vtbl || (DWORD)pInterface->vtbl == VTBL_CPlaceable)
         {
             SString strMessage("Caller: %i ", CallerId);
             LogEvent(506, "CWorld::Add ( CEntity * ) Crash", "", strMessage);
@@ -102,7 +102,7 @@ void CWorldSA::Add(CEntitySAInterface* entityInterface, eDebugCaller CallerId)
 {
     DEBUG_TRACE("VOID CWorldSA::Add ( CEntitySAInterface * entityInterface )");
     DWORD dwFunction = FUNC_Add;
-    if ((DWORD)entityInterface->vtbl == VTBL_CPlaceable)
+    if (!entityInterface->vtbl || (DWORD)entityInterface->vtbl == VTBL_CPlaceable)
     {
         SString strMessage("Caller: %i ", CallerId);
         LogEvent(506, "CWorld::Add ( CEntitySAInterface * ) Crash", "", strMessage);
@@ -124,7 +124,7 @@ void CWorldSA::Remove(CEntity* pEntity, eDebugCaller CallerId)
     if (pEntitySA)
     {
         CEntitySAInterface* pInterface = pEntitySA->GetInterface();
-        if ((DWORD)pInterface->vtbl == VTBL_CPlaceable)
+        if (!pInterface->vtbl || (DWORD)pInterface->vtbl == VTBL_CPlaceable)
         {
             SString strMessage("Caller: %i ", CallerId);
             LogEvent(507, "CWorld::Remove ( CEntity * ) Crash", "", strMessage);
@@ -143,7 +143,7 @@ void CWorldSA::Remove(CEntity* pEntity, eDebugCaller CallerId)
 void CWorldSA::Remove(CEntitySAInterface* entityInterface, eDebugCaller CallerId)
 {
     DEBUG_TRACE("VOID CWorldSA::Remove ( CEntitySAInterface * entityInterface )");
-    if ((DWORD)entityInterface->vtbl == VTBL_CPlaceable)
+    if (!entityInterface->vtbl || (DWORD)entityInterface->vtbl == VTBL_CPlaceable)
     {
         SString strMessage("Caller: %i ", CallerId);
         LogEvent(507, "CWorld::Remove ( CEntitySAInterface * ) Crash", "", strMessage);
@@ -661,7 +661,7 @@ void CWorldSA::RemoveBuilding(unsigned short usModelToRemove, float fRange, floa
                         if ((pInterface->nType == ENTITY_TYPE_BUILDING || pInterface->nType == ENTITY_TYPE_DUMMY || pInterface->nType == ENTITY_TYPE_OBJECT) &&
                             pInterface->bRemoveFromWorld != 1)
                         {
-                            if ((DWORD)(pInterface->vtbl) != VTBL_CPlaceable)
+                            if (pInterface->vtbl && (DWORD)(pInterface->vtbl) != VTBL_CPlaceable)
                             {
                                 // Add the Data Building to the list
                                 pRemoval->AddDataBuilding(pInterface);
@@ -720,7 +720,7 @@ void CWorldSA::RemoveBuilding(unsigned short usModelToRemove, float fRange, floa
                         if ((pInterface->nType == ENTITY_TYPE_BUILDING || pInterface->nType == ENTITY_TYPE_DUMMY || pInterface->nType == ENTITY_TYPE_OBJECT) &&
                             pInterface->bRemoveFromWorld != 1)
                         {
-                            if ((DWORD)(pInterface->vtbl) != VTBL_CPlaceable)
+                            if (pInterface->vtbl && (DWORD)(pInterface->vtbl) != VTBL_CPlaceable)
                             {
                                 // Add the Data Building to the list
                                 pRemoval->AddBinaryBuilding(pInterface);
@@ -792,7 +792,7 @@ bool CWorldSA::RestoreBuilding(unsigned short usModelToRestore, float fRange, fl
                                 pEntity->bRemoveFromWorld != 1)
                             {
                                 // Don't call this on entities being removed.
-                                if ((DWORD)(pEntity->vtbl) != VTBL_CPlaceable)
+                                if (pEntity->vtbl && (DWORD)(pEntity->vtbl) != VTBL_CPlaceable)
                                 {
                                     Add(pEntity, Building_Restore);
                                     m_pRemovedEntities[(DWORD)pEntity] = false;
@@ -824,7 +824,7 @@ bool CWorldSA::RestoreBuilding(unsigned short usModelToRestore, float fRange, fl
                             if ((pEntity->nType == ENTITY_TYPE_BUILDING || pEntity->nType == ENTITY_TYPE_DUMMY || pEntity->nType == ENTITY_TYPE_OBJECT) &&
                                 pEntity->bRemoveFromWorld != 1)
                             {
-                                if ((DWORD)(pEntity->vtbl) != VTBL_CPlaceable)
+                                if (pEntity->vtbl && (DWORD)(pEntity->vtbl) != VTBL_CPlaceable)
                                 {
                                     Add(pEntity, Building_Restore2);
                                     m_pRemovedEntities[(DWORD)pEntity] = false;
@@ -1038,7 +1038,7 @@ void CWorldSA::ClearRemovedBuildingLists(uint* pOutAmount)
                             pEntity->bRemoveFromWorld != 1)
                         {
                             // Don't call this on entities being removed.
-                            if ((DWORD)(pEntity->vtbl) != VTBL_CPlaceable)
+                            if (pEntity->vtbl && (DWORD)(pEntity->vtbl) != VTBL_CPlaceable)
                             {
                                 Add(pEntity, BuildingRemovalReset);
                                 m_pRemovedEntities[(DWORD)pEntity] = false;
@@ -1064,7 +1064,7 @@ void CWorldSA::ClearRemovedBuildingLists(uint* pOutAmount)
                             pEntity->bRemoveFromWorld != 1)
                         {
                             // Don't call this on entities being removed.
-                            if ((DWORD)(pEntity->vtbl) != VTBL_CPlaceable)
+                            if (pEntity->vtbl && (DWORD)(pEntity->vtbl) != VTBL_CPlaceable)
                             {
                                 Add(pEntity, BuildingRemovalReset2);
                                 m_pRemovedEntities[(DWORD)pEntity] = false;

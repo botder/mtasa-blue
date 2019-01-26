@@ -32,6 +32,7 @@ CExplosionManagerSA::~CExplosionManagerSA()
 CExplosion* CExplosionManagerSA::AddExplosion(CEntity* pExplodingEntity, CEntity* pOwner, eExplosionType explosionType, CVector& vecPosition,
                                               unsigned int uiActivationDelay, bool bMakeSound, float fCamShake, bool bNoDamage)
 {
+    OutputDebugStringA("CExplosionManagerSA::AddExplosion\n");
     DEBUG_TRACE("CExplosion * CExplosionManagerSA::AddExplosion ( eExplosionType explosiontype, CVector * vecPosition, CEntity * creator = NULL)");
     DWORD       dwExplodingEntityInterface = (pExplodingEntity) ? (DWORD)pExplodingEntity->GetInterface() : 0;
     DWORD       dwOwnerInterface = (pOwner) ? (DWORD)pOwner->GetInterface() : 0;

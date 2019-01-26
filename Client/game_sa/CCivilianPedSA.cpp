@@ -57,7 +57,7 @@ CCivilianPedSA::~CCivilianPedSA()
     {
         DWORD dwInterface = (DWORD)this->GetInterface();
 
-        if ((DWORD)this->GetInterface()->vtbl != VTBL_CPlaceable)
+        if (this->GetInterface()->vtbl && (DWORD)this->GetInterface()->vtbl != VTBL_CPlaceable)
         {
             CWorldSA* world = (CWorldSA*)pGame->GetWorld();
             world->Remove(this->GetInterface(), CCivPed_Destructor);

@@ -12,6 +12,8 @@
 #include "StdInc.h"
 
 #include "CLuaFunctionDefs.h"
+#include "CLuaThreadManager.h"
+#include "CLuaChannelManager.h"
 #include <clocale>
 
 static CLuaManager* m_pLuaManager;
@@ -51,6 +53,11 @@ CLuaMain::CLuaMain(CLuaManager* pLuaManager, CObjectManager* pObjectManager, CPl
 
     m_bEnableOOP = bEnableOOP;
 
+    m_luaThreadManager = std::make_unique<CLuaThreadManager>(this);
+    m_luaChannelManager = std::make_unique<CLuaChannelManager>(this);
+    m_luaThreadManager->SetChannelManager(m_luaChannelManager.get());
+    m_luaChannelManager->SetThreadManager(m_luaThreadManager.get());
+
     CPerfStatLuaMemory::GetSingleton()->OnLuaMainCreate(this);
     CPerfStatLuaTiming::GetSingleton()->OnLuaMainCreate(this);
 }
@@ -67,6 +74,9 @@ CLuaMain::~CLuaMain()
     // Unload the current script
     UnloadScript();
     m_bBeingDeleted = true;
+
+    // Delete the thread manager
+    m_luaThreadManager.reset();
 
     // Delete the timer manager
     delete m_pLuaTimerManager;
@@ -359,6 +369,9 @@ void CLuaMain::Start()
 
 void CLuaMain::UnloadScript()
 {
+    // Delete all threads
+    m_luaThreadManager->DeleteAll();
+
     // Delete all timers and events
     m_pLuaTimerManager->RemoveAllTimers();
 
@@ -383,6 +396,7 @@ void CLuaMain::UnloadScript()
 void CLuaMain::DoPulse()
 {
     m_pLuaTimerManager->DoPulse(this);
+    m_luaThreadManager->DoPulse();
 }
 
 // Keep count of the number of open files in this resource and issue a warning if too high

@@ -212,6 +212,10 @@ static const char* GetIdClassTypeName(EIdClassType eClass)
             return "Vector4";
         case EIdClassType::MATRIX:
             return "Matrix";
+        case EIdClassType::THREAD:
+            return "Thread";
+        case EIdClassType::CHANNEL:
+            return "Channel";
         default:
             return "None";
     }

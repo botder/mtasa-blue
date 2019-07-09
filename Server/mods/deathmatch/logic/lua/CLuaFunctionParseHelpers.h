@@ -235,6 +235,14 @@ inline SString GetClassTypeName(CLuaMatrix*)
 {
     return "matrix";
 }
+inline SString GetClassTypeName(CLuaThread*)
+{
+    return "lua-thread";
+}
+inline SString GetClassTypeName(CLuaChannel*)
+{
+    return "lua-channel";
+}
 
 //
 // CResource from userdata
@@ -417,6 +425,38 @@ CPlayer* UserDataCast(CPlayer*, void* ptr, lua_State*)
     if (!pElement || pElement->IsBeingDeleted() || (pElement->GetType() != CElement::PLAYER))
         return NULL;
     return (CPlayer*)pElement;
+}
+
+//
+// CLuaThread from userdata
+//
+template <class T>
+CLuaTimer* UserDataCast(CLuaThread*, void* ptr, lua_State* luaVM)
+{
+    CLuaMain* luaMain = g_pGame->GetLuaManager()->GetVirtualMachine(luaVM);
+
+    if (luaMain)
+    {
+        return luaMain->GetLuaThreadManager()->GetFromScriptID(reinterpret_cast<SArrayId>(ptr));
+    }
+
+    return nullptr;
+}
+
+//
+// CLuaChannel from userdata
+//
+template <class T>
+CLuaTimer* UserDataCast(CLuaChannel*, void* ptr, lua_State* luaVM)
+{
+    CLuaMain* luaMain = g_pGame->GetLuaManager()->GetVirtualMachine(luaVM);
+
+    if (luaMain)
+    {
+        return luaMain->GetLuaChannelManager()->GetFromScriptID(reinterpret_cast<SArrayId>(ptr));
+    }
+
+    return nullptr;
 }
 
 //

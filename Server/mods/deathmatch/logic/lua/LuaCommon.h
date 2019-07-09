@@ -39,6 +39,8 @@ void lua_pushban(lua_State* luaVM, class CBan* pBan);
 void lua_pushquery(lua_State* luaVM, class CDbJobData* pJobData);
 void lua_pushuserdata(lua_State* luaVM, void* value);
 void lua_pushobject(lua_State* luaVM, const char* szClass, void* pObject);
+void lua_pushchannel(lua_State* luaVM, class CLuaChannel* channel);
+void lua_pushthread(lua_State* luaVM, class CLuaThread* thread);
 
 void lua_pushvector(lua_State* luaVM, const CVector2D& vector);
 void lua_pushvector(lua_State* luaVM, const CVector& vector);

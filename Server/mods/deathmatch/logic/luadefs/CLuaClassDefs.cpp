@@ -254,6 +254,10 @@ const char* CLuaClassDefs::GetObjectClass(void* pObject)
         return GetXmlNodeClass(pNode);
     else if (CLuaTimer* pTimer = UserDataCast<CLuaTimer>((CLuaTimer*)NULL, pObject, NULL))
         return GetTimerClass(pTimer);
+    else if (CLuaThread* thread = UserDataCast<CLuaThread>((CLuaThread*)NULL, pObject, NULL))
+        return GetThreadClass(thread);
+    else if (CLuaChannel* channel = UserDataCast<CLuaChannel>((CLuaChannel*)NULL, pObject, NULL))
+        return GetChannelClass(channel);
     return NULL;
 }
 
@@ -305,6 +309,16 @@ const char* CLuaClassDefs::GetBanClass(CBan* pBan)
 const char* CLuaClassDefs::GetQueryClass(CDbJobData* pJobData)
 {
     return "QueryHandle";
+}
+
+const char* CLuaClassDefs::GetThreadClass(CLuaThread* thread)
+{
+    return "Thread";
+}
+
+const char* CLuaClassDefs::GetChannelClass(CLuaChannel* channel)
+{
+    return "Channel";
 }
 
 // absolutely ugly, need a better way

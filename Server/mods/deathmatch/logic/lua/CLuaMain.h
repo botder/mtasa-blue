@@ -30,6 +30,8 @@ class CPlayerManager;
 class CRadarAreaManager;
 class CVehicleManager;
 class CMapManager;
+class CLuaThreadManager;
+class CLuaChannelManager;
 
 struct CRefInfo
 {
@@ -108,6 +110,12 @@ public:
     static int     LuaLoadBuffer(lua_State* L, const char* buff, size_t sz, const char* name);
     static int     OnUndump(const char* p, size_t n);
 
+    CLuaThreadManager*        GetLuaThreadManager() { return m_luaThreadManager.get(); }
+    const CLuaThreadManager*  GetLuaThreadManager() const { return m_luaThreadManager.get(); }
+
+    CLuaChannelManager*       GetLuaChannelManager() { return m_luaChannelManager.get(); }
+    const CLuaChannelManager* GetLuaChannelManager() const { return m_luaChannelManager.get(); }
+
 private:
     void InitSecurity();
     void InitClasses(lua_State* luaVM);
@@ -120,8 +128,8 @@ private:
 
     SString m_strScriptName;
 
-    lua_State*        m_luaVM;
-    CLuaTimerManager* m_pLuaTimerManager;
+    lua_State*         m_luaVM;
+    CLuaTimerManager*  m_pLuaTimerManager;
 
     class CResource*     m_pResource;
     class CResourceFile* m_pResourceFile;
@@ -147,6 +155,9 @@ private:
     uint                 m_uiOpenFileCountWarnThresh;
     uint                 m_uiOpenXMLFileCountWarnThresh;
     static SString       ms_strExpectedUndumpHash;
+
+    std::unique_ptr<CLuaThreadManager> m_luaThreadManager;
+    std::unique_ptr<CLuaChannelManager> m_luaChannelManager;
 
 public:
     CFastHashMap<const void*, CRefInfo> m_CallbackTable;

@@ -46,6 +46,18 @@ int WINAPI DllMain(HINSTANCE hModule, DWORD dwReason, PVOID pvNothing)
             // http://msdn.microsoft.com/en-us/library/ms682586%28VS.85%29.aspx
             SetDllDirectory(CalcMTASAPath("MTA"));
 
+            // Force the GTA process to be DPI aware to fix issues with Monitor scale
+            if (SharedUtil::IsWindowsVistaOrGreater())
+            {
+                using SetProcessDPIAware_f = BOOL(WINAPI*)();
+                const auto SetProcessDPIAware = reinterpret_cast<SetProcessDPIAware_f>(GetProcAddress(GetModuleHandle("user32.dll"), "SetProcessDPIAware"));
+
+                if (SetProcessDPIAware)
+                {
+                    SetProcessDPIAware();
+                }
+            }
+
             g_hModule = hModule;
             g_pCore = new CCore;
 

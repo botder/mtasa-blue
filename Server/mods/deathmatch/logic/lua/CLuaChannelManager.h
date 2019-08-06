@@ -11,8 +11,8 @@
 
 class CLuaMain;
 class CLuaThreadManager;
-class CLuaChannel;
 
+#include "CLuaChannel.h"
 #include <vector>
 #include <unordered_map>
 #include <memory>
@@ -20,6 +20,8 @@ class CLuaChannel;
 class CLuaChannelManager
 {
 public:
+    CLuaChannelManager(CLuaMain* luaMain) : m_luaMain(luaMain) {}
+
     void DoPulse();
     void DeleteAll();
 
@@ -32,7 +34,7 @@ public:
 
 private:
     CLuaMain*                                                 m_luaMain;
-    CLuaThreadManager*                                        m_threadManager;
+    CLuaThreadManager*                                        m_threadManager = nullptr;
     std::vector<std::unique_ptr<CLuaChannel>>                 m_unnamedChannels;
     std::unordered_map<SString, std::unique_ptr<CLuaChannel>> m_channelMap;
 };

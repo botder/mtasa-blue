@@ -10,14 +10,17 @@
 #pragma once
 
 class CLuaMain;
-class CLuaThread;
 class CLuaChannelManager;
 
+#include "CLuaThread.h"
 #include <vector>
+#include <memory>
 
 class CLuaThreadManager
 {
 public:
+    CLuaThreadManager(CLuaMain* luaMain) : m_luaMain(luaMain) {}
+
     void DoPulse();
     void DeleteAll();
 
@@ -27,6 +30,6 @@ public:
 
 private:
     CLuaMain* m_luaMain;
-    CLuaChannelManager* m_channelManager;
-    std::vector<CLuaThread> m_threads;
+    CLuaChannelManager* m_channelManager = nullptr;
+    std::vector<std::unique_ptr<CLuaThread>> m_threads;
 };

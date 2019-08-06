@@ -9,6 +9,8 @@
  *****************************************************************************/
 #pragma once
 #include "CElementIDs.h"
+#include "CLuaChannelManager.h"
+#include "CLuaThreadManager.h"
 
 // Forward declare enum reflection stuff
 enum eLuaType
@@ -431,7 +433,7 @@ CPlayer* UserDataCast(CPlayer*, void* ptr, lua_State*)
 // CLuaThread from userdata
 //
 template <class T>
-CLuaTimer* UserDataCast(CLuaThread*, void* ptr, lua_State* luaVM)
+CLuaThread* UserDataCast(CLuaThread*, void* ptr, lua_State* luaVM)
 {
     CLuaMain* luaMain = g_pGame->GetLuaManager()->GetVirtualMachine(luaVM);
 
@@ -447,7 +449,7 @@ CLuaTimer* UserDataCast(CLuaThread*, void* ptr, lua_State* luaVM)
 // CLuaChannel from userdata
 //
 template <class T>
-CLuaTimer* UserDataCast(CLuaChannel*, void* ptr, lua_State* luaVM)
+CLuaChannel* UserDataCast(CLuaChannel*, void* ptr, lua_State* luaVM)
 {
     CLuaMain* luaMain = g_pGame->GetLuaManager()->GetVirtualMachine(luaVM);
 

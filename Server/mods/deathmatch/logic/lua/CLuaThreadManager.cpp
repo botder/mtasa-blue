@@ -27,7 +27,7 @@ CLuaThread* CLuaThreadManager::GetFromScriptID(SArrayId id) const
 
     if (thread)
     {
-        auto predicate = [thread](const auto& threadPtr) { return threadPtr.get() == thread; };
+        auto predicate = [thread](const std::unique_ptr<CLuaThread>& threadPtr) { return threadPtr.get() == thread; };
 
         if (std::any_of(m_threads.begin(), m_threads.end(), predicate))
             return thread;

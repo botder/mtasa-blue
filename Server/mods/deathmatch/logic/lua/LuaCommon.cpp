@@ -239,16 +239,6 @@ void lua_pushobject(lua_State* luaVM, const char* szClass, void* pObject)
     lua_pushlightuserdata(luaVM, pObject);
 }
 
-void lua_pushtimer(lua_State* luaVM, CLuaTimer* pTimer)
-{
-    const char* szClass = NULL;
-    CLuaMain*   pLuaMain = g_pGame->GetLuaManager()->GetVirtualMachine(luaVM);
-    if (pLuaMain && pLuaMain->IsOOPEnabled())
-        szClass = CLuaClassDefs::GetTimerClass(pTimer);
-
-    lua_pushobject(luaVM, szClass, (void*)reinterpret_cast<unsigned int*>(pTimer->GetScriptID()));
-}
-
 void lua_pushchannel(lua_State* luaVM, CLuaChannel* channel)
 {
     const char* className = nullptr;

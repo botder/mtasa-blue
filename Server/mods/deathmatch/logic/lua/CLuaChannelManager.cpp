@@ -10,7 +10,6 @@
 
 #include "StdInc.h"
 #include "CLuaChannelManager.h"
-#include "CLuaChannel.h"
 
 void CLuaChannelManager::DoPulse()
 {
@@ -51,10 +50,9 @@ CLuaChannel* CLuaChannelManager::CreateChannel(const SString& name)
 
 bool CLuaChannelManager::DestroyChannel(CLuaChannel* luaChannel)
 {
-    auto predicate = [luaChannel](const auto& channelPtr) { return channelPtr.get() == luaChannel; };
-
     if (luaChannel->GetName().empty())
     {
+        const auto predicate = [luaChannel](const std::unique_ptr<CLuaChannel>& channelPtr) { return channelPtr.get() == luaChannel; };
         auto iter = std::find_if(m_unnamedChannels.begin(), m_unnamedChannels.end(), predicate);
 
         if (iter != m_unnamedChannels.end())
@@ -65,7 +63,7 @@ bool CLuaChannelManager::DestroyChannel(CLuaChannel* luaChannel)
     }
     else
     {
-        auto iter = std::find_if(m_channelMap.begin(), m_channelMap.end(), predicate);
+        auto iter = std::find_if(m_channelMap.begin(), m_channelMap.end(), [luaChannel](const auto& pair) { return pair.second.get() == luaChannel; });
 
         if (iter != m_channelMap.end())
         {
@@ -83,12 +81,14 @@ CLuaChannel* CLuaChannelManager::GetFromScriptID(SArrayId id) const
 
     if (channel)
     {
-        auto predicate = [channel](const auto& channelPtr) { return channelPtr.get() == channel; };
+        auto unnamedPredicate = [channel](const std::unique_ptr<CLuaChannel>& channelPtr) { return channelPtr.get() == channel; };
         
-        if (std::any_of(m_unnamedChannels.begin(), m_unnamedChannels.end(), predicate))
+        if (std::any_of(m_unnamedChannels.begin(), m_unnamedChannels.end(), unnamedPredicate))
             return channel;
 
-        if (std::any_of(m_channelMap.begin(), m_channelMap.end(), predicate))
+        auto mapPredicate = [channel](const auto& pair) { return pair.second.get() == channel; };
+
+        if (std::any_of(m_channelMap.begin(), m_channelMap.end(), mapPredicate))
             return channel;
     }
 

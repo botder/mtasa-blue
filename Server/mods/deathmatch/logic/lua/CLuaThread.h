@@ -15,7 +15,11 @@
 class CLuaThread
 {
 public:
-    CLuaThread();
+    struct FromBuffer {};
+    struct FromFile {};
+
+    explicit CLuaThread(FromBuffer);
+    explicit CLuaThread(FromFile);
     ~CLuaThread();
 
     SArrayId GetScriptID() const { return m_ID; }

@@ -28,7 +28,7 @@ public:
     void SetThreadManager(CLuaThreadManager* threadManager) { m_threadManager = threadManager; }
 
     CLuaChannel* CreateChannel(const SString& name);
-    bool         DestroyChannel(CLuaChannel* luaChannel);
+    bool         DestroyChannel(CLuaChannel* channel);
 
     CLuaChannel* GetFromScriptID(SArrayId id) const;
 

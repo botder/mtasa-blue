@@ -10,7 +10,12 @@
 #include "StdInc.h"
 #include "CLuaThread.h"
 
-CLuaThread::CLuaThread()
+CLuaThread::CLuaThread(FromBuffer)
+{
+    m_ID = CIdArray::PopUniqueId(this, EIdClassType::THREAD);
+}
+
+CLuaThread::CLuaThread(FromFile)
 {
     m_ID = CIdArray::PopUniqueId(this, EIdClassType::THREAD);
 }

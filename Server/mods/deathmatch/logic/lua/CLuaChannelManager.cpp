@@ -48,14 +48,13 @@ CLuaChannel* CLuaChannelManager::CreateChannel(const SString& name)
     return channel;
 }
 
-bool CLuaChannelManager::DestroyChannel(CLuaChannel* luaChannel)
+bool CLuaChannelManager::DestroyChannel(CLuaChannel* channel)
 {
-    if (luaChannel->GetName().empty())
+    if (channel->GetName().empty())
     {
-        const auto predicate = [luaChannel](const std::unique_ptr<CLuaChannel>& channelPtr) { return channelPtr.get() == luaChannel; };
-        auto iter = std::find_if(m_unnamedChannels.begin(), m_unnamedChannels.end(), predicate);
+        const auto predicate = [channel](const std::unique_ptr<CLuaChannel>& channelPtr) { return channelPtr.get() == channel; };
 
-        if (iter != m_unnamedChannels.end())
+        if (auto iter = std::find_if(m_unnamedChannels.begin(), m_unnamedChannels.end(), predicate); iter != m_unnamedChannels.end())
         {
             m_unnamedChannels.erase(iter);
             return true;
@@ -63,9 +62,9 @@ bool CLuaChannelManager::DestroyChannel(CLuaChannel* luaChannel)
     }
     else
     {
-        auto iter = std::find_if(m_channelMap.begin(), m_channelMap.end(), [luaChannel](const auto& pair) { return pair.second.get() == luaChannel; });
+        const auto predicate = [channel](const auto& pair) { return pair.second.get() == channel; };
 
-        if (iter != m_channelMap.end())
+        if (auto iter = std::find_if(m_channelMap.begin(), m_channelMap.end(), predicate); iter != m_channelMap.end())
         {
             m_channelMap.erase(iter);
             return true;

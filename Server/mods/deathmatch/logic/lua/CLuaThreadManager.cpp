@@ -18,7 +18,30 @@ void CLuaThreadManager::DoPulse()
 
 void CLuaThreadManager::DeleteAll()
 {
-    // TODO: Add implementation here
+    m_threads.clear();
+}
+
+CLuaThread* CLuaThreadManager::CreateThreadFromSource(const SString& sourceCode)
+{
+    return nullptr;
+}
+
+CLuaThread* CLuaThreadManager::CreateThreadFromFile(const SString& filePath)
+{
+    return nullptr;
+}
+
+bool CLuaThreadManager::DestroyThread(CLuaThread* thread)
+{
+    const auto predicate = [thread](const std::unique_ptr<CLuaThread>& threadPtr) { return threadPtr.get() == thread; };
+
+    if (auto iter = std::find_if(m_threads.begin(), m_threads.end(), predicate); iter != m_threads.end())
+    {
+        m_threads.erase(iter);
+        return true;
+    }
+
+    return false;
 }
 
 CLuaThread* CLuaThreadManager::GetFromScriptID(SArrayId id) const

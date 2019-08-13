@@ -26,6 +26,10 @@ public:
 
     void SetChannelManager(CLuaChannelManager* channelManager) { m_channelManager = channelManager; }
 
+    CLuaThread* CreateThreadFromSource(const SString& sourceCode);
+    CLuaThread* CreateThreadFromFile(const SString& filePath);
+    bool        DestroyThread(CLuaThread* thread);
+
     CLuaThread* GetFromScriptID(SArrayId id) const;
 
 private:

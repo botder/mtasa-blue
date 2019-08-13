@@ -10,6 +10,9 @@
 
 #pragma once
 
+#include "CIdArray.h"
+#include "LuaCommon.h"
+
 class CLuaChannel
 {
 public:
@@ -18,9 +21,13 @@ public:
 
     SArrayId GetScriptID() const { return m_ID; }
 
+    const SLuaDebugInfo& GetLuaDebugInfo() const { return m_luaDebugInfo; }
+    void                 SetLuaDebugInfo(const SLuaDebugInfo& luaDebugInfo) { m_luaDebugInfo = luaDebugInfo; }
+
     const SString& GetName() const { return m_Name; }
 
 private:
-    SArrayId m_ID = INVALID_ARRAY_ID;
-    SString  m_Name;
+    SArrayId      m_ID = INVALID_ARRAY_ID;
+    SLuaDebugInfo m_luaDebugInfo;
+    SString       m_Name;
 };

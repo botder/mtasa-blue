@@ -10,6 +10,8 @@
 
 #include "StdInc.h"
 #include "CLuaThreadDefs.h"
+#include "lua/CLuaThread.h"
+#include "lua/CLuaThreadManager.h"
 
 void CLuaThreadDefs::LoadFunctions()
 {
@@ -65,6 +67,8 @@ int CLuaThreadDefs::CreateThread(lua_State* luaVM)
         return 1;
     }
 
+    CLuaThread* thread = nullptr;
+
     if (fromFile)
     {
         CResource* currentResource = luaMain->GetResource();
@@ -79,7 +83,7 @@ int CLuaThreadDefs::CreateThread(lua_State* luaVM)
 
                 if (!argStream.HasErrors())
                 {
-                    // TODO: Create thread from file path <path> here
+                    thread = luaMain->GetLuaThreadManager()->CreateThreadFromFile(path);
                 }
             }
             else
@@ -94,11 +98,18 @@ int CLuaThreadDefs::CreateThread(lua_State* luaVM)
     }
     else
     {
-        // TODO: Create thread from provided Lua code
+        thread = luaMain->GetLuaThreadManager()->CreateThreadFromSource(source);
     }
 
-    if (argStream.HasErrors())
+    if (!argStream.HasErrors() && thread)
+    {
+        lua_pushthread(luaVM, thread);
+        return 1;
+    }
+    else
+    {
         m_pScriptDebugging->LogCustom(luaVM, argStream.GetFullErrorMessage());
+    }
 
     lua_pushboolean(luaVM, false);
     return 1;

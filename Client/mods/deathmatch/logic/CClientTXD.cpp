@@ -105,7 +105,7 @@ bool CClientTXD::Import(unsigned short usModelID)
         if (m_bIsRawData && !m_bUsingFileDataForClothes)
         {
             // This means the texture can't be used for clothes now
-            SString().swap(m_FileData);
+            std::exchange(m_FileData, {});
         }
 
         // Have we got textures and haven't already imported into this model?

@@ -23,7 +23,8 @@ public:
     CFileReader();
 
     bool LoadFromFile(SString filePath) noexcept;
-    bool LoadFromBuffer(SString buffer) noexcept;
+
+    void LoadFromBuffer(SString buffer) noexcept { std::exchange(m_buffer, std::move(buffer)); }
 
     // Do not call any file reader functions after calling this function
     void FreeFileReaderMemory();

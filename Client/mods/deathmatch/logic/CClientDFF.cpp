@@ -63,7 +63,7 @@ RpClump* CClientDFF::GetLoadedClump(ushort usModelId)
             info.pClump = g_pGame->GetRenderWare()->ReadDFF(NULL, m_RawDataBuffer, usModelId, CClientVehicleManager::IsValidModel(usModelId));
 
             // Remove raw data from memory (can only do one replace when using raw data)
-            SString().swap(m_RawDataBuffer);
+            std::exchange(m_RawDataBuffer, {});
         }
     }
 

@@ -184,11 +184,7 @@ void CWebCore::RemoveWebViewEvents(CWebView* pWebView)
 
 void CWebCore::DoEventQueuePulse()
 {
-    std::list<EventEntry> eventQueue;
-    {
-        std::lock_guard<std::mutex> lock(m_EventQueueMutex);
-        std::swap(eventQueue, m_EventQueue);
-    }
+    const auto eventQueue = (std::scoped_lock{m_EventQueueMutex}, std::exchange(m_EventQueue, {}));
 
     for (auto& event : eventQueue)
     {
@@ -236,11 +232,7 @@ void CWebCore::RemoveWebViewTasks(CWebView* webView)
 
 void CWebCore::DoTaskQueuePulse()
 {
-    std::list<TaskEntry> taskQueue;
-    {
-        std::scoped_lock lock(m_TaskQueueMutex);
-        std::swap(m_TaskQueue, taskQueue);
-    }
+    auto taskQueue = (std::scoped_lock{m_TaskQueueMutex}, std::exchange(m_TaskQueue, {}));
 
     for (TaskEntry& entry : taskQueue)
     {

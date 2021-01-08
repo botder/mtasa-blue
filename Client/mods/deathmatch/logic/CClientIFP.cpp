@@ -45,8 +45,7 @@ bool CClientIFP::Load(SString blockName, bool isRawData, SString input)
 
     if (isRawData)
     {
-        if (!CFileReader::LoadFromBuffer(std::move(input)))
-            return false;
+        CFileReader::LoadFromBuffer(std::move(input));
     }
     else
     {

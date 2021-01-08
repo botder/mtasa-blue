@@ -44,7 +44,7 @@ void CMultiplayerSA::SetFastClothesLoading(EFastClothesLoading fastClothesLoadin
     else
     {
         // Remove cached data - Note: This method ensures the memory is actually freed
-        std::vector<char>().swap(m_PlayerImgCache);
+        std::exchange(m_PlayerImgCache, {});
     }
 
     // Update the cache pointer

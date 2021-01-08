@@ -354,7 +354,8 @@ private:
     bool ReadIncludedExports(CXMLNode* pRoot);
     bool ReadIncludedFiles(CXMLNode* pRoot);
     bool CreateVM(bool bEnableOOP);
-    bool DestroyVM();
+    void DestroyLuaState();
+    void CleanUpLuaState(CLuaMain* resourceLuaState);
     void TidyUp();
 
     ResponseCode HandleRequestActive(HttpRequest* ipoHttpRequest, HttpResponse* ipoHttpResponse, CAccount* pAccount);
@@ -441,4 +442,6 @@ private:
 
     uint                              m_uiFunctionRightCacheRevision = 0;
     CFastHashMap<lua_CFunction, bool> m_FunctionRightCacheMap;
+
+    std::vector<CLuaMain*> m_workers;
 };

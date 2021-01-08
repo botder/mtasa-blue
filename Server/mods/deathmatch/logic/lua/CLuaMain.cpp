@@ -167,9 +167,19 @@ void CLuaMain::InitClasses(lua_State* luaVM)
     CLuaShared::AddClasses(luaVM);
 }
 
-void CLuaMain::InitVM()
+void CLuaMain::InitVM(bool isWorker)
 {
     assert(!m_luaVM);
+
+    m_isWorker = isWorker;
+
+    if (isWorker)
+    {
+        m_workerMutex = std::make_unique<std::mutex>();
+        m_workerCondition = std::make_unique<std::condition_variable>(); 
+        m_isWorkerWaiting = std::make_unique<std::atomic_bool>();
+        m_isWorkerProcessing = std::make_unique<std::atomic_bool>();
+    }
 
     // Create a new VM
     m_luaVM = lua_open();
@@ -191,7 +201,7 @@ void CLuaMain::InitVM()
     InitSecurity();
 
     // Registering C functions
-    CLuaCFunctions::RegisterFunctionsWithVM(m_luaVM);
+    CLuaCFunctions::RegisterFunctionsWithVM(m_luaVM, isWorker, this);
 
     // Create class metatables
     InitClasses(m_luaVM);
@@ -382,6 +392,18 @@ void CLuaMain::UnloadScript()
 void CLuaMain::DoPulse()
 {
     m_pLuaTimerManager->DoPulse(this);
+
+    if (m_isWorker && m_isWorkerWaiting->load())
+    {
+        m_isWorkerProcessing->store(true);
+
+        m_workerCondition->notify_one();
+
+        std::unique_lock<std::mutex> lock(*m_workerMutex);
+        m_workerCondition->wait(lock, [this] { return !m_isWorkerWaiting->load(); });
+
+        m_isWorkerProcessing->store(false);
+    }
 }
 
 // Keep count of the number of open files in this resource and issue a warning if too high
@@ -660,4 +682,18 @@ int CLuaMain::OnUndump(const char* p, size_t n)
         return 0;
     }
     return 1;
+}
+
+int CLuaMain::ExecuteWorkerFunction(lua_State* L, lua_CFunction function)
+{
+    if (m_isWorkerProcessing->load())
+        return function(L);
+
+    std::unique_lock<std::mutex> lock(*m_workerMutex);
+    m_isWorkerWaiting->store(true);
+    m_workerCondition->wait(lock, [this] { return m_isWorkerProcessing->load(); });
+    int result = function(L);
+    m_isWorkerWaiting->store(false);
+    m_workerCondition->notify_one();
+    return result;
 }

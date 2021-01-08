@@ -68,4 +68,6 @@ public:
 
     LUA_DECLARE(LoadString);
     LUA_DECLARE(Load);
+
+    static bool CreateWorkerThread(CResource* resource, std::string code);
 };

@@ -349,6 +349,40 @@ CResource::~CResource()
     m_strResourceName = "";
 }
 
+void CResource::CleanUpLuaState(CLuaMain* resourceLuaState)
+{
+    // Remove all player keybinds on this VM
+    for (auto iter = g_pGame->GetPlayerManager()->IterBegin(); iter != g_pGame->GetPlayerManager()->IterEnd(); iter++)
+    {
+        CKeyBinds* pBinds = (*iter)->GetKeyBinds();
+
+        if (pBinds)
+            pBinds->RemoveAllKeys(resourceLuaState);
+    }
+
+    // Delete the events on this VM
+    m_pRootElement->DeleteEvents(resourceLuaState, true);
+    g_pGame->GetElementDeleter()->CleanUpForVM(resourceLuaState);
+
+    // Delete the virtual machine
+    m_pResourceManager->NotifyResourceVMClose(this, resourceLuaState);
+    g_pGame->GetLuaManager()->RemoveVirtualMachine(resourceLuaState);
+}
+
+void CResource::DestroyLuaState()
+{
+    std::vector<CLuaMain*> workers;
+    m_workers.swap(workers);
+
+    for (CLuaMain* resourceLuaState : workers)
+    {
+        CleanUpLuaState(resourceLuaState);
+    }
+
+    CleanUpLuaState(m_pVM);
+    m_pVM = nullptr;
+}
+
 void CResource::TidyUp()
 {
     // Close the zipfile stuff
@@ -872,7 +906,7 @@ bool CResource::Start(std::list<CResource*>* pDependents, bool bManualStart, con
             for (CResourceFile* pResourceFile : m_ResourceFiles)
                 pResourceFile->Stop();
 
-            DestroyVM();
+            DestroyLuaState();
 
             // Remove the temporary XML storage node
             if (m_pNodeStorage)
@@ -1067,7 +1101,7 @@ bool CResource::Stop(bool bManualStop)
     }
 
     // Destroy the virtual machine for this resource
-    DestroyVM();
+    DestroyLuaState();
 
     // Remove the resource element from the client
     CEntityRemovePacket removePacket;
@@ -1106,30 +1140,6 @@ bool CResource::CreateVM(bool bEnableOOP)
         return false;
 
     m_pVM->SetScriptName(m_strResourceName.c_str());
-    return true;
-}
-
-bool CResource::DestroyVM()
-{
-    // Remove all player keybinds on this VM
-    list<CPlayer*>::const_iterator iter = g_pGame->GetPlayerManager()->IterBegin();
-
-    for (; iter != g_pGame->GetPlayerManager()->IterEnd(); iter++)
-    {
-        CKeyBinds* pBinds = (*iter)->GetKeyBinds();
-
-        if (pBinds)
-            pBinds->RemoveAllKeys(m_pVM);
-    }
-
-    // Delete the events on this VM
-    m_pRootElement->DeleteEvents(m_pVM, true);
-    g_pGame->GetElementDeleter()->CleanUpForVM(m_pVM);
-
-    // Delete the virtual machine
-    m_pResourceManager->NotifyResourceVMClose(this, m_pVM);
-    g_pGame->GetLuaManager()->RemoveVirtualMachine(m_pVM);
-    m_pVM = nullptr;
     return true;
 }
 

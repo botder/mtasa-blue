@@ -108,15 +108,28 @@ bool CLuaCFunctions::IsNotFunction(lua_CFunction f)
     return (reinterpret_cast<void*>(f) < ms_pFunctionPtrLow || reinterpret_cast<void*>(f) > ms_pFunctionPtrHigh);
 }
 
-void CLuaCFunctions::RegisterFunctionsWithVM(lua_State* luaVM)
+void CLuaCFunctions::RegisterFunctionsWithVM(lua_State* luaVM, bool isWorker, CLuaMain* resourceLuaState)
 {
-    // Register all our functions to a lua VM
-    CFastHashMap<SString, CLuaCFunction*>::iterator it;
-    for (it = ms_FunctionsByName.begin(); it != ms_FunctionsByName.end(); ++it)
+    if (isWorker)
     {
-        lua_pushstring(luaVM, it->first.c_str());
-        lua_pushcclosure(luaVM, it->second->GetAddress(), 1);
-        lua_setglobal(luaVM, it->first.c_str());
+        for (const std::pair<const SString, CLuaCFunction*> function : ms_FunctionsByName)
+        {
+            lua_pushlstring(luaVM, function.first.c_str(), function.first.size());
+            lua_pushlightuserdata(luaVM, resourceLuaState);
+            lua_pushcclosure(luaVM, function.second->GetAddress(), 0);
+            lua_pushcclosure(luaVM, &WorkerProxy, 3);
+            lua_setglobal(luaVM, function.first.c_str());
+        }
+    }
+    else
+    {
+        CFastHashMap<SString, CLuaCFunction*>::iterator it;
+        for (it = ms_FunctionsByName.begin(); it != ms_FunctionsByName.end(); ++it)
+        {
+            lua_pushstring(luaVM, it->first.c_str());
+            lua_pushcclosure(luaVM, it->second->GetAddress(), 1);
+            lua_setglobal(luaVM, it->first.c_str());
+        }
     }
 }
 
@@ -130,4 +143,11 @@ void CLuaCFunctions::RemoveAllFunctions()
     }
     ms_Functions.clear();
     ms_FunctionsByName.clear();
+}
+
+int CLuaCFunctions::WorkerProxy(lua_State* L)
+{
+    auto resourceLuaState = reinterpret_cast<CLuaMain*>(lua_touserdata(L, lua_upvalueindex(2)));
+    auto function = reinterpret_cast<lua_CFunction>(lua_tocfunction(L, lua_upvalueindex(3)));
+    return resourceLuaState->ExecuteWorkerFunction(L, function);
 }

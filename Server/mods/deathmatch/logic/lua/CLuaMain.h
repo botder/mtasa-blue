@@ -102,12 +102,14 @@ public:
 
     void RegisterHTMLDFunctions();
 
-    void           InitVM();
+    void           InitVM(bool isWorker);
     const SString& GetFunctionTag(int iFunctionNumber);
     int            PCall(lua_State* L, int nargs, int nresults, int errfunc);
     void           CheckExecutionTime();
     static int     LuaLoadBuffer(lua_State* L, const char* buff, size_t sz, const char* name);
     static int     OnUndump(const char* p, size_t n);
+
+    int ExecuteWorkerFunction(lua_State* L, lua_CFunction function);
 
 private:
     void InitSecurity();
@@ -149,6 +151,12 @@ private:
     uint                 m_uiOpenFileCountWarnThresh;
     uint                 m_uiOpenXMLFileCountWarnThresh;
     static SString       ms_strExpectedUndumpHash;
+
+    bool                                     m_isWorker;
+    std::unique_ptr<std::mutex>              m_workerMutex;
+    std::unique_ptr<std::condition_variable> m_workerCondition;
+    std::unique_ptr<std::atomic_bool>        m_isWorkerWaiting;
+    std::unique_ptr<std::atomic_bool>        m_isWorkerProcessing;
 
 public:
     CFastHashMap<const void*, CRefInfo> m_CallbackTable;

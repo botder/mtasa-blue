@@ -45,11 +45,13 @@ public:
     static CLuaCFunction* GetFunction(const char* szName);
     static bool           IsNotFunction(lua_CFunction f);
 
-    static void RegisterFunctionsWithVM(lua_State* luaVM);
+    static void RegisterFunctionsWithVM(lua_State* luaVM, bool isWorker, CLuaMain* resourceLuaState);
 
     static void RemoveAllFunctions();
 
 private:
+    static int WorkerProxy(lua_State* L);
+
     static CFastHashMap<lua_CFunction, CLuaCFunction*> ms_Functions;
     static CFastHashMap<SString, CLuaCFunction*>       ms_FunctionsByName;
     static void*                                       ms_pFunctionPtrLow;

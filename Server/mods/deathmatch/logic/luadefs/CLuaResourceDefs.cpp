@@ -65,6 +65,8 @@ void CLuaResourceDefs::LoadFunctions()
         {"getResourceACLRequests", getResourceACLRequests},
         {"loadstring", LoadString},
         {"load", Load},
+
+        {"createWorkerThread", ArgumentParser<CreateWorkerThread>},
     };
 
     // Add functions
@@ -1465,4 +1467,17 @@ int CLuaResourceDefs::isResourceArchived(lua_State* luaVM)
 bool CLuaResourceDefs::isResourceProtected(CResource* const resource)
 {
     return resource->IsProtected();
+}
+
+bool CLuaResourceDefs::CreateWorkerThread(CResource* resource, std::string code)
+{
+    CLuaMain* luaResourceState = m_pLuaManager->CreateWorkerVirtualMachine(resource);
+
+    std::thread worker([luaResourceState, code = std::move(code)]
+    {
+        luaResourceState->LoadScript(code.c_str());
+    });
+
+    worker.detach();
+    return true;
 }

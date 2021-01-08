@@ -37,6 +37,7 @@ public:
     ~CLuaManager();
 
     CLuaMain*  CreateVirtualMachine(CResource* pResourceOwner, bool bEnableOOP);
+    CLuaMain*  CreateWorkerVirtualMachine(CResource* ownerResource);
     bool       RemoveVirtualMachine(CLuaMain* vm);
     CLuaMain*  GetVirtualMachine(lua_State* luaVM);
     CResource* GetVirtualMachineResource(lua_State* luaVM);

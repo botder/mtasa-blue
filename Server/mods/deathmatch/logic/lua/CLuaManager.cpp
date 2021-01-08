@@ -63,11 +63,20 @@ CLuaMain* CLuaManager::CreateVirtualMachine(CResource* pResourceOwner, bool bEna
     CLuaMain* pLuaMain = new CLuaMain(this, m_pObjectManager, m_pPlayerManager, m_pVehicleManager, m_pBlipManager, m_pRadarAreaManager, m_pMapManager,
                                       pResourceOwner, bEnableOOP);
     m_virtualMachines.push_back(pLuaMain);
-    pLuaMain->InitVM();
+    pLuaMain->InitVM(false);
 
     m_pLuaModuleManager->RegisterFunctions(pLuaMain->GetVirtualMachine());
 
     return pLuaMain;
+}
+
+CLuaMain* CLuaManager::CreateWorkerVirtualMachine(CResource* ownerResource)
+{
+    bool enableOOP = ownerResource->IsOOPEnabledInMetaXml();
+    auto resourceLuaState = new CLuaMain(this, m_pObjectManager, m_pPlayerManager, m_pVehicleManager, m_pBlipManager, m_pRadarAreaManager, m_pMapManager, ownerResource, enableOOP);
+    m_virtualMachines.push_back(resourceLuaState);
+    resourceLuaState->InitVM(true);
+    return resourceLuaState;
 }
 
 bool CLuaManager::RemoveVirtualMachine(CLuaMain* pLuaMain)

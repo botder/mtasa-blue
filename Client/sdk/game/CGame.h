@@ -122,7 +122,8 @@ class __declspec(novtable) CGame
 public:
     virtual CPools*                   GetPools() = 0;
     virtual CPlayerInfo*              GetPlayerInfo() = 0;
-    virtual CProjectileInfo*          GetProjectileInfo() = 0;
+    virtual CProjectiles*             GetProjectiles() noexcept = 0;
+    virtual const CProjectiles*       GetProjectiles() const noexcept = 0;
     virtual CRadar*                   GetRadar() = 0;
     virtual CRestart*                 GetRestart() = 0;
     virtual CClock*                   GetClock() = 0;

@@ -120,7 +120,7 @@ public:
     virtual CVehicle*  AddTrain(class CClientVehicle* pClientVehicle, CVector* vecPosition, DWORD dwModels[], int iSize, bool iDirection,
                                 uchar ucTrackId = 0xFF) = 0;
 
-    virtual CEntity*       GetEntity(DWORD* pGameInterface) = 0;
+    virtual CEntity*       GetEntity(void* gameInterface) = 0;
     virtual CClientEntity* GetClientEntity(DWORD* pGameInterface) = 0;
     virtual uint           GetModelIdFromClump(RpClump* pRpClump) = 0;
 

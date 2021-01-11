@@ -14,6 +14,7 @@
 #include "CModelInfoSA.h"
 #include "CObjectGroupPhysicalPropertiesSA.h"
 #include "CFxManagerSA.h"
+#include "CProjectileInfoSA.h"
 #include <game/CStreaming.h>
 
 #define     MAX_MEMORY_OFFSET_1_0           0xCAF008
@@ -125,11 +126,10 @@ public:
         DEBUG_TRACE("CPlayerInfo    * GetPlayerInfo()");
         return m_pPlayerInfo;
     };
-    CProjectileInfo* GetProjectileInfo()
-    {
-        DEBUG_TRACE("CProjectileInfo   * GetProjectileInfo()");
-        return m_pProjectileInfo;
-    };
+
+    CProjectiles*       GetProjectiles() noexcept override { return m_projectiles.get(); }
+    const CProjectiles* GetProjectiles() const noexcept override { return m_projectiles.get(); }
+
     CRadar* GetRadar()
     {
         DEBUG_TRACE("CRadar     * GetRadar()");
@@ -446,7 +446,7 @@ public:
 private:
     CPools*                         m_pPools;
     CPlayerInfo*                    m_pPlayerInfo;
-    CProjectileInfo*                m_pProjectileInfo;
+    std::unique_ptr<CProjectilesSA> m_projectiles;
     CRadar*                         m_pRadar;
     CRestart*                       m_pRestart;
     CClock*                         m_pClock;

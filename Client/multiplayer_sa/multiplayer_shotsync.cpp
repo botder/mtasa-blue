@@ -1009,18 +1009,14 @@ bool ProcessProjectileAdd()
 
 void ProcessProjectile()
 {
-    if (m_pProjectileHandler != NULL)
+    if (m_pProjectileHandler != nullptr)
     {
-        CPoolsSA* pPools = (CPoolsSA*)pGameInterface->GetPools();
-        CEntity* pOwner = GetProjectileOwner(pPools);
-        GetProjectileTarget(pPools);
+        CProjectile*     projectile = pGameInterface->GetProjectiles()->OnGameProjectileCreate(dwProjectileInfoIndex, reinterpret_cast<intptr_t>(pProjectile));
+        CProjectileInfo* projectileInfo = projectile->GetProjectileInfo();
 
-        CProjectileInfo* projectileInfo = pGameInterface->GetProjectileInfo()->GetProjectileInfo(dwProjectileInfoIndex);
-        CProjectile*     projectile = pGameInterface->GetProjectileInfo()->GetProjectile(pProjectile);
-        projectile->SetProjectileInfo(projectileInfo);
-        m_pProjectileHandler(pOwner, projectile, projectileInfo, projectileWeaponType, projectileOrigin, projectileForce, projectileTarget,
-                             projectileTargetEntity);
-        projectileTargetEntity = NULL;
+        m_pProjectileHandler(projectileInfo->GetOwnerEntity(), projectile, projectileInfo, projectileInfo->GetWeaponType(), projectileOrigin, projectileForce,
+                             nullptr, projectileInfo->GetTargetEntity());
+        projectileTargetEntity = nullptr;
     }
 }
 

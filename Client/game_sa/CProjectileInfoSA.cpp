@@ -1,207 +1,134 @@
 /*****************************************************************************
  *
- *  PROJECT:     Multi Theft Auto v1.0
+ *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
  *  FILE:        game_sa/CProjectileInfoSA.cpp
  *  PURPOSE:     Projectile type information
  *
- *  Multi Theft Auto is available from http://www.multitheftauto.com/
+ *  Multi Theft Auto is available from https://multitheftauto.com/
  *
  *****************************************************************************/
 
 #include "StdInc.h"
+#include "CProjectileInfoSA.h"
 
 extern CGameSA* pGame;
-/**
- * This destroys all the projectiles in the world
- */
-void CProjectileInfoSA::RemoveAllProjectiles()
+
+std::array<CProjectileInfoSA, 32>              CProjectilesSA::m_projectileInfo;
+std::array<std::unique_ptr<CProjectileSA>, 32> CProjectilesSA::m_projectiles;
+
+CEntity* CProjectileInfoSA::GetOwnerEntity() noexcept
 {
-    DEBUG_TRACE("void CProjectileInfoSA::RemoveAllProjectiles (  )");
-    DWORD dwFunction = FUNC_RemoveAllProjectiles;
-    _asm
+    return const_cast<CEntity*>(static_cast<const CProjectileInfoSA*>(this)->GetOwnerEntity());
+}
+
+const CEntity* CProjectileInfoSA::GetOwnerEntity() const noexcept
+{
+    if (m_instance->ownerEntity == nullptr)
+        return nullptr;
+
+    return pGame->GetPools()->GetEntity(m_instance->ownerEntity);
+}
+
+void CProjectileInfoSA::SetOwnerEntity(CEntity* entity) noexcept
+{
+    m_instance->ownerEntity = (entity != nullptr) ? entity->GetInterface() : nullptr;
+}
+
+CEntity* CProjectileInfoSA::GetTargetEntity() noexcept
+{
+    return const_cast<CEntity*>(static_cast<const CProjectileInfoSA*>(this)->GetTargetEntity());
+}
+
+const CEntity* CProjectileInfoSA::GetTargetEntity() const noexcept
+{
+    if (m_instance->targetEntity == nullptr)
+        return nullptr;
+
+    return pGame->GetPools()->GetEntity(m_instance->targetEntity);
+}
+
+void CProjectileInfoSA::SetTargetEntity(CEntity* entity) noexcept
+{
+    m_instance->targetEntity = (entity != nullptr) ? entity->GetInterface() : nullptr;
+}
+
+CFxSystem* CProjectileInfoSA::GetParticle() noexcept
+{
+    return nullptr;
+}
+
+const CFxSystem* CProjectileInfoSA::GetParticle() const noexcept
+{
+    return nullptr;
+}
+
+CProjectilesSA::CProjectilesSA()
+{
+    auto gaProjectileInfo = reinterpret_cast<CProjectileInfoSAInterface*>(0xC891A8);
+
+    for (size_t i = 0; i < 32; ++i)
     {
-        call    dwFunction
+        CProjectileInfoSA& info = m_projectileInfo[i];
+        info.m_index = i;
+        info.m_instance = gaProjectileInfo;
+
+        m_projectiles[i] = nullptr;
+
+        ++gaProjectileInfo;
     }
 }
 
-/**
- * Gets a projectile class for a specific projectile ID
- * @param ID valid projectile ID (0-31)
- * @return CProjectile * for the requested projectile, or NULL if the projectile slot is empty or the ID is invalid
- * \todo Check this CProjectile array is how it says in the function
- */
-CProjectile* CProjectileInfoSA::GetProjectile(DWORD ID)
+bool CProjectilesSA::CreateProjectile(const CreateProjectileParams& params) noexcept
 {
-    DEBUG_TRACE("CProjectile * CProjectileInfoSA::GetProjectile ( DWORD ID )");
-    if (ID >= 0 && ID < 32)
-        return (CProjectile*)(ARRAY_CProjectile + ID * sizeof(CProjectile*));
+    using signature = bool(__cdecl *)(CEntitySAInterface*, eWeaponType, CVector, float, CVector*, CEntitySAInterface*);
+    auto function = reinterpret_cast<signature>(0x737C80);
+
+    auto                ownerGame = dynamic_cast<CEntitySA*>(params.ownerEntity);
+    CEntitySAInterface* ownerInterface = ownerGame ? ownerGame->GetInterface() : nullptr;
+
+    auto                targetGame = dynamic_cast<CEntitySA*>(params.targetEntity);
+    CEntitySAInterface* targetInterface = targetGame ? targetGame->GetInterface() : nullptr;
+
+    return function(ownerInterface, params.weapon, params.originPosition, params.force, nullptr, targetInterface);
+}
+
+bool CProjectilesSA::DestroyProjectile(CProjectile* projectile, bool blowUp) noexcept
+{
+    CProjectileSA* wrapper = dynamic_cast<CProjectileSA*>(projectile);
+
+    if (!wrapper)
+        return false;
+
+    size_t index = wrapper->GetProjectileInfo()->GetIndex();
+    auto   projectileInstance = reinterpret_cast<CProjectileSAInterface*>(wrapper->GetInterface());
+
+    if (blowUp)
+    {
+        CProjectileInfoSAInterface* projectileInfoInstance = m_projectileInfo[index].m_instance;
+
+        using signature = void(__cdecl*)(CProjectileInfoSAInterface*, CProjectileSAInterface*);
+        auto function = reinterpret_cast<signature>(0x7388F0);
+        function(projectileInfoInstance, projectileInstance);
+    }
     else
-        return NULL;
-}
-
-CProjectile* CProjectileInfoSA::GetProjectile(void* projectilePointer)
-{
-    // This must be destroyed later
-    return new CProjectileSA((CProjectileSAInterface*)projectilePointer);
-}
-
-CProjectileInfo* CProjectileInfoSA::GetProjectileInfo(void* projectileInfoInterface)
-{
-    return projectileInfo[((DWORD)projectileInfoInterface - ARRAY_CProjectileInfo) / sizeof(CProjectileInfoSAInterface)];
-}
-
-void CProjectileInfoSA::RemoveProjectile(CProjectileInfo* pProjectileInfo, CProjectile* pProjectile, bool bBlow)
-{
-    CProjectileInfoSAInterface* projectileInfoInterface = ((CProjectileInfoSA*)pProjectileInfo)->internalInterface;
-
-    CProjectileSA* pProjectileSA = dynamic_cast<CProjectileSA*>(pProjectile);
-    if (!pProjectileSA)
-        return;
-
-    CEntitySAInterface* projectileInterface = pProjectileSA->GetInterface();
-
-    // Check that this infact is a CProjectile
-    // This is perhaps the fix for a crash where it jumps to 0x42480000
-    // The proper cause should be figured out instead though as this is a rather unsafe fix.
-    if ((DWORD)projectileInterface->vtbl == VTBL_CProjectile)
     {
-        // Has it not already been removed by GTA?
-        if (pProjectileInfo->IsActive())
-        {
-            if (bBlow)
-            {
-                DWORD dwFunc = FUNC_RemoveProjectile;
-                _asm
-                {
-                    push    projectileInterface
-                    push    projectileInfoInterface
-                    call    dwFunc
-                    add     esp, 8
-                }
-            }
-            else
-            {
-                DWORD dwFunc = FUNC_RemoveIfThisIsAProjectile;
-                _asm
-                {
-                    push   projectileInterface
-                    call   dwFunc
-                    add    esp, 4
-                }
-            }
-        }
-    }
-}
-
-CProjectileInfo* CProjectileInfoSA::GetNextFreeProjectileInfo()
-{
-    for (int i = 0; i < PROJECTILE_INFO_COUNT; i++)
-    {
-        if (projectileInfo[i]->internalInterface->dwProjectileType == 0)
-            return projectileInfo[i];
-    }
-    return NULL;
-}
-
-CProjectileInfo* CProjectileInfoSA::GetProjectileInfo(DWORD dwIndex)
-{
-    return projectileInfo[dwIndex];
-}
-
-/**
- * Creates a projectile based on an entity's position at a specified offset from the entity's position (VC)
- * @param creator The entity that is emmitting the projectile
- * @param eWeapon The type of projectile
- * @param vecOffset How far away from the creator entity the projectile is created
- * @param fForce How fast the projectile is moving when it is created
- * \note The projectile is created at the same angle as the creator entity. If the creator entity is the player
- * and the camera is in standard 3rd person mode, then the camera's rotation is used as the basis for the angle.
- * SA: public: static bool __cdecl CProjectileInfo::AddProjectile(class CEntity *,enum eWeaponType,class CVector,float,class CVector *,class CEntity *)
- */
-
-bool CProjectileInfoSA::AddProjectile(CEntity* creator, eWeaponType eWeapon, CVector vecOrigin, float fForce, CVector* target, CEntity* targetEntity)
-{
-    DEBUG_TRACE("bool CProjectileInfoSA::AddProjectile ( CEntity * creator, eWeaponType eWeapon, CVector vecOffset, float fForce )");
-
-    DWORD               dwFunction = FUNC_AddProjectile;
-    DWORD               dwReturn = 0;
-    CEntitySAInterface* creatorVC = NULL;
-    if (creator != NULL)
-    {
-        CEntitySA* pCreatorSA = dynamic_cast<CEntitySA*>(creator);
-        if (pCreatorSA)
-        {
-            creatorVC = pCreatorSA->GetInterface();
-            pGame->GetWorld()->IgnoreEntity(creator);
-        }
+        using signature = bool(__cdecl *)(CProjectileSAInterface*);
+        auto function = reinterpret_cast<signature>(0x739A40);
+        function(projectileInstance);
     }
 
-    CEntitySAInterface* targetVC = NULL;
-
-    if (targetEntity != NULL)
-    {
-        CEntitySA* pTargetEntitySA = dynamic_cast<CEntitySA*>(targetEntity);
-        if (pTargetEntitySA)
-            targetVC = pTargetEntitySA->GetInterface();
-    }
-
-    _asm
-    {
-        push    eax
-
-        push    targetVC
-        push    target
-        push    fForce
-        lea     eax, vecOrigin
-        push    [eax+8]
-        push    [eax+4]
-        push    [eax]
-        push    eWeapon
-        push    creatorVC
-        call    dwFunction
-        add     esp, 32
-        mov     dwReturn, eax
-
-        pop     eax
-    }
-    pGame->GetWorld()->IgnoreEntity(NULL);
-    return dwReturn != 0;
+    m_projectileInfo[index].m_instance->isActive = false;
+    m_projectiles[index].reset();
+    return true;
 }
 
-CEntity* CProjectileInfoSA::GetTarget()
+CProjectile* CProjectilesSA::OnGameProjectileCreate(size_t index, intptr_t instance) noexcept
 {
-    CEntitySAInterface* pTargetInterface = internalInterface->pEntProjectileTarget;
-    CEntity*            pTarget = NULL;
-    if (pTargetInterface)
-    {
-        switch (pTargetInterface->nType)
-        {
-            case ENTITY_TYPE_PED:
-            {
-                SClientEntity<CPedSA>* pPedClientEntity = pGame->GetPools()->GetPed((DWORD*)pTargetInterface);
-                pTarget = pPedClientEntity ? pPedClientEntity->pEntity : nullptr;
-                break;
-            }
-            case ENTITY_TYPE_VEHICLE:
-            {
-                SClientEntity<CVehicleSA>* pVehicleClientEntity = pGame->GetPools()->GetVehicle((DWORD*)pTargetInterface);
-                pTarget = pVehicleClientEntity ? pVehicleClientEntity->pEntity : nullptr;
-                break;
-            }
-        }
-    }
-    return pTarget;
-}
+    auto projectile = new CProjectileSA(reinterpret_cast<CProjectileSAInterface*>(instance));
+    projectile->m_info = &m_projectileInfo[index];
+    projectile->m_index = index;
 
-void CProjectileInfoSA::SetTarget(CEntity* pEntity)
-{
-    CEntitySA* pEntitySA = dynamic_cast<CEntitySA*>(pEntity);
-    if (pEntitySA)
-        internalInterface->pEntProjectileTarget = pEntitySA->GetInterface();
-}
-
-bool CProjectileInfoSA::IsActive()
-{
-    return (internalInterface->bProjectileActive == 1 && internalInterface->dwProjectileType != 0);
+    m_projectiles[index].reset(projectile);
+    return projectile;
 }

@@ -110,7 +110,7 @@ CGameSA::CGameSA()
     this->m_pSettings = new CSettingsSA();
     this->m_pCarEnterExit = new CCarEnterExitSA();
     this->m_pControllerConfigManager = new CControllerConfigManagerSA();
-    this->m_pProjectileInfo = new CProjectileInfoSA();
+    m_projectiles = std::make_unique<CProjectilesSA>();
     this->m_pRenderWare = new CRenderWareSA(version);
     this->m_pHandlingManager = new CHandlingManagerSA();
     this->m_pEventList = new CEventListSA();

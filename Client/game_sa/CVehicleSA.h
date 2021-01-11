@@ -9,8 +9,6 @@
  *
  *****************************************************************************/
 
-class CVehicleSA;
-
 #pragma once
 
 #include <game/CVehicle.h>

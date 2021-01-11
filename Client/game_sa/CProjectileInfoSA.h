@@ -1,81 +1,79 @@
 /*****************************************************************************
  *
- *  PROJECT:     Multi Theft Auto v1.0
+ *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
  *  FILE:        game_sa/CProjectileInfoSA.h
  *  PURPOSE:     Header file for projectile type information class
  *
- *  Multi Theft Auto is available from http://www.multitheftauto.com/
+ *  Multi Theft Auto is available from https://multitheftauto.com/
  *
  *****************************************************************************/
 
 #pragma once
 
-#include <game/CProjectileInfo.h>
 #include "CProjectileSA.h"
-#include "Common.h"
-#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
+#include <game/CProjectileInfo.h>
 
-#define PROJECTILE_COUNT                    32
-#define PROJECTILE_INFO_COUNT               32
-
-#define FUNC_RemoveAllProjectiles           0x7399B0 //##SA##
-#define FUNC_RemoveProjectile               0x7388F0 //##SA##
-#define FUNC_RemoveIfThisIsAProjectile      0x739A40 //##SA##
-#define FUNC_AddProjectile                  0x737C80 //##SA##
-
-#define ARRAY_CProjectile                   0xC89110 //##SA##
-#define ARRAY_CProjectileInfo               0xC891A8 //##SA##
-
-#define VTBL_CProjectile 0x867030
-
-//#pragma pack(push,1)
 class CProjectileInfoSAInterface
 {
 public:
-    eWeaponType         dwProjectileType;
-    CEntitySAInterface* pEntProjectileOwner;
-    CEntitySAInterface* pEntProjectileTarget;
-    DWORD               dwCounter;
-    BYTE                bProjectileActive;
-    BYTE                bPad[3];
-    CVector             OldCoors;
-    DWORD               dwUnk;
+    eWeaponType           weaponType;
+    CEntitySAInterface*   ownerEntity;
+    CEntitySAInterface*   targetEntity;
+    uint32_t              timeToDestroy;
+    bool                  isActive;
+    CVector               previousPosition;
+    CFxSystemSAInterface* particle;
 };
-//#pragma pack(pop)
+static_assert(sizeof(CProjectileInfoSAInterface) == 36, "invalid size of CProjectileInfoSAInterface");
 
 class CProjectileInfoSA : public CProjectileInfo
 {
-private:
-    CProjectileInfoSA*          projectileInfo[PROJECTILE_INFO_COUNT];
-    CProjectileInfoSAInterface* internalInterface;
-
 public:
-    CProjectileInfoSA()
-    {
-        for (int i = 0; i < PROJECTILE_INFO_COUNT; i++)
-        {
-            projectileInfo[i] = new CProjectileInfoSA((CProjectileInfoSAInterface*)(ARRAY_CProjectileInfo + i * sizeof(CProjectileInfoSAInterface)));
-        }
-    }
+    CProjectileInfoSAInterface* m_instance = nullptr;
+    size_t                      m_index = 0;
 
-    CProjectileInfoSA(CProjectileInfoSAInterface* projectileInfoInterface) { internalInterface = projectileInfoInterface; }
+    size_t GetIndex() const noexcept override { return m_index; }
 
-    void             RemoveAllProjectiles();
-    void             RemoveProjectile(CProjectileInfo* pProjectileInfo, CProjectile* pProjectile, bool bBlow = true);
-    CProjectile*     GetProjectile(DWORD ID);
-    CProjectileInfo* GetProjectileInfo(void* projectileInfoInterface);
-    CProjectileInfo* GetProjectileInfo(DWORD dwIndex);
-    CProjectileInfo* GetNextFreeProjectileInfo();
-    bool             AddProjectile(CEntity* creator, eWeaponType eWeapon, CVector vecOrigin, float fForce, CVector* target, CEntity* targetEntity);
-    CProjectile*     GetProjectile(void* projectilePointer);
+    eWeaponType GetWeaponType() const noexcept override { return m_instance->weaponType; }
 
-    CEntity* GetTarget();
-    void     SetTarget(CEntity* pEntity);
+    uint32_t GetTimeToDestroy() const noexcept override { return m_instance->timeToDestroy; }
+    void     SetTimeToDestroy(uint32_t timeToDestroy) noexcept override { m_instance->timeToDestroy = timeToDestroy; }
 
-    bool IsActive();
+    bool IsActive() const noexcept override { return m_instance->isActive; }
+    void SetActive(bool isActive) noexcept override { m_instance->isActive = isActive; }
 
-    void  SetCounter(DWORD dwCounter) { internalInterface->dwCounter = dwCounter + pGame->GetSystemTime(); }
-    DWORD GetCounter() { return internalInterface->dwCounter - pGame->GetSystemTime(); }
+    CEntity*       GetOwnerEntity() noexcept override;
+    const CEntity* GetOwnerEntity() const noexcept override;
+    void           SetOwnerEntity(CEntity* entity) noexcept override;
+
+    CEntity*       GetTargetEntity() noexcept override;
+    const CEntity* GetTargetEntity() const noexcept override;
+    void           SetTargetEntity(CEntity* entity) noexcept override;
+
+    const CVector& GetPreviousPosition() const noexcept override { return m_instance->previousPosition; }
+
+    CFxSystem*       GetParticle() noexcept override;
+    const CFxSystem* GetParticle() const noexcept override;
+};
+
+class CProjectilesSA : public CProjectiles
+{
+public:
+    CProjectilesSA();
+
+    bool CreateProjectile(const CreateProjectileParams& params) noexcept override;
+    bool DestroyProjectile(CProjectile* projectile, bool blowUp) noexcept override;
+
+    CProjectileInfo*       GetProjectileInfo(size_t index) noexcept override { return &m_projectileInfo[index]; }
+    const CProjectileInfo* GetProjectileInfo(size_t index) const noexcept override { return &m_projectileInfo[index]; }
+
+    CProjectile*       GetProjectile(size_t index) noexcept override { return m_projectiles[index].get(); }
+    const CProjectile* GetProjectile(size_t index) const noexcept override { return m_projectiles[index].get(); }
+
+    CProjectile* OnGameProjectileCreate(size_t index, intptr_t instance) noexcept override;
+
+private:
+    static std::array<CProjectileInfoSA, 32>              m_projectileInfo;
+    static std::array<std::unique_ptr<CProjectileSA>, 32> m_projectiles;
 };

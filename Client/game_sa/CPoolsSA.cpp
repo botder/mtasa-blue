@@ -815,29 +815,46 @@ void CPoolsSA::DeleteAllPeds()
     }
 }
 
-CEntity* CPoolsSA::GetEntity(DWORD* pGameInterface)
+CEntity* CPoolsSA::GetEntity(void* gameInterface)
 {
-    if (pGameInterface)
+    if (gameInterface == nullptr)
+        return nullptr;
+
+    auto     gameEntity = reinterpret_cast<CEntitySAInterface*>(gameInterface);
+    CEntity* entity = nullptr;
+
+    switch (gameEntity->nType)
     {
-        auto pTheObjectEntity = GetObject(pGameInterface);
-        if (pTheObjectEntity)
+        case ENTITY_TYPE_VEHICLE:
         {
-            return pTheObjectEntity->pEntity;
-        }
+            SClientEntity<CVehicleSA>* vehicle = GetVehicle(reinterpret_cast<DWORD*>(gameInterface));
 
-        auto pTheVehicleEntity = GetVehicle(pGameInterface);
-        if (pTheVehicleEntity)
-        {
-            return pTheVehicleEntity->pEntity;
+            if (vehicle != nullptr)
+                entity = vehicle->pEntity;
+            
+            break;
         }
-
-        auto pThePedEntity = GetPed(pGameInterface);
-        if (pThePedEntity)
+        case ENTITY_TYPE_PED:
         {
-            return pThePedEntity->pEntity;
+            SClientEntity<CPedSA>* ped = GetPed(reinterpret_cast<DWORD*>(gameInterface));
+
+            if (ped != nullptr)
+                entity = ped->pEntity;
+
+            break;
+        }
+        case ENTITY_TYPE_OBJECT:
+        {
+            SClientEntity<CObjectSA>* object = GetObject(reinterpret_cast<DWORD*>(gameInterface));
+
+            if (object != nullptr)
+                entity = object->pEntity;
+
+            break;
         }
     }
-    return NULL;
+
+    return entity;
 }
 
 CClientEntity* CPoolsSA::GetClientEntity(DWORD* pGameInterface)

@@ -10,69 +10,9 @@
  *****************************************************************************/
 
 #include "StdInc.h"
+#include "CProjectileSA.h"
 
-CProjectileSA::CProjectileSA(CProjectileSAInterface* projectileInterface) : CObjectSA(projectileInterface)
-{
-    internalInterface = projectileInterface;
-    projectileInfo = NULL;
-    this->BeingDeleted = false;
-    this->DoNotRemoveFromGame = false;
-    this->internalInterface->bStreamingDontDelete = true;
-    this->internalInterface->bDontStream = true;
-    this->internalInterface->bRemoveFromWorld = false;
-    m_bDestroyed = false;
-}
-
-CProjectileSA::~CProjectileSA()
-{
-    DEBUG_TRACE("CProjectileSA::~CProjectileSA( )");
-
-    this->BeingDeleted = true;
-    /*
-    //OutputDebugString("Attempting to destroy Object\n");
-    if(!this->BeingDeleted && DoNotRemoveFromGame == false)
-    {
-        DWORD dwInterface = (DWORD)this->GetInterface();
-
-        CWorldSA * world = (CWorldSA *)pGame->GetWorld();
-        world->Remove(this->GetInterface());
-
-        DWORD dwThis = (DWORD)this->GetInterface();
-        DWORD dwFunc = this->GetInterface()->vtbl->Remove;
-        _asm
-        {
-            mov     ecx, dwThis
-            call    dwFunc
-        }
-
-        dwFunc = this->GetInterface()->vtbl->SCALAR_DELETING_DESTRUCTOR; // we use the vtbl so we can be type independent
-        _asm
-        {
-            mov     ecx, dwThis
-            push    1           //delete too
-            call    dwFunc
-        }
-
-        this->BeingDeleted = true;
-        //((CPoolsSA *)pGame->GetPools())->RemoveObject((CObject *)(CObjectSA *)this);
-        //this->BeingDeleted = false;
-        //delete this;
-        //OutputDebugString("Destroying Object\n");
-    }*/
-    Destroy();
-}
-
-void CProjectileSA::Destroy(bool bBlow)
-{
-    if (m_bDestroyed == false)
-    {
-        pGame->GetProjectileInfo()->RemoveProjectile(projectileInfo, this, bBlow);
-        m_bDestroyed = true;
-    }
-}
-
-// Corrects errors in the physics engine that cause projectiles to be far away from the objects they attached to
-// issue #8122
+/*
 bool CProjectileSA::CorrectPhysics()
 {
     // make sure we have an interface for our bomb/satchel
@@ -127,4 +67,14 @@ bool CProjectileSA::CorrectPhysics()
         }
     }
     return false;
+}
+*/
+
+void CProjectileSA::Destroy(bool blow) noexcept
+{
+}
+
+bool CProjectileSA::CorrectPhysics() noexcept
+{
+    return true;
 }

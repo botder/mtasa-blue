@@ -98,10 +98,8 @@ CClientProjectile::~CClientProjectile()
 
     if (m_pProjectile)
     {
-        // Make sure we're destroyed
-        delete m_pProjectile;
-
-        m_pProjectile = NULL;
+        g_pGame->GetProjectiles()->DestroyProjectile(m_pProjectile, true);
+        m_pProjectile = nullptr;
     }
 
     CClientEntityRefManager::RemoveEntityRefs(0, &m_pCreator, &m_pTarget, NULL);
@@ -307,13 +305,13 @@ void CClientProjectile::SetModel(unsigned short usModel)
 void CClientProjectile::SetCounter(DWORD dwCounter)
 {
     if (m_pProjectile)
-        m_pProjectileInfo->SetCounter(dwCounter);
+        m_pProjectileInfo->SetTimeToDestroy(g_pGame->GetSystemTime() + dwCounter);
 }
 
 DWORD CClientProjectile::GetCounter()
 {
     if (m_pProjectile)
-        return m_pProjectileInfo->GetCounter();
+        return m_pProjectileInfo->GetTimeToDestroy() - g_pGame->GetSystemTime();
     return 0;
 }
 

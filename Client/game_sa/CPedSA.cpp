@@ -158,7 +158,13 @@ void CPedSA::AttachPedToBike(CEntity* entity, CVector* vector, unsigned short sU
 
 bool CPedSA::AddProjectile(eWeaponType eWeapon, CVector vecOrigin, float fForce, CVector* target, CEntity* targetEntity)
 {
-    return ((CProjectileInfoSA*)pGame->GetProjectileInfo())->AddProjectile((CEntitySA*)this, eWeapon, vecOrigin, fForce, target, targetEntity);
+    CreateProjectileParams params{};
+    params.ownerEntity = this;
+    params.targetEntity = targetEntity;
+    params.originPosition = vecOrigin;
+    params.weapon = eWeapon;
+    params.force = fForce;
+    return pGame->GetProjectiles()->CreateProjectile(params);
 }
 
 void CPedSA::DetachPedFromEntity()

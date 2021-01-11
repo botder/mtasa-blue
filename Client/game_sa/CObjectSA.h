@@ -9,13 +9,12 @@
  *
  *****************************************************************************/
 
-#include "CVehicleSA.h"
-#include "CPedSA.h"
-
 #pragma once
 
 #include <game/CObject.h>
 #include "CPhysicalSA.h"
+#include "CVehicleSA.h"
+#include "CPedSA.h"
 
 #define FUNC_CObject_Create             0x5A1F60
 #define FUNC_CObject_Explode            0x5A1340

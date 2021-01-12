@@ -21,4 +21,7 @@ set(MTASA_VENDOR_DIR "${MTASA_SOURCE_DIR}/vendor")
 #
 include(vendor-bass.cmake)
 include(vendor-bcrypt.cmake)
+include(vendor-cef.cmake)
+include(vendor-cegui.cmake)
+include(vendor-freetype.cmake)
 include(vendor-lua.cmake)

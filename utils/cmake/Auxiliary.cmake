@@ -34,3 +34,19 @@ function(mtasa_target_set_dpi_aware TargetName)
         set_property(TARGET ${TargetName} PROPERTY VS_DPI_AWARE "PerMonitor")
     endif()
 endfunction()
+
+#
+# Creates a shared library with the object library target
+#
+macro(mtasa_add_shared_library TargetName ObjectTargetName)
+    add_library("${TargetName}" SHARED $<TARGET_OBJECTS:${ObjectTargetName}>)
+    target_include_directories("${TargetName}" PUBLIC $<TARGET_PROPERTY:${ObjectTargetName},INTERFACE_INCLUDE_DIRECTORIES>)
+endmacro()
+
+#
+# Creates a static library with the object library target
+#
+macro(mtasa_add_static_library TargetName ObjectTargetName)
+    add_library("${TargetName}" STATIC $<TARGET_OBJECTS:${ObjectTargetName}>)
+    target_include_directories("${TargetName}" PUBLIC $<TARGET_PROPERTY:${ObjectTargetName},INTERFACE_INCLUDE_DIRECTORIES>)
+endmacro()

@@ -4,9 +4,9 @@
 add_compile_definitions(
     WIN32
     _WIN32
-    _TIMESPEC_DEFINED
-    WIN32_LEAN_AND_MEAN
-    NOMINMAX
+    # _TIMESPEC_DEFINED
+    # WIN32_LEAN_AND_MEAN # redefinition in CEGUIFactoryModule.cpp
+    # NOMINMAX
     $<$<CONFIG:Debug>:DEBUG>
 
     # Windows 7 (_WIN32_WINNT_WIN7)

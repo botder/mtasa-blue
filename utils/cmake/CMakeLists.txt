@@ -18,8 +18,13 @@ set(CMAKE_UNITY_BUILD NO)
 #
 # Include compiler specific CMake file
 # See https://cmake.org/cmake/help/latest/variable/CMAKE_LANG_COMPILER_ID.html
+# See https://github.com/Kitware/CMake/blob/master/Modules/CMakeDetermineCXXCompiler.cmake
 #
-set(COMPILER_INCLUDE_FILE "${CMAKE_CURRENT_LIST_DIR}/compilers/${CMAKE_CXX_COMPILER_ID}.cmake")
+if (CMAKE_CXX_COMPILER_FRONTEND_VARIANT)
+    set(COMPILER_INCLUDE_FILE "${CMAKE_CURRENT_LIST_DIR}/compilers/${CMAKE_CXX_COMPILER_FRONTEND_VARIANT}.cmake")
+else()
+    set(COMPILER_INCLUDE_FILE "${CMAKE_CURRENT_LIST_DIR}/compilers/${CMAKE_CXX_COMPILER_ID}.cmake")
+endif()
 
 if (EXISTS ${COMPILER_INCLUDE_FILE})
     include(${COMPILER_INCLUDE_FILE})

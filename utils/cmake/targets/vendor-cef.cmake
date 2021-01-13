@@ -24,8 +24,6 @@ target_compile_definitions(vendor-cef PUBLIC
     UNICODE
     _UNICODE
     _WINDOWS
-    _WIN32_WINNT=0x602
-    WINVER=0x0602
     NOMINMAX
     WIN32_LEAN_AND_MEAN
     _HAS_EXCEPTIONS=0

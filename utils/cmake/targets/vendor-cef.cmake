@@ -14,9 +14,9 @@ file(GLOB_RECURSE CEF_SOURCES LIST_DIRECTORIES false CONFIGURE_DEPENDS
 
 add_library(vendor-cef STATIC ${CEF_SOURCES})
 
-target_include_directories(vendor-cef PRIVATE "${VENDOR_CEF_DIR}")
+target_include_directories(vendor-cef PUBLIC "${VENDOR_CEF_DIR}")
 
-target_compile_definitions(vendor-cef PRIVATE
+target_compile_definitions(vendor-cef PUBLIC
     WRAPPING_CEF_SHARED
     __STDC_CONSTANT_MACROS
     __STDC_FORMAT_MACROS

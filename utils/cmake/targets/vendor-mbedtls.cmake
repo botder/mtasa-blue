@@ -8,8 +8,8 @@ endif()
 set(VENDOR_MBEDTLS_DIR "${MTASA_VENDOR_DIR}/mbedtls")
 
 file(GLOB_RECURSE MBEDTLS_SOURCES LIST_DIRECTORIES false CONFIGURE_DEPENDS
-    "${VENDOR_MBEDTLS_DIR}/*.c"
-    "${VENDOR_MBEDTLS_DIR}/*.h"
+    "${VENDOR_MBEDTLS_DIR}/library/*.c"
+    "${VENDOR_MBEDTLS_DIR}/include/*.h"
 )
 
 add_library(vendor-mbedtls STATIC ${MBEDTLS_SOURCES})

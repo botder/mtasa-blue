@@ -12,4 +12,5 @@ add_compile_definitions(
     # Windows 7 (_WIN32_WINNT_WIN7)
     # See https://docs.microsoft.com/en-us/cpp/porting/modifying-winver-and-win32-winnt?view=msvc-160
     _WIN32_WINNT=0x601
+    WINVER=0x601
 )

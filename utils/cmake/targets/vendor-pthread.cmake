@@ -20,12 +20,9 @@ add_library(vendor-pthread STATIC
 
 target_include_directories(vendor-pthread PUBLIC "${VENDOR_PTHREAD_DIR}/include")
 
-target_compile_definitions(vendor-pthread
-    PRIVATE
-        PTW32_STATIC_LIB
-
-    PUBLIC
-        _TIMESPEC_DEFINED
-        HAVE_PTW32_CONFIG_H
-        PTW32_BUILD_INLINED
+target_compile_definitions(vendor-pthread PUBLIC
+    PTW32_STATIC_LIB
+    _TIMESPEC_DEFINED
+    HAVE_PTW32_CONFIG_H
+    PTW32_BUILD_INLINED
 )

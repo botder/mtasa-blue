@@ -6,6 +6,14 @@ set(MTASA_SERVER_DIR "${MTASA_SOURCE_DIR}/Server")
 set(MTASA_SHARED_DIR "${MTASA_SOURCE_DIR}/Shared")
 set(MTASA_VENDOR_DIR "${MTASA_SOURCE_DIR}/vendor")
 
+if (MTASA_X64)
+    set(MTASA_SERVER_OUTPUT_DIR "server/x64")
+    set(MTASA_SERVER_MOD_OUTPUT_DIR "server/x64")
+else()
+    set(MTASA_SERVER_OUTPUT_DIR "server")
+    set(MTASA_SERVER_MOD_OUTPUT_DIR "server/mods/deathmatch")
+endif()
+
 #
 # Client targets
 #
@@ -14,7 +22,11 @@ set(MTASA_VENDOR_DIR "${MTASA_SOURCE_DIR}/vendor")
 #
 # Server targets
 #
-# TODO
+include(mtasa-server-launcher.cmake)
+include(mtasa-server-core.cmake)
+include(mtasa-server-sdk.cmake)
+include(mtasa-server-pthread.cmake)
+include(mtasa-server-xml.cmake)
 
 #
 # Shared targets
@@ -45,8 +57,8 @@ include(vendor-json.cmake)
 include(vendor-ksignals.cmake)
 include(vendor-png.cmake)
 include(vendor-speex.cmake)
-include(vendor-mysql.cmake)
-include(vendor-nvapi.cmake)
+# include(vendor-mysql.cmake)
+# include(vendor-nvapi.cmake)
 include(vendor-portaudio.cmake)
 include(vendor-sparsehash.cmake)
 include(vendor-sqlite.cmake)

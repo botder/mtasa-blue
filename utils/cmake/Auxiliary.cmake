@@ -1,20 +1,24 @@
 #
 # Overwrites the output directory for the target, which might be otherwise
-# malformed by a multi-configuration generator like Visual Studio, which appens
+# malformed by a multi-configuration generator like Visual Studio, which appends
 # the configuration name to the output directory
 #
-function(mtasa_target_set_outputdir TargetName OutputDirectory)
-    if (TARGET ${TargetName})
-        foreach (CONFIG ${CMAKE_CONFIGURATION_TYPES})
-            string(TOUPPER ${CONFIG} CONFIG)
+function(mtasa_set_target_outputdir TargetName OutputDirectory)
+    set_target_properties(${TargetName} PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${OutputDirectory}"
+        LIBRARY_OUTPUT_DIRECTORY "${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/${OutputDirectory}"
+        ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}/${OutputDirectory}"
+    )
 
-            set_target_properties(${TargetName} PROPERTIES
-                RUNTIME_OUTPUT_DIRECTORY_${CONFIG} "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${OutputDirectory}"
-                LIBRARY_OUTPUT_DIRECTORY_${CONFIG} "${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/${OutputDirectory}"
-                ARCHIVE_OUTPUT_DIRECTORY_${CONFIG} "${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}/${OutputDirectory}"
-            )
-        endforeach()
-    endif()
+    foreach (CONFIG ${CMAKE_CONFIGURATION_TYPES})
+        string(TOUPPER ${CONFIG} CONFIG)
+
+        set_target_properties(${TargetName} PROPERTIES
+            RUNTIME_OUTPUT_DIRECTORY_${CONFIG} "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${OutputDirectory}"
+            LIBRARY_OUTPUT_DIRECTORY_${CONFIG} "${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/${OutputDirectory}"
+            ARCHIVE_OUTPUT_DIRECTORY_${CONFIG} "${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}/${OutputDirectory}"
+        )
+    endforeach()
 endfunction()
 
 #
@@ -41,6 +45,7 @@ endfunction()
 macro(mtasa_add_shared_library TargetName ObjectTargetName)
     add_library("${TargetName}" SHARED $<TARGET_OBJECTS:${ObjectTargetName}>)
     target_include_directories("${TargetName}" PUBLIC $<TARGET_PROPERTY:${ObjectTargetName},INTERFACE_INCLUDE_DIRECTORIES>)
+    target_compile_definitions("${TargetName}" PRIVATE $<TARGET_PROPERTY:${ObjectTargetName},INTERFACE_COMPILE_DEFINITIONS>)
 endmacro()
 
 #
@@ -49,6 +54,7 @@ endmacro()
 macro(mtasa_add_static_library TargetName ObjectTargetName)
     add_library("${TargetName}" STATIC $<TARGET_OBJECTS:${ObjectTargetName}>)
     target_include_directories("${TargetName}" PUBLIC $<TARGET_PROPERTY:${ObjectTargetName},INTERFACE_INCLUDE_DIRECTORIES>)
+    target_compile_definitions("${TargetName}" PRIVATE $<TARGET_PROPERTY:${ObjectTargetName},INTERFACE_COMPILE_DEFINITIONS>)
 endmacro()
 
 #
@@ -58,4 +64,16 @@ macro(mtasa_link_object_library TargetName ObjectTargetName)
     target_sources("${TargetName}" PRIVATE $<TARGET_OBJECTS:${ObjectTargetName}>)
     target_include_directories("${TargetName}" PRIVATE $<TARGET_PROPERTY:${ObjectTargetName},INTERFACE_INCLUDE_DIRECTORIES>)
     target_compile_definitions("${TargetName}" PRIVATE $<TARGET_PROPERTY:${ObjectTargetName},INTERFACE_COMPILE_DEFINITIONS>)
+endmacro()
+
+#
+# Creates a copy of the target file with the debug postfix included
+#
+macro(mtasa_create_debug_postfix_copy TargetName)
+    add_custom_command(
+        TARGET ${TargetName} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy 
+            $<TARGET_FILE:${TargetName}>
+            "$<TARGET_FILE_DIR:${TargetName}>/$<TARGET_FILE_BASE_NAME:${TargetName}>${CMAKE_DEBUG_POSTFIX}$<TARGET_FILE_SUFFIX:${TargetName}>"
+    )
 endmacro()

@@ -12,7 +12,7 @@ target_precompile_headers(mtasa-server-dbconmy PRIVATE "${SERVER_DBCONMY_DIR}/St
 
 set_target_properties(mtasa-server-dbconmy PROPERTIES OUTPUT_NAME "dbconmy")
 
-mtasa_set_target_outputdir(mtasa-server-dbconmy "${MTASA_SERVER_OUTPUT_DIR}")
+mtasa_set_target_outputdir(mtasa-server-dbconmy "${MTASA_SERVER_MOD_OUTPUT_DIR}")
 
 target_link_libraries(mtasa-server-dbconmy PRIVATE
     mtasa-server-sdk

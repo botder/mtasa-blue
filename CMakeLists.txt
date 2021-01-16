@@ -5,6 +5,7 @@ project(
     VERSION 1.5.8
     DESCRIPTION "Multiplayer modification for Grand Theft Auto"
     HOMEPAGE_URL "https://multitheftauto.com/"
+    LANGUAGES C CXX
 )
 
 add_subdirectory(utils/cmake)

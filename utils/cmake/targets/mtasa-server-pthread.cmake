@@ -18,9 +18,9 @@ add_library(mtasa-server-pthread SHARED
     "${VENDOR_PTHREAD_DIR}/include/semaphore.h"
 )
 
-target_include_directories(mtasa-server-pthread PRIVATE "${VENDOR_PTHREAD_DIR}/include")
+target_include_directories(mtasa-server-pthread PUBLIC "${VENDOR_PTHREAD_DIR}/include")
 
-target_compile_definitions(mtasa-server-pthread PRIVATE
+target_compile_definitions(mtasa-server-pthread PUBLIC
     _TIMESPEC_DEFINED
     HAVE_PTW32_CONFIG_H
     PTW32_BUILD_INLINED

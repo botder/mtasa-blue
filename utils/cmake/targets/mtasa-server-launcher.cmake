@@ -42,10 +42,6 @@ target_link_libraries(mtasa-server-launcher PRIVATE
     # >
 )
 
-target_compile_definitions(mtasa-server-launcher PRIVATE
-    $<$<CONFIG:Debug>:MTA_DEBUG>
-)
-
 target_compile_options(mtasa-server-launcher PRIVATE
     $<$<BOOL:${MTASA_MSVC}>:
         /W3

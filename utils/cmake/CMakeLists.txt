@@ -14,6 +14,11 @@ set(CMAKE_CXX_EXTENSIONS NO)
 set(CMAKE_POSITION_INDEPENDENT_CODE YES)
 set(CMAKE_DEBUG_POSTFIX "_d")
 set(CMAKE_UNITY_BUILD NO)
+set(MTASA_COMPILE_OPTIONS)
+
+add_compile_definitions(
+    $<$<CONFIG:Debug>:MTA_DEBUG>
+)
 
 #
 # Include compiler specific CMake file
@@ -34,7 +39,7 @@ endif()
 # Include generator specific CMake file
 #
 if (CMAKE_GENERATOR MATCHES "^Visual Studio")
-    include(generators/VisualStudio.cmake)
+    include("${CMAKE_CURRENT_LIST_DIR}/generators/VisualStudio.cmake")
 endif()
 
 #
@@ -47,6 +52,17 @@ if (EXISTS ${TARGET_SYSTEM_INCLUDE_FILE})
 endif()
 
 #
+# Append compile options directly (unfortunately, add_compile_options appends to ASM_MASM)
+#
+if (MTASA_COMPILE_OPTIONS)
+    string(REPLACE ";" " " MTASA_COMPILE_OPTIONS "${MTASA_COMPILE_OPTIONS}")
+
+    foreach (language C CXX)
+        string(APPEND "CMAKE_${language}_FLAGS" " ${MTASA_COMPILE_OPTIONS}")
+    endforeach()
+endif()
+
+#
 # Targets built in this project
 #
-add_subdirectory(targets)
+add_subdirectory(targets "${CMAKE_BINARY_DIR}/targets")

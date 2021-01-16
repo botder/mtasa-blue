@@ -24,4 +24,8 @@ target_link_libraries(vendor-ehs PRIVATE
     mtasa-shared-sdk
     vendor-pme
     vendor-pthread
+
+    $<$<BOOL:${MTASA_OS_WINDOWS}>:
+        ws2_32
+    >
 )

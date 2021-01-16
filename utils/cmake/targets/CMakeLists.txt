@@ -27,11 +27,16 @@ include(mtasa-server-core.cmake)
 include(mtasa-server-sdk.cmake)
 include(mtasa-server-pthread.cmake)
 include(mtasa-server-xml.cmake)
+include(mtasa-server-dbconmy.cmake)
+include(mtasa-server-lua.cmake)
+include(mtasa-server-pcre.cmake)
+include(mtasa-server-deathmatch.cmake)
 
 #
 # Shared targets
 #
 include(mtasa-shared-sdk.cmake)
+include(mtasa-public-sdk.cmake)
 
 #
 # Vendor targets
@@ -57,8 +62,8 @@ include(vendor-json.cmake)
 include(vendor-ksignals.cmake)
 include(vendor-png.cmake)
 include(vendor-speex.cmake)
-# include(vendor-mysql.cmake)
-# include(vendor-nvapi.cmake)
+include(vendor-mysql.cmake)
+include(vendor-nvapi.cmake)
 include(vendor-portaudio.cmake)
 include(vendor-sparsehash.cmake)
 include(vendor-sqlite.cmake)

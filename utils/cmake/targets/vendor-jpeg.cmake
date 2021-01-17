@@ -1,6 +1,10 @@
 #
 # jpeg library target
 #
+if (NOT (MTASA_OS_WINDOWS AND MTASA_X86))
+    return()
+endif()
+
 set(VENDOR_JPEG_DIR "${MTASA_VENDOR_DIR}/jpeg-9d")
 
 add_library(vendor-jpeg STATIC

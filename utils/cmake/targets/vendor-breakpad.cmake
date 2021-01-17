@@ -198,3 +198,5 @@ add_library(vendor-breakpad-client STATIC
         "${VENDOR_BREAKPAD_DIR}/src/common/android/breakpad_getcontext.S"
     >
 )
+
+target_include_directories(vendor-breakpad-client PUBLIC "${VENDOR_BREAKPAD_DIR}/src")

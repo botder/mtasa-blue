@@ -1,7 +1,7 @@
 #
 # tinygettext library target
 #
-if (NOT MTASA_X86)
+if (NOT (MTASA_OS_WINDOWS AND MTASA_X86))
     return()
 endif()
 

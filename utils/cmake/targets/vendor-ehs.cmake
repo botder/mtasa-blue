@@ -23,9 +23,15 @@ target_include_directories(vendor-ehs PUBLIC "${MTASA_VENDOR_DIR}")
 target_link_libraries(vendor-ehs PRIVATE
     mtasa-shared-sdk
     vendor-pme
-    vendor-pthread
-
-    $<$<BOOL:${MTASA_OS_WINDOWS}>:
-        ws2_32
-    >
 )
+
+if (MTASA_OS_WINDOWS)
+    target_link_libraries(vendor-ehs PRIVATE
+        vendor-pthread
+        ws2_32
+    )
+elseif (MTASA_OS_LINUX)
+    target_link_libraries(vendor-ehs PRIVATE
+        pthread
+    )
+endif()

@@ -42,6 +42,12 @@ target_link_libraries(mtasa-server-launcher PRIVATE
     # >
 )
 
+if (MTASA_OS_LINUX)
+    target_link_libraries(mtasa-server-launcher PRIVATE
+        dl
+    )
+endif()
+
 target_compile_options(mtasa-server-launcher PRIVATE
     $<$<BOOL:${MTASA_MSVC}>:
         /W3

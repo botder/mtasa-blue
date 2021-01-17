@@ -75,6 +75,6 @@ if (NOT MTASA_OS_WINDOWS)
     endif()
 
     if (CURL_CA_BUNDLE)
-        target_compile_definitions(vendor-curl PRIVATE CURL_CA_BUNDLE=${CURL_CA_BUNDLE})
+        target_compile_definitions(vendor-curl PRIVATE CURL_CA_BUNDLE="${CURL_CA_BUNDLE}")
     endif()
 endif()

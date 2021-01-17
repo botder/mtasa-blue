@@ -24,6 +24,12 @@ target_link_libraries(mtasa-server-xml PRIVATE
     vendor-tinyxml
 )
 
+if (MTASA_OS_LINUX)
+    target_link_libraries(mtasa-server-xml PRIVATE
+        pthread
+    )
+endif()
+
 set_target_properties(mtasa-server-xml PROPERTIES
     OUTPUT_NAME "xmll"
     DEBUG_POSTFIX ""

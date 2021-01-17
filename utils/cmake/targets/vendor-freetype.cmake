@@ -1,6 +1,10 @@
 #
 # FreeType library target
 #
+if (NOT (MTASA_OS_WINDOWS AND MTASA_X86))
+    return()
+endif()
+
 set(VENDOR_FREETYPE_DIR "${MTASA_VENDOR_DIR}/freetype")
 
 file(GLOB_RECURSE FREETYPE_HEADERS LIST_DIRECTORIES false CONFIGURE_DEPENDS

@@ -34,9 +34,22 @@ mtasa_set_target_outputdir(mtasa-server-core "${MTASA_SERVER_OUTPUT_DIR}")
 target_link_libraries(mtasa-server-core PRIVATE
     mtasa-server-sdk
     mtasa-shared-sdk
-    vendor-detours
-    vendor-pthread
 )
+
+if (MTASA_OS_WINDOWS)
+    target_link_libraries(mtasa-server-core PRIVATE
+        vendor-detours
+        vendor-pthread
+    )
+elseif (MTASA_OS_LINUX)
+    target_link_libraries(mtasa-server-core PRIVATE
+        vendor-breakpad
+        vendor-breakpad-client
+        vendor-breakpad-disasm
+        ncursesw
+        pthread
+    )
+endif()
 
 target_link_options(mtasa-server-core PRIVATE
     $<$<BOOL:${MTASA_MSVC}>:

@@ -65,11 +65,20 @@ target_link_libraries(mtasa-server-deathmatch PRIVATE
     vendor-bcrypt
     mtasa-shared-sdk
     mtasa-server-sdk
-    mtasa-server-pthread
     mtasa-server-pcre
     mtasa-server-lua
     mtasa-public-sdk
 )
+
+if (MTASA_OS_WINDOWS)
+    target_link_libraries(mtasa-server-deathmatch PRIVATE
+        mtasa-server-pthread
+    )
+elseif (MTASA_OS_LINUX)
+    target_link_libraries(mtasa-server-deathmatch PRIVATE
+        pthread
+    )
+endif()
 
 target_compile_definitions(mtasa-server-deathmatch PRIVATE SDK_WITH_BCRYPT)
 

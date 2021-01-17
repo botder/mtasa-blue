@@ -6,11 +6,11 @@ if (NOT MTASA_OS_WINDOWS)
     return()
 endif()
 
-set(VENDOR_PCRE_DIR "${MTASA_VENDOR_DIR}/pcre")
-
 add_library(mtasa-server-pcre SHARED $<TARGET_PROPERTY:vendor-pcre,SOURCES>)
 
-target_include_directories(mtasa-server-pcre PUBLIC "${VENDOR_PCRE_DIR}")
+target_include_directories(mtasa-server-pcre PUBLIC
+    $<TARGET_PROPERTY:vendor-pcre,INCLUDE_DIRECTORIES>
+)
 
 target_compile_definitions(mtasa-server-pcre
     PRIVATE

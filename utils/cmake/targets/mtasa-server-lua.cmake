@@ -6,11 +6,11 @@ if (NOT MTASA_OS_WINDOWS)
     return()
 endif()
 
-set(VENDOR_LUA_DIR "${MTASA_VENDOR_DIR}/lua/src")
-
 add_library(mtasa-server-lua SHARED $<TARGET_PROPERTY:vendor-lua,SOURCES>)
 
-target_include_directories(mtasa-server-lua PUBLIC "${VENDOR_LUA_DIR}")
+target_include_directories(mtasa-server-lua PUBLIC
+    $<TARGET_PROPERTY:vendor-lua,INCLUDE_DIRECTORIES>
+)
 
 target_compile_definitions(mtasa-server-lua PUBLIC LUA_BUILD_AS_DLL)
 

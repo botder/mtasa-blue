@@ -5,20 +5,13 @@ if (NOT MTASA_OS_WINDOWS)
     return()
 endif()
 
-set(VENDOR_PTHREAD_DIR "${MTASA_VENDOR_DIR}/pthreads")
-
 add_library(mtasa-server-pthread SHARED
-    "${VENDOR_PTHREAD_DIR}/include/pthread.c"
-    "${VENDOR_PTHREAD_DIR}/include/pthread.h"
-    "${VENDOR_PTHREAD_DIR}/include/config.h"
-    "${VENDOR_PTHREAD_DIR}/include/context.h"
-    "${VENDOR_PTHREAD_DIR}/include/implement.h"
-    "${VENDOR_PTHREAD_DIR}/include/need_errno.h"
-    "${VENDOR_PTHREAD_DIR}/include/sched.h"
-    "${VENDOR_PTHREAD_DIR}/include/semaphore.h"
+    $<TARGET_PROPERTY:vendor-pthread,SOURCES>
 )
 
-target_include_directories(mtasa-server-pthread PUBLIC "${VENDOR_PTHREAD_DIR}/include")
+target_include_directories(mtasa-server-pthread PUBLIC
+    $<TARGET_PROPERTY:vendor-pthread,INCLUDE_DIRECTORIES>
+)
 
 target_compile_definitions(mtasa-server-pthread PUBLIC
     _TIMESPEC_DEFINED

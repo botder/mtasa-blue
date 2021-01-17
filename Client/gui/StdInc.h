@@ -1,3 +1,4 @@
+#pragma once
 
 #include <CEGUI.h>
 #include <windows.h>

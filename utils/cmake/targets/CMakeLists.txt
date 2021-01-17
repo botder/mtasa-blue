@@ -17,7 +17,23 @@ endif()
 #
 # Client targets
 #
-# TODO
+if (MTASA_OS_WINDOWS AND MTASA_X86)
+    include(mtasa-client-sdk.cmake)
+    include(mtasa-client-multiplayer.cmake)
+    include(mtasa-client-ceflauncher.cmake)
+    include(mtasa-client-ceflauncher-dll.cmake)
+    include(mtasa-client-cefweb.cmake)
+    include(mtasa-client-launcher.cmake)
+    include(mtasa-client-loader.cmake)
+    include(mtasa-client-game.cmake)
+    include(mtasa-client-core.cmake)
+    include(mtasa-client-pthread.cmake)
+    include(mtasa-client-cgui.cmake)
+    include(mtasa-client-lua.cmake)
+    include(mtasa-client-pcre.cmake)
+    include(mtasa-client-xml.cmake)
+    include(mtasa-client-deathmatch.cmake)
+endif()
 
 #
 # Server targets
@@ -72,3 +88,4 @@ include(vendor-tinyxml.cmake)
 include(vendor-unrar.cmake)
 include(vendor-zip.cmake)
 include(vendor-zlib.cmake)
+include(vendor-d3dx9.cmake)

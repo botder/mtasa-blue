@@ -52,9 +52,20 @@ add_library(vendor-freetype STATIC
 
 target_include_directories(vendor-freetype PUBLIC "${VENDOR_FREETYPE_DIR}/include")
 
-target_compile_definitions(vendor-freetype PUBLIC
-    _LIB
-    FT2_BUILD_LIBRARY=1
-    UNICODE
-    _UNICODE
+target_compile_definitions(vendor-freetype
+    PRIVATE
+        UNICODE
+        _UNICODE
+
+        $<$<CONFIG:Debug>:
+            FT_DEBUG_LEVEL_ERROR
+            FT_DEBUG_LEVEL_TRACE
+        >
+    PUBLIC
+        FT2_BUILD_LIBRARY
+)
+
+target_link_libraries(vendor-freetype PUBLIC
+    vendor-zlib
+    vendor-png
 )

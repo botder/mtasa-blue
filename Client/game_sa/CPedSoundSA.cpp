@@ -1,4 +1,4 @@
-#include <StdInc.h>
+#include "StdInc.h"
 
 int CPedSoundSA::m_iNumVoicesPerType[] = {NUM_GEN_VOICES, NUM_EMG_VOICES, NUM_PLAYER_VOICES, NUM_GANG_VOICES, NUM_GFD_VOICES};
 

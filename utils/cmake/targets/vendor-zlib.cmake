@@ -22,3 +22,7 @@ add_library(vendor-zlib STATIC
 )
 
 target_include_directories(vendor-zlib PUBLIC "${VENDOR_ZLIB_DIR}")
+
+target_compile_definitions(vendor-zlib PUBLIC
+    $<$<CONFIG:Debug>:ZLIB_DEBUG>
+)

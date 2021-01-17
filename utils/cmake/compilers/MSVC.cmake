@@ -2,7 +2,7 @@
 # Microsoft Visual C++ compiler
 #
 set(MTASA_MSVC TRUE)
-set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+# set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
 if (CMAKE_CXX_COMPILER_FRONTEND_VARIANT STREQUAL "MSVC")
     set(MTASA_MSVC_FRONTEND TRUE)

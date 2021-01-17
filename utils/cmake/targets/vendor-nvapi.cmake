@@ -3,7 +3,7 @@
 #
 set(VENDOR_NVAPI_DIR "${MTASA_VENDOR_DIR}/nvapi")
 
-add_library(vendor-nvapi STATIC IMPORTED)
+add_library(vendor-nvapi SHARED IMPORTED)
 
 if (MTASA_OS_WINDOWS)
     if (MTASA_X64)

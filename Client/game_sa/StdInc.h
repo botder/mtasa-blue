@@ -1,5 +1,5 @@
-
 // Pragmas
+#pragma once
 #pragma warning (disable:4409)
 #pragma warning (disable:4250)
 

@@ -7,11 +7,10 @@
  *  PURPOSE:     CEF launcher entry point
  *
  *****************************************************************************/
-#define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 #include "CCefApp.h"
 #include <string>
-#include <cef3/include/cef_sandbox_win.h>
+#include <include/cef_sandbox_win.h>
 
 //#define CEF_ENABLE_SANDBOX
 #ifdef CEF_ENABLE_SANDBOX

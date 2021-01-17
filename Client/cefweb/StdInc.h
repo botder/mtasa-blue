@@ -1,3 +1,4 @@
+#pragma once
 
 #include <winsock.h>
 #define MTA_CLIENT

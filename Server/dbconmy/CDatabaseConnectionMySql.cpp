@@ -1,19 +1,24 @@
 /*****************************************************************************
  *
- *  PROJECT:     Multi Theft Auto v1.0
+ *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
- *  FILE:        mods/deathmatch/logic/CDatabaseConnectionMySql.cpp
- *  PURPOSE:     MySql connection handler
+ *  PURPOSE:     MySQL connection handler
  *
- *  Multi Theft Auto is available from http://www.multitheftauto.com/
+ *  Multi Theft Auto is available from https://multitheftauto.com/
  *
  *****************************************************************************/
 
-#include "StdInc.h"
-using namespace std;
-#include "../mods/deathmatch/logic/CRegistry.h"
-#include "../mods/deathmatch/logic/CDatabaseType.h"
+#define SHARED_UTIL_WITH_FAST_HASH_MAP
+
+#ifdef WIN32
+    #include <windows.h>
+#endif
+
 #include <mysql.h>
+#include <SharedUtil.h>
+#include <MTAPlatform.h>
+#include <logic/CRegistry.h>
+#include <logic/CDatabaseType.h>
 
 ///////////////////////////////////////////////////////////////
 //
@@ -281,8 +286,8 @@ bool CDatabaseConnectionMySql::QueryInternal(const SString& strQuery, CRegistryR
             {
                 ulong* inLengths = mysql_fetch_lengths(res);
 
-                pResult->Data.push_back(vector<CRegistryResultCell>(pResult->nColumns));
-                vector<CRegistryResultCell>& outRow = pResult->Data.back();
+                pResult->Data.push_back(std::vector<CRegistryResultCell>(pResult->nColumns));
+                std::vector<CRegistryResultCell>& outRow = pResult->Data.back();
                 for (int i = 0; i < pResult->nColumns; i++)
                 {
                     CRegistryResultCell& cell = outRow[i];

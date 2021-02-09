@@ -1,56 +1,53 @@
 project "Core"
-	language "C++"
-	kind "SharedLib"
-	targetname "core"
-	targetdir(buildpath("server"))
+    language "C++"
+    kind "SharedLib"
+    targetname "core"
+    targetdir(buildpath("server"))
 
-	filter "system:windows"
-		includedirs { "../../vendor/sparsehash/current/src/windows" }
-		linkoptions { "/SAFESEH:NO" }
+    files {
+        "premake5.lua",
+        "UnityBuild.cpp",
+    }
 
-	filter {}
-		includedirs {
-			"../sdk",
-			"../../vendor/google-breakpad/src",
-			"../../vendor/sparsehash/current/src/",
-		}
+    includedirs {
+        "../sdk",
+        "../../vendor/google-breakpad/src",
+        "../../vendor/sparsehash/current/src/",
+    }
 
-	pchheader "StdInc.h"
-	pchsource "StdInc.cpp"
+    filter "platforms:x64"
+        targetdir(buildpath("server/x64"))
 
-	vpaths {
-		["Headers/*"] = "**.h",
-		["Sources"] = "*.c",
-		["*"] = "premake5.lua"
-	}
+    filter "system:windows"
+        includedirs { "../../vendor/sparsehash/current/src/windows" }
+        linkoptions { "/SAFESEH:NO" }
 
-	files {
-		"premake5.lua",
-		"*.h",
-		"*.cpp"
-	}
+    filter { "system:windows", "platforms:x86" }
+        includedirs { "../../vendor/detours/4.0.1/src" }
 
-	filter { "system:windows", "platforms:x86" }
-		includedirs {
-			"../../vendor/detours/4.0.1/src"
-		}
-		links { "detours", "Imagehlp" }
+        links {
+            "detours",
+            "imagehlp",
+        }
 
-	filter "system:not windows"
-		excludes { "CExceptionInformation_Impl.cpp" }
+    filter "system:linux"
+        links {
+            "ncursesw",
+            "breakpad",
+            "rt",
+        }
 
-	filter "system:linux"
-		links { "ncursesw", "breakpad", "rt" }
-		buildoptions { "-pthread" }
-		linkoptions { "-pthread" }
+        buildoptions { "-pthread" }
+        linkoptions { "-pthread" }
 
-	filter "system:macosx"
-		links { "ncurses", "breakpad", "CoreFoundation.framework" }
-		buildoptions { "-pthread" }
-		linkoptions { "-pthread" }
+    filter "system:macosx"
+        defines { "_XOPEN_SOURCE_EXTENDED=1" }
 
-		-- This makes ncurses `get_wch` work
-		defines { "_XOPEN_SOURCE_EXTENDED=1" }
+        links {
+            "CoreFoundation.framework",
+            "breakpad",
+            "ncurses",
+        }
 
-	filter "platforms:x64"
-		targetdir(buildpath("server/x64"))
+        buildoptions { "-pthread" }
+        linkoptions { "-pthread" }

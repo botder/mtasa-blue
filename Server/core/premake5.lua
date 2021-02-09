@@ -4,15 +4,15 @@ project "Core"
     targetname "core"
     targetdir(buildpath("server"))
 
-    files {
-        "premake5.lua",
-        "UnityBuild.cpp",
-    }
-
     includedirs {
         "../sdk",
         "../../vendor/google-breakpad/src",
         "../../vendor/sparsehash/current/src/",
+    }
+
+    files {
+        "premake5.lua",
+        "UnityBuild.cpp",
     }
 
     filter "platforms:x64"

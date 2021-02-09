@@ -1,71 +1,99 @@
 project "Deathmatch"
-	language "C++"
-	kind "SharedLib"
-	targetname "deathmatch"
-	targetdir(buildpath("server/mods/deathmatch"))
+    language "C++"
+    kind "SharedLib"
+    targetname "deathmatch"
+    targetdir(buildpath("server/mods/deathmatch"))
 
-	pchheader "StdInc.h"
-	pchsource "StdInc.cpp"
+    includedirs {
+        ".",
+        "logic",
+        "utils",
+        "../../sdk",
+        "../../../vendor/bochs",
+        "../../../vendor/pme",
+        "../../../vendor/zip",
+        "../../../vendor/zlib",
+        "../../../vendor/pcre",
+        "../../../vendor/json-c",
+        "../../../vendor/bob_withers",
+        "../../../vendor/lua/src",
+        "../../../Shared/gta",
+        "../../../Shared/mods/deathmatch/logic",
+        "../../../Shared/animation",
+        "../../../Shared/publicsdk/include",
+        "../../../vendor/sparsehash/src/",
+    }
 
-	filter "system:windows"
-		includedirs { "../../../vendor/sparsehash/src/windows" }
+    files {
+        "premake5.lua",
+        "UnityBuild.cpp",
+        "utils/UnityBuild.cpp",
+        "logic/UnityBuild_1.cpp",
+        "logic/UnityBuild_2.cpp",
+        "logic/UnityBuild_3.cpp",
+        "logic/UnityBuild_4.cpp",
+        "logic/UnityBuild_5.cpp",
+        "logic/UnityBuild_Collision.cpp",
+        "logic/UnityBuild_Console.cpp",
+        "logic/UnityBuild_Database.cpp",
+        "logic/UnityBuild_PerfStat.cpp",
+        "logic/UnityBuild_Player.cpp",
+        "logic/UnityBuild_Resource.cpp",
+        "logic/UnityBuild_Vehicle.cpp",
+        "logic/lua/UnityBuild.cpp",
+        "logic/luadefs/UnityBuild.cpp",
+        "logic/net/UnityBuild.cpp",
+        "logic/packets/UnityBuild.cpp",
 
-	filter {}
-		includedirs {
-			"../../sdk",
-			"../../../vendor/bochs",
-			"../../../vendor/pme",
-			"../../../vendor/zip",
-			"../../../vendor/zlib",
-			"../../../vendor/pcre",
-			"../../../vendor/json-c",
-			"../../../vendor/bob_withers",
-			"../../../vendor/lua/src",
-			"../../../Shared/gta",
-			"../../../Shared/mods/deathmatch/logic",
-			"../../../Shared/animation",
-			"../../../Shared/publicsdk/include",
-			"../../../vendor/sparsehash/src/",
-			"logic",
-			"utils",
-			"."
-		}
+        -- TODO: Unity build
+        "../../../Shared/mods/deathmatch/logic/**.cpp",
+        "../../../Shared/animation/CEasingCurve.cpp",
+        "../../../Shared/animation/CPositionRotationAnimation.cpp",
 
-	defines { "SDK_WITH_BCRYPT" }
-	links {
-		"Lua_Server", "sqlite", "ehs", "cryptopp", "pme", "pcre", "json-c", "zip", "zlib", "blowfish_bcrypt",
-	}
+        -- TODO: Replace with cryptopp functions
+        "../../../vendor/bochs/bochs_internal/bochs_crc32.cpp",
+    }
 
-	vpaths {
-		["Headers/*"] = {"**.h", "../../../Shared/mods/deathmatch/**.h", "../../**.h"},
-		["Sources/*"] = {"**.cpp", "../../../Shared/mods/deathmatch/**.cpp", "../../../Shared/**.cpp", "../../../vendor/**.cpp", "../../**.cpp"},
-		["*"] = "premake5.lua"
-	}
+    links {
+        "Lua_Server",
+        "sqlite",
+        "ehs",
+        "cryptopp",
+        "pme",
+        "pcre",
+        "json-c",
+        "zip",
+        "zlib",
+        "blowfish_bcrypt",
+    }
 
-	files {
-		"premake5.lua",
-		"**.h",
-		"**.cpp",
-		"../../../Shared/mods/deathmatch/logic/**.cpp",
-		"../../../Shared/mods/deathmatch/logic/**.h",
-		"../../../Shared/animation/CEasingCurve.cpp",
-		"../../../Shared/animation/CPositionRotationAnimation.cpp",
-		-- Todo: Replace these two by using the CryptoPP functions instead
-		"../../../vendor/bochs/bochs_internal/bochs_crc32.cpp",
-	}
+    defines { "SDK_WITH_BCRYPT" }
 
-	filter "system:windows"
-		includedirs { "../../../vendor/pthreads/include" }
-		buildoptions { "-Zm130" }
-		links { "ws2_32", "pthread" }
+    filter "platforms:x64"
+        targetdir(buildpath("server/x64"))
 
-	filter "system:not windows"
-		buildoptions { "-Wno-narrowing" } -- We should fix the warnings at some point
-		buildoptions { "-pthread" }
-		linkoptions { "-pthread" }
+    filter "system:windows"
+        includedirs {
+            "../../../vendor/sparsehash/src/windows",
+            "../../../vendor/pthreads/include",
+        }
 
-	filter "system:linux"
-		links { "rt" }
+        links {
+            "ws2_32",
+            "pthread",
+        }
 
-	filter "platforms:x64"
-		targetdir(buildpath("server/x64"))
+    filter "system:linux"
+        links { "rt" }
+        buildoptions { "-pthread" }
+        linkoptions { "-pthread" }
+
+        -- TODO: Fix source code and remove this warning suppression
+        buildoptions { "-Wno-narrowing" }
+
+    filter "system:macosx"
+        buildoptions { "-pthread" }
+        linkoptions { "-pthread" }
+
+        -- TODO: Fix source code and remove this warning suppression
+        buildoptions { "-Wno-narrowing" }

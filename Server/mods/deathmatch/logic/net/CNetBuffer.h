@@ -7,6 +7,8 @@
  *
  *****************************************************************************/
 
+#pragma once
+
 // Base class for net function arguments
 struct SArgs
 {

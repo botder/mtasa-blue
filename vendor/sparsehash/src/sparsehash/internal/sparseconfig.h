@@ -77,7 +77,9 @@
 #define HAVE_UINT16_T 1
 
 /* Define to 1 if you have the <unistd.h> header file. */
-#define HAVE_UNISTD_H 1
+#ifndef WIN32
+    #define HAVE_UNISTD_H 1
+#endif
 
 /* Define to 1 if the system has the type `u_int16_t'. */
 #define HAVE_U_INT16_T 1

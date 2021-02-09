@@ -7,6 +7,8 @@
  *
  *****************************************************************************/
 
+#pragma once
+
 struct STrailerInfo
 {
     ElementID m_TrailerID;

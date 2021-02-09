@@ -14,7 +14,7 @@ namespace
 {
     bool               ms_bEnabled = false;
     bool               ms_bEnableRequest = false;
-    CNetServerBuffer*  ms_pNetServerBuffer = NULL;
+    CNetServerBuffer*  ms_pSimNetServerBuffer = NULL;
     CSimPlayerManager* ms_pSimPlayerManager = NULL;
 }            // namespace
 
@@ -80,35 +80,35 @@ void CSimControl::DoPulse()
     if (ms_bEnabled)
     {
         // Startup NetServerBuffer
-        assert(!ms_pNetServerBuffer);
-        ms_pNetServerBuffer = new CNetServerBuffer(ms_pSimPlayerManager);
+        assert(!ms_pSimNetServerBuffer);
+        ms_pSimNetServerBuffer = new CNetServerBuffer(ms_pSimPlayerManager);
 
         // Replace g_pNetServer
-        g_pNetServer = ms_pNetServerBuffer;
+        g_pNetServer = ms_pSimNetServerBuffer;
 
         // Replace packet handler
-        ms_pNetServerBuffer->RegisterPacketHandler(CGame::StaticProcessPacket);
+        ms_pSimNetServerBuffer->RegisterPacketHandler(CGame::StaticProcessPacket);
 
         // Let the pulsing begin
-        ms_pNetServerBuffer->SetAutoPulseEnabled(true);
+        ms_pSimNetServerBuffer->SetAutoPulseEnabled(true);
     }
     else
     {
         // Stop the sync thread from doing anything by itself
-        ms_pNetServerBuffer->SetAutoPulseEnabled(false);
+        ms_pSimNetServerBuffer->SetAutoPulseEnabled(false);
 
         // Restore g_pNetServer
         g_pNetServer = g_pRealNetServer;
 
         // Restore packet handler - This is blocking so will drain the outgoing queue
-        ms_pNetServerBuffer->RegisterPacketHandler(NULL);
+        ms_pSimNetServerBuffer->RegisterPacketHandler(NULL);
         g_pRealNetServer->RegisterPacketHandler(CGame::StaticProcessPacket);
 
         // Drain the incoming queue
-        ms_pNetServerBuffer->ProcessIncoming();
+        ms_pSimNetServerBuffer->ProcessIncoming();
 
         // Kaboooom
-        SAFE_DELETE(ms_pNetServerBuffer);
+        SAFE_DELETE(ms_pSimNetServerBuffer);
     }
 }
 

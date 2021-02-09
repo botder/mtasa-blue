@@ -17,13 +17,13 @@ extern CGame*  g_pGame;
 
 CPlayer* CRPCFunctions::m_pSourcePlayer;
 
-static CPlayerManager* m_pPlayerManager;
+static CPlayerManager* m_pRPCPlayerManager;
 
 CRPCFunctions::CRPCFunctions()
 {
     g_pRPCFunctions = this;
 
-    m_pPlayerManager = g_pGame->GetPlayerManager();
+    m_pRPCPlayerManager = g_pGame->GetPlayerManager();
     AddHandlers();
 }
 
@@ -60,7 +60,7 @@ void CRPCFunctions::AddHandler(unsigned char ucID, pfnRPCHandler Callback)
 
 void CRPCFunctions::ProcessPacket(const NetServerPlayerID& Socket, NetBitStreamInterface& bitStream)
 {
-    m_pSourcePlayer = m_pPlayerManager->Get(Socket);
+    m_pSourcePlayer = m_pRPCPlayerManager->Get(Socket);
     if (m_pSourcePlayer && !m_pSourcePlayer->IsBeingDeleted())
     {
         unsigned char ucFunctionID = 255;

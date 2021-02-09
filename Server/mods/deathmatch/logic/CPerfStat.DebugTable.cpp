@@ -11,16 +11,6 @@
 
 #include "StdInc.h"
 
-namespace
-{
-    struct SLineInfo
-    {
-        std::vector<SString> strCellList;
-        CTickCount           endTickCount;
-        bool                 bHasEndTime;
-    };
-}            // namespace
-
 ///////////////////////////////////////////////////////////////
 //
 // CPerfStatDebugTableImpl
@@ -30,6 +20,13 @@ namespace
 ///////////////////////////////////////////////////////////////
 class CPerfStatDebugTableImpl : public CPerfStatDebugTable
 {
+    struct SLineInfo
+    {
+        std::vector<SString> strCellList;
+        CTickCount           endTickCount;
+        bool                 bHasEndTime;
+    };
+
 public:
     ZERO_ON_NEW
 

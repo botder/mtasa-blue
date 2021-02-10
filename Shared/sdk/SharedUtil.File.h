@@ -11,10 +11,10 @@
 #pragma once
 
 #include <vector>
+#include <climits>
 #include "SharedUtil.IntTypes.h"
 #include "SString.h"
 #include "WString.h"
-
 
 namespace SharedUtil
 {

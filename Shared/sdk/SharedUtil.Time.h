@@ -9,7 +9,9 @@
  *
  *****************************************************************************/
 #pragma once
+
 #include <chrono>
+#include <climits>
 #include "SharedUtil.IntTypes.h"
 #include "SharedUtil.Misc.h"
 #include "SString.h"

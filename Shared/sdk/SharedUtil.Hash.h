@@ -10,6 +10,7 @@
  *****************************************************************************/
 #pragma once
 
+#include <climits>
 #include "SharedUtil.IntTypes.h"
 #include "SString.h"
 

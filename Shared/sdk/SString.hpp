@@ -11,6 +11,7 @@
 #include "SString.h"
 #include <cassert>
 #include <algorithm>
+#include <string.h>
 #include "SharedUtil.Defines.h"
 #include "SharedUtil.Misc.h"
 

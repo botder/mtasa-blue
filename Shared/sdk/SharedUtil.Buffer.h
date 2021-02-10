@@ -11,11 +11,11 @@
 #pragma once
 
 #include <vector>
+#include <string.h>
 #include "SharedUtil.IntTypes.h"
 #include "SharedUtil.Misc.h"
 #include "SharedUtil.File.h"
 #include "SString.h"
-
 
 namespace SharedUtil
 {

@@ -15,6 +15,11 @@
 #include "SharedUtil.Defines.h"
 #include "SharedUtil.Misc.h"
 
+#ifndef WIN32
+    #include <strings.h>
+    #define stricmp strcasecmp
+#endif
+
 //
 // Format a string
 //

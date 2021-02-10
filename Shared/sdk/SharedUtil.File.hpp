@@ -28,8 +28,13 @@
     #include <dirent.h>
     #include <sys/stat.h>
     #include <unistd.h>
+
     #ifndef MAX_PATH
-        #include <linux/limits.h>
+        #ifdef __APPLE__
+            #include <sys/syslimits.h>
+        #else
+            #include <linux/limits.h>
+        #endif
         #define MAX_PATH PATH_MAX
     #endif
 #endif

@@ -28,7 +28,10 @@
     #include <dirent.h>
     #include <sys/stat.h>
     #include <unistd.h>
-    #include <linux/limits.h>
+    #ifndef MAX_PATH
+        #include <linux/limits.h>
+        #define MAX_PATH PATH_MAX
+    #endif
 #endif
 
 //

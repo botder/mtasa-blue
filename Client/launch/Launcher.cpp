@@ -1,15 +1,19 @@
 /*****************************************************************************
  *
- *  PROJECT:     Multi Theft Auto v1.0
+ *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
- *  FILE:        launch/Main.cpp
  *  PURPOSE:     Unchanging .exe that doesn't change
  *
  *  Multi Theft Auto is available from http://www.multitheftauto.com/
  *
  *****************************************************************************/
 
-#include "StdInc.h"
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+
+#define MTA_CLIENT
+#include <SharedUtil.h>
+#include <SharedUtil.cpp>
 
 /*
     IMPORTANT

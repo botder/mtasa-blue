@@ -1,40 +1,27 @@
 project "Client Launcher"
-	language "C++"
-	kind "WindowedApp"
-	targetname "Multi Theft Auto"
-	targetdir(buildpath("."))
-	debugdir(buildpath("."))
+    language "C++"
+    kind "WindowedApp"
+    targetname "Multi Theft Auto"
+    targetdir(buildpath("."))
+    debugdir(buildpath("."))
+    entrypoint "WinMainCRTStartup"
+    staticruntime "On"
 
-	includedirs { "../sdk" }
-	pchheader "StdInc.h"
-	pchsource "StdInc.cpp"
+    includedirs {
+        "../sdk",
+    }
 
-	entrypoint "WinMainCRTStartup"
+    files {
+        "premake5.lua",
+        "Launcher.cpp",
+        "NEU/GDFImp.gdf.xml",
+        "GDFImp.rc",
+        "launch.rc",
+        "mtaicon.ico",
+    }
 
-	vpaths {
-		["Headers/*"] = "**.h",
-		["Sources/*"] = "**.cpp",
-		["Resources/*"] = {"*.rc", "*.ico", "**.xml"},
-		["*"] = "premake5.lua"
-	}
+    filter "architecture:x64"
+        flags { "ExcludeFromBuild" }
 
-	files {
-		"premake5.lua",
-		"*.h",
-		"*.cpp"
-	}
-
-	filter "system:windows"
-		staticruntime "On"
-		files {
-			"NEU/GDFImp.gdf.xml",
-			"GDFImp.rc",
-			"launch.rc",
-			"mtaicon.ico"
-		}
-		
-	filter "architecture:x64"
-		flags { "ExcludeFromBuild" }
-
-	filter "system:not windows"
-		flags { "ExcludeFromBuild" }
+    filter "system:not windows"
+        flags { "ExcludeFromBuild" }

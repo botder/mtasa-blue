@@ -28,6 +28,7 @@
     #include <dirent.h>
     #include <sys/stat.h>
     #include <unistd.h>
+    #include <errno.h>
 
     #ifndef MAX_PATH
         #ifdef __APPLE__

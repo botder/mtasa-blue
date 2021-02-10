@@ -1,67 +1,75 @@
 project "Client Deathmatch"
-	language "C++"
-	kind "SharedLib"
-	targetname "client"
-	targetdir(buildpath("mods/deathmatch"))
+    language "C++"
+    kind "SharedLib"
+    targetname "client"
+    targetdir(buildpath("mods/deathmatch"))
 
-	pchheader "StdInc.h"
-	pchsource "StdInc.cpp"
+    includedirs {
+        ".",
+        "logic",
+        "../../sdk/",
+        "../../../vendor/pthreads/include",
+        "../../../vendor/bochs",
+        "../../../vendor/bass",
+        "../../../vendor/libspeex",
+        "../../../vendor/zlib",
+        "../../../vendor/pcre",
+        "../../../vendor/json-c",
+        "../../../vendor/bob_withers",
+        "../../../vendor/lua/src",
+        "../../../Shared/mods/deathmatch/logic",
+        "../../../Shared/animation",
+        "../../../vendor/sparsehash/src",
+        "../../../vendor/sparsehash/src/windows",
+    }
 
-	defines { "LUA_USE_APICHECK", "SDK_WITH_BCRYPT" }
-	links {
-		"Lua_Client", "pcre", "json-c", "ws2_32", "portaudio", "zlib", "cryptopp", "libspeex", "blowfish_bcrypt",
-		"../../../vendor/bass/lib/bass",
-		"../../../vendor/bass/lib/bass_fx",
-		"../../../vendor/bass/lib/bassmix",
-		"../../../vendor/bass/lib/tags"
-	}
+    files {
+        "premake5.lua",
+        "UnityBuild.cpp",
+        "logic/UnityBuild_1.cpp",
+        "logic/UnityBuild_2.cpp",
+        "logic/UnityBuild_3.cpp",
+        "logic/UnityBuild_4.cpp",
+        "logic/UnityBuild_5.cpp",
+        "logic/UnityBuild_6.cpp",
+        "logic/UnityBuild_7.cpp",
+        "logic/UnityBuild_8.cpp",
+        "logic/lua/UnityBuild.cpp",
+        "logic/luadefs/UnityBuild_1.cpp",
+        "logic/luadefs/UnityBuild_2.cpp",
+        "logic/rpc/UnityBuild.cpp",
+        "../../../Shared/UnityBuild_1.cpp",
+        "../../../Shared/UnityBuild_2.cpp",
 
-	vpaths {
-		["Headers/*"] = {"**.h", "../../../Shared/mods/deathmatch/**.h", "../../**.h"},
-		["Sources/*"] = {"**.cpp", "../../../Shared/mods/deathmatch/**.cpp", "../../../Shared/**.cpp", "../../../vendor/**.cpp"},
-		["*"] = "premake5.lua"
-	}
+        -- TODO: Replace with cryptopp functions
+        "../../../vendor/bochs/bochs_internal/bochs_crc32.cpp",
+    }
 
-	filter "system:windows"
-		includedirs { "../../../vendor/sparsehash/src/windows" }
-		linkoptions { "/SAFESEH:NO" }
+    linkoptions { "/SAFESEH:NO" }
 
-	filter {}
-		includedirs {
-			".",
-			"./logic",
-			"../../sdk/",
-			"../../../vendor/pthreads/include",
-			"../../../vendor/bochs",
-			"../../../vendor/bass",
-			"../../../vendor/libspeex",
-			"../../../vendor/zlib",
-			"../../../vendor/pcre",
-			"../../../vendor/json-c",
-			"../../../vendor/bob_withers",
-			"../../../vendor/lua/src",
-			"../../../Shared/mods/deathmatch/logic",
-			"../../../Shared/animation",
-			"../../../vendor/sparsehash/src/"
-	}
+    links {
+        "Lua_Client",
+        "pcre",
+        "json-c",
+        "ws2_32",
+        "portaudio",
+        "zlib",
+        "cryptopp",
+        "libspeex",
+        "blowfish_bcrypt",
+        "../../../vendor/bass/lib/bass",
+        "../../../vendor/bass/lib/bass_fx",
+        "../../../vendor/bass/lib/bassmix",
+        "../../../vendor/bass/lib/tags",
+    }
 
-	files {
-		"premake5.lua",
-		"**.h",
-		"**.cpp",
-		"../../../Shared/mods/deathmatch/logic/**.cpp",
-		"../../../Shared/mods/deathmatch/logic/**.h",
-		"../../../Shared/animation/CEasingCurve.cpp",
-		"../../../Shared/animation/CPositionRotationAnimation.cpp",
-		-- Todo: Replace these two by using the CryptoPP functions instead
-		"../../../vendor/bochs/bochs_internal/bochs_crc32.cpp"
-	}
+    defines {
+        "LUA_USE_APICHECK",
+        "SDK_WITH_BCRYPT",
+    }
 
-	configuration "windows"
-		buildoptions { "-Zm180" }
+    filter "architecture:x64"
+        flags { "ExcludeFromBuild" }
 
-	filter "architecture:x64"
-		flags { "ExcludeFromBuild" }
-
-	filter "system:not windows"
-		flags { "ExcludeFromBuild" }
+    filter "system:not windows"
+        flags { "ExcludeFromBuild" }

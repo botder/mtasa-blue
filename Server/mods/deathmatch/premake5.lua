@@ -44,11 +44,8 @@ project "Deathmatch"
         "logic/luadefs/UnityBuild.cpp",
         "logic/net/UnityBuild.cpp",
         "logic/packets/UnityBuild.cpp",
-
-        -- TODO: Unity build
-        "../../../Shared/mods/deathmatch/logic/**.cpp",
-        "../../../Shared/animation/CEasingCurve.cpp",
-        "../../../Shared/animation/CPositionRotationAnimation.cpp",
+        "../../../Shared/UnityBuild_1.cpp",
+        "../../../Shared/UnityBuild_2.cpp",
 
         -- TODO: Replace with cryptopp functions
         "../../../vendor/bochs/bochs_internal/bochs_crc32.cpp",

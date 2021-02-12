@@ -2,14 +2,16 @@
  *
  *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
- *  FILE:        Shared/sdk/SharedUtil.Crypto.hpp
+ *  PURPOSE:     Base64 text encoding and decoding
  *
- *  Multi Theft Auto is available from http://www.multitheftauto.com/
+ *  Multi Theft Auto is available from https://multitheftauto.com/
  *
  *****************************************************************************/
+
 #pragma once
-#include <cryptopp/base64.h>
+
 #include "SString.h"
+#include <base64.h>
 
 namespace SharedUtil
 {

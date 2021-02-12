@@ -8,7 +8,6 @@
  *
  *****************************************************************************/
 
-#include "StdInc.h"
 #include "CCompressorJobQueue.h"
 #include "CFileFormat.h"
 #include "SharedUtil.Thread.h"

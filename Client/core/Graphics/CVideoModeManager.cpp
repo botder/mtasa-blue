@@ -8,7 +8,6 @@
  *
  *****************************************************************************/
 
-#include "StdInc.h"
 #include "CVideoModeManager.h"
 #include "CSettings.h"
 #include "CCore.h"

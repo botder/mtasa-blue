@@ -8,7 +8,6 @@
  *
  *****************************************************************************/
 
-#include "StdInc.h"
 #include "CMouseControl.h"
 #include "CCore.h"
 #include <windowsx.h>

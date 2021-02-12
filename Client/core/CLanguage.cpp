@@ -8,7 +8,6 @@
  *
  *****************************************************************************/
 
-#include "StdInc.h"
 #include "CLanguage.h"
 #include "po_parser.hpp"
 #include <fstream>

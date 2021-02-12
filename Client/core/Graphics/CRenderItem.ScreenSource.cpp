@@ -8,7 +8,6 @@
  * 
  *****************************************************************************/
 
-#include "StdInc.h"
 #include "CRenderItemManager.h"
 #include <d3d9.h>
 

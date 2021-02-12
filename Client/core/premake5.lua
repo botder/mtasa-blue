@@ -21,8 +21,9 @@ project "Client Core"
 			"../../vendor/detours/4.0.1/src",
 		}
 
-	pchheader "StdInc.h"
-	pchsource "StdInc.cpp"
+	forceincludes {
+		"SharedUtil.h",
+	}
 
 	vpaths {
 		["Headers/*"] = {"**.h", "**.hpp"},
@@ -30,6 +31,8 @@ project "Client Core"
 		["Resources/*"] = {"**.rc", "../launch/resource/mtaicon.ico"},
 		["*"] = "premake5.lua"
 	}
+
+	flags { "MultiProcessorCompile" }
 
 	links { "detours" }
 
@@ -50,7 +53,10 @@ project "Client Core"
 
 	defines {
 		"INITGUID",
-		"PNG_SETJMP_NOT_SUPPORTED"
+		"PNG_SETJMP_NOT_SUPPORTED",
+		"MTA_CLIENT",
+		"SHARED_UTIL_WITH_FAST_HASH_MAP",
+		"SHARED_UTIL_WITH_SYS_INFO",
 	}
 
 	disablewarnings {

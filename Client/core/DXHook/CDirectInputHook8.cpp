@@ -8,7 +8,6 @@
  *
  *****************************************************************************/
 
-#include "StdInc.h"
 #include "CDirectInputHook8.h"
 #include "CProxyDirectInput8.h"
 #include <SharedUtil.Detours.h>

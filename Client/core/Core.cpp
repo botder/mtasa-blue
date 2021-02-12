@@ -8,7 +8,6 @@
  *
  *****************************************************************************/
 
-#include "StdInc.h"
 #include "CCore.h"
 #include "CFilePathTranslator.h"
 #define DECLARE_PROFILER_SECTION_Core

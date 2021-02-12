@@ -8,7 +8,6 @@
  *
  *****************************************************************************/
 
-#include "StdInc.h"
 #include "CJoystickManager.h"
 #include "CCore.h"
 #include <game/CPad.h>

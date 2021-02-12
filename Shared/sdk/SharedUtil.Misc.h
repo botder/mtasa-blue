@@ -52,14 +52,6 @@ namespace SharedUtil
                                  int nShowCmd = 1);
 
     //
-    // Output a UTF8 encoded messagebox
-    // Used in the Win32 Client only
-    //
-    #ifdef _WINDOWS_
-    int MessageBoxUTF8(HWND hWnd, SString lpText, SString lpCaption, UINT uType);
-    #endif
-
-    //
     // Return full path and filename of parent exe
     //
     SString GetParentProcessPathFilename(int pid);
@@ -231,12 +223,12 @@ namespace SharedUtil
     // string stuff
     //
 
-    std::wstring MbUTF8ToUTF16(const SString& s);
+    std::wstring MbUTF8ToUTF16(const std::string& s);
 
     std::string UTF16ToMbUTF8(const std::wstring& ws);
     std::string UTF16ToMbUTF8(const wchar_t* ws);
 
-    std::wstring ANSIToUTF16(const SString& s);
+    std::wstring ANSIToUTF16(const std::string& s);
 
     int GetUTF8Confidence(const unsigned char* input, int len);
 

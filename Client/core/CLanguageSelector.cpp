@@ -8,7 +8,6 @@
  *
  *****************************************************************************/
 
-#include "StdInc.h"
 #include "CLanguageSelector.h"
 #include "CLocalization.h"
 #include "CGUI.h"

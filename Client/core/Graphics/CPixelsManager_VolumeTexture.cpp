@@ -8,7 +8,6 @@
  *
  *****************************************************************************/
 
-#include "StdInc.h"
 #include "CRenderItemManager.h"
 #include "CFileFormat.h"
 #include "CPixelsManager.h"

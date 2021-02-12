@@ -8,7 +8,6 @@
  *
  *****************************************************************************/
 
-#include "StdInc.h"
 #include "CMemStats.h"
 #include "CCore.h"
 #include <psapi.h>

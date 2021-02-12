@@ -8,7 +8,6 @@
  *
  *****************************************************************************/
 
-#include "StdInc.h"
 #include "CDirect3DEvents9.h"
 #include <version.h>
 #define DECLARE_PROFILER_SECTION_CDirect3DEvents9

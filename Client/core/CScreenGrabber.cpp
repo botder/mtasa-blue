@@ -8,7 +8,6 @@
  *
  *****************************************************************************/
 
-#include "StdInc.h"
 #include "CCompressorJobQueue.h"
 #include "Graphics/CGraphics.h"
 #include <core/CRenderItemManagerInterface.h>

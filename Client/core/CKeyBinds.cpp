@@ -8,7 +8,6 @@
  *
  *****************************************************************************/
 
-#include "StdInc.h"
 #include "CKeyBinds.h"
 #include "CJoystickManager.h"
 #include "CCore.h"

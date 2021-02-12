@@ -8,7 +8,6 @@
  *
  *****************************************************************************/
 
-#include "StdInc.h"
 #include "DXHook/CProxyDirect3DDevice9.h"
 #include "CVertexStreamBoundingBoxManager.h"
 #include <d3dx9.h>

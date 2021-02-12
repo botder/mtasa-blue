@@ -8,7 +8,6 @@
  *
  *****************************************************************************/
 
-#include <StdInc.h>
 #include "CMaterialPrimitive3DBatcher.h"
 #include "DXHook/CProxyDirect3DDevice9.h"
 #include "CVector.h"

@@ -8,7 +8,6 @@
  *
  *****************************************************************************/
 
-#include "StdInc.h"
 #include "CQuestionBox.h"
 #include "CCore.h"
 

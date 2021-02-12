@@ -8,7 +8,6 @@
  *
  *****************************************************************************/
 
-#include <StdInc.h>
 #include "CPrimitiveMaterialBatcher.h"
 #include "CGraphics.h"
 #include <core/CGraphicsInterface.h>

@@ -8,13 +8,13 @@
  *
  *****************************************************************************/
 
-#include "StdInc.h"
 #include "CNewsBrowser.h"
 #include "CDebugView.h"
 #include "CConsole.h"
 #include "CMainMenu.h"
 #include "CVersionUpdater.h"
 #include "CCore.h"
+#include "SharedUtil.Win32.h"
 #include <game/CGame.h>
 #include <windowsx.h>
 

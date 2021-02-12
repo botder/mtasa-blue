@@ -8,7 +8,6 @@
  *
  *****************************************************************************/
 
-#include <StdInc.h>
 #include "CPrimitive3DBatcher.h"
 #include "DXHook/CProxyDirect3DDevice9.h"
 #include <core/CGraphicsInterface.h>

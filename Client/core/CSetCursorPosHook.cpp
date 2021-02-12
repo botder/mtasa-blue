@@ -8,7 +8,6 @@
  *
  *****************************************************************************/
 
-#include "StdInc.h"
 #include "CSetCursorPosHook.h"
 #include <SharedUtil.Detours.h>
 

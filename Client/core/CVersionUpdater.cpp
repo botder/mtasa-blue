@@ -8,10 +8,10 @@
  *
  *****************************************************************************/
 
-#include "StdInc.h"
 #include "CVersionUpdater.Util.hpp"
 #include "CNewsBrowser.h"
 #include "SharedUtil.Thread.h"
+#include "SharedUtil.Win32.h"
 #include "CCrashDumpWriter.h"
 #include "Graphics/CVideoModeManager.h"
 #include "CCommandFuncs.h"
@@ -21,6 +21,7 @@
 #include "CVersionUpdater.h"
 #include "CClientVariables.h"
 #include "CFilePathTranslator.h"
+#include <windows.h>
 
 ///////////////////////////////////////////////////////////////
 //

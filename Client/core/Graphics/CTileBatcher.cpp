@@ -8,7 +8,6 @@
  *
  *****************************************************************************/
 
-#include <StdInc.h>
 #include "CTileBatcher.h"
 #include "DXHook/CProxyDirect3DDevice9.h"
 #include <core/CRenderItemManagerInterface.h>

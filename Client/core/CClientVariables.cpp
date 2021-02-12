@@ -8,7 +8,6 @@
  *
  *****************************************************************************/
 
-#include "StdInc.h"
 #include "CClientVariables.h"
 #include "CNickGen.h"
 #include "CCore.h"

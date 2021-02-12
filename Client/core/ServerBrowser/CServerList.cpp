@@ -8,7 +8,6 @@
  *
  *****************************************************************************/
 
-#include "StdInc.h"
 #include "CCore.h"
 #include "CMainMenu.h"
 #include "CServerBrowser.MasterServerManager.h"

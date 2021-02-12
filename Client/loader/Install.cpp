@@ -1,15 +1,15 @@
 /*****************************************************************************
  *
- *  PROJECT:     Multi Theft Auto v1.0
+ *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
- *  FILE:        loader/Install.cpp
  *  PURPOSE:     MTA loader
  *
- *  Multi Theft Auto is available from http://www.multitheftauto.com/
+ *  Multi Theft Auto is available from https://multitheftauto.com/
  *
  *****************************************************************************/
 
 #include "StdInc.h"
+#include "SharedUtil.Win32.h"
 #include "../../vendor/unrar/dll.hpp"
 
 // Will not terminate a 64 bit process, or the current process

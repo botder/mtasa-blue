@@ -8,7 +8,6 @@
  *
  *****************************************************************************/
 
-#include "StdInc.h"
 #include "CModManager.h"
 #include "CCore.h"
 #include "CDebugView.h"

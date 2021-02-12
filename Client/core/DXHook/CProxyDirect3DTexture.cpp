@@ -8,7 +8,6 @@
  *
  *****************************************************************************/
 
-#include "StdInc.h"
 #include "CProxyDirect3DTexture.h"
 #include "Graphics/CRenderItemManager.h"
 

@@ -8,7 +8,6 @@
  *
  *****************************************************************************/
 
-#include "StdInc.h"
 #include "CCore.h"
 #include "CServerBrowser.h"
 #include "CServerCache.h"

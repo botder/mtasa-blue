@@ -8,7 +8,6 @@
  *
  *****************************************************************************/
 
-#include "StdInc.h"
 #include "CQueryReceiver.h"
 #include "CCore.h"
 #include <net/CNet.h>

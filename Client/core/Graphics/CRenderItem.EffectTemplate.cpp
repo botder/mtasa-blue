@@ -8,7 +8,6 @@
  *
  *****************************************************************************/
 
-#include "StdInc.h"
 #include "CRenderItemManager.h"
 #include "CRenderItem.EffectTemplate.h"
 #include "CRenderItemManager.h"

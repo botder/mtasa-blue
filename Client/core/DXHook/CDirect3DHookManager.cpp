@@ -8,7 +8,6 @@
  *
  *****************************************************************************/
 
-#include "StdInc.h"
 #include "CDirect3DHookManager.h"
 #include "CCore.h"
 

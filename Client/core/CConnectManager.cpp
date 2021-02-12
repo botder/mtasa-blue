@@ -8,7 +8,6 @@
  *
  *****************************************************************************/
 
-#include "StdInc.h"
 #include "CConnectManager.h"
 #include "CCore.h"
 #include "ServerBrowser/CServerBrowser.h"

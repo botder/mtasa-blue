@@ -8,7 +8,6 @@
  *
  *****************************************************************************/
 
-#include "StdInc.h"
 #include "CTrayIcon.h"
 #include <strsafe.h>
 #include "resource.h"

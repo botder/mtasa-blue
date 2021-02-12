@@ -8,7 +8,6 @@
  *
  *****************************************************************************/
 
-#include "StdInc.h"
 #include "SharedUtil.Thread.h"
 #include "CDiscordManager.h"
 #include "CCore.h"

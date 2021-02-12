@@ -8,7 +8,6 @@
  *
  *****************************************************************************/
 
-#include "StdInc.h"
 #include "CCore.h"
 #include "CProxyDirect3DDevice9.h"
 #include "CGraphStats.h"

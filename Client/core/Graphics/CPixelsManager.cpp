@@ -8,7 +8,6 @@
  *
  *****************************************************************************/
 
-#include "StdInc.h"
 #include "CPixelsManager.h"
 #include "CFileFormat.h"
 #include "CClientVariables.h"

@@ -1,12 +1,11 @@
 /*****************************************************************************
  *
- *  PROJECT:     Multi Theft Auto v1.0
+ *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
- *  FILE:        SharedUtil.hpp
  *  PURPOSE:     Solution wide utility functions.
  *               Include this file once per dll.
  *
- *  Multi Theft Auto is available from http://www.multitheftauto.com/
+ *  Multi Theft Auto is available from https://multitheftauto.com/
  *
  *****************************************************************************/
 
@@ -24,3 +23,7 @@
 #include "SharedUtil.Profiling.hpp"
 #include "SharedUtil.Logging.hpp"
 #include "SharedUtil.AsyncTaskScheduler.hpp"
+
+#ifdef WIN32
+    #include "SharedUtil.Win32.hpp"
+#endif

@@ -8,7 +8,6 @@
  *
  *****************************************************************************/
 
-#include "StdInc.h"
 #include "CProxyDirect3DIndexBuffer.h"
 #include "CCore.h"
 

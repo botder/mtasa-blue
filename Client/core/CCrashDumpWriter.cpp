@@ -8,7 +8,6 @@
  *
  *****************************************************************************/
 
-#include "StdInc.h"
 #include "CCrashDumpWriter.h"
 #include "CrashHandler.h"
 #include "CExceptionInformation_Impl.h"

@@ -24,7 +24,6 @@ CONDITIONAL COMPILATION :
                               versions.
 ----------------------------------------------------------------------*/
 
-#include "StdInc.h"
 #include "CrashHandler.h"
 #include <SharedUtil.Detours.h>
 

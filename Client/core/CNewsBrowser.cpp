@@ -8,7 +8,6 @@
  *
  *****************************************************************************/
 
-#include "StdInc.h"
 #include "CNewsBrowser.h"
 #include "CCore.h"
 #include "CVersionUpdater.h"

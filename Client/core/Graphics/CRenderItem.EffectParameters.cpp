@@ -8,7 +8,6 @@
  * 
  *****************************************************************************/
 
-#include "StdInc.h"
 #include "CRenderItem.EffectParameters.h"
 #include "DXHook/CProxyDirect3DDevice9.h"
 #include "DXHook/CDirect3DEvents9.h"

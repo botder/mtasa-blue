@@ -8,7 +8,6 @@
  *
  *****************************************************************************/
 
-#include "StdInc.h"
 #include "CConsoleLogger.h"
 #include "CoreConfig.h"
 #include "CEntryHistory.h"

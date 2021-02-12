@@ -8,7 +8,6 @@
  *
  *****************************************************************************/
 
-#include "StdInc.h"
 #include "CGraphStats.h"
 #include "CCore.h"
 #include <core/CGraphicsInterface.h>

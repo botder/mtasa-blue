@@ -8,7 +8,6 @@
  *
  *****************************************************************************/
 
-#include "StdInc.h"
 #include "CMainMenu.h"
 #include "CVersionUpdater.h"
 #include "CCore.h"

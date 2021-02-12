@@ -8,7 +8,6 @@
  *
  *****************************************************************************/
 
-#include "StdInc.h"
 #include "jinclude.h"
 #include "jpeglib.h"
 #include "jerror.h"         /* get library error codes too */

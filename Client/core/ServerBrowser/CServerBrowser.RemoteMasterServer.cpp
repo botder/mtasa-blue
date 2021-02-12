@@ -8,7 +8,6 @@
  *
  *****************************************************************************/
 
-#include "StdInc.h"
 #include "CServerBrowser.RemoteMasterServer.h"
 #include "CServerList.h"
 #include "CCore.h"

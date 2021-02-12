@@ -8,7 +8,6 @@
  *
  *****************************************************************************/
 
-#include <StdInc.h>
 #include "CCore.h"
 #include "CTileBatcher.h"
 #include "CMaterialLine3DBatcher.h"

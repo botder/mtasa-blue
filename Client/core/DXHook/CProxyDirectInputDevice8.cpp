@@ -8,7 +8,6 @@
  *
  *****************************************************************************/
 
-#include "StdInc.h"
 #include "CProxyDirectInputDevice8.h"
 #include "CJoystickManager.h"
 #include "CCore.h"

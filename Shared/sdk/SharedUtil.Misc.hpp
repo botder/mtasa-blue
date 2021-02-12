@@ -22,6 +22,7 @@
     #include <shellapi.h>
     #include <TlHelp32.h>
     #include <Psapi.h>
+    #include "SharedUtil.Win32.h"
 #else
     #include <wctype.h>
     #ifndef _GNU_SOURCE
@@ -62,25 +63,6 @@ CDuplicateLineFilter<SReportLine> ms_ReportLineFilter;
 
 #ifndef MTA_DM_ASE_VERSION
     #include <version.h>
-#endif
-
-//
-// Output a UTF8 encoded messagebox
-// Used in the Win32 Client only
-//
-#ifdef _WINDOWS_ //Only for modules that use windows.h
-int SharedUtil::MessageBoxUTF8(HWND hWnd, SString lpText, SString lpCaption, UINT uType)
-{
-    // Default to warning icon
-    if ((uType & ICON_MASK_VALUE) == 0)
-        uType |= ICON_WARNING;
-    // Make topmost work
-    if (uType & MB_TOPMOST)
-        uType |= MB_SYSTEMMODAL;
-    WString strText = MbUTF8ToUTF16(lpText);
-    WString strCaption = MbUTF8ToUTF16(lpCaption);
-    return MessageBoxW(hWnd, strText.c_str(), strCaption.c_str(), uType);
-}
 #endif
 
 //
@@ -1467,7 +1449,7 @@ bool SharedUtil::IsColorCodeW(const wchar_t* wszColorCode)
 }
 
 // Convert a standard multibyte UTF-8 std::string into a UTF-16 std::wstring
-std::wstring SharedUtil::MbUTF8ToUTF16(const SString& input)
+std::wstring SharedUtil::MbUTF8ToUTF16(const std::string& input)
 {
     return utf8_mbstowcs(input);
 }
@@ -1492,7 +1474,7 @@ int SharedUtil::GetUTF8Confidence(const unsigned char* input, int len)
 }
 
 // Translate a true ANSI string to the UTF-16 equivalent (reencode+convert)
-std::wstring SharedUtil::ANSIToUTF16(const SString& input)
+std::wstring SharedUtil::ANSIToUTF16(const std::string& input)
 {
     size_t len = mbstowcs(NULL, input.c_str(), input.length());
     if (len == (size_t)-1)

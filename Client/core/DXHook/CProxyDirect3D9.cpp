@@ -8,7 +8,6 @@
  *
  *****************************************************************************/
 
-#include "StdInc.h"
 #include "CProxyDirect3D9.h"
 #include "CProxyDirect3DDevice9.h"
 #include "CDirect3DEvents9.h"

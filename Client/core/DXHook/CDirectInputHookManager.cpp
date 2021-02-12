@@ -8,7 +8,6 @@
  *
  *****************************************************************************/
 
-#include "StdInc.h"
 #include "CDirectInputHookManager.h"
 
 CDirectInputHookManager::CDirectInputHookManager()

@@ -8,7 +8,6 @@
  * 
  *****************************************************************************/
 
-#include "StdInc.h"
 #include "CRenderItemManager.h"
 #include "CCore.h"
 #include "utils/XFont.h"

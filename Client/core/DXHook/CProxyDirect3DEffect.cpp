@@ -8,7 +8,6 @@
  *
  *****************************************************************************/
 
-#include "StdInc.h"
 #include "CProxyDirect3DEffect.h"
 #include <d3dx9effect.h>
 

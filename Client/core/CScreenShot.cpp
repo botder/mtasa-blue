@@ -8,7 +8,6 @@
  *
  *****************************************************************************/
 
-#include "StdInc.h"
 #include "CScreenShot.h"
 #include "CCore.h"
 #include <libpng/png.h>

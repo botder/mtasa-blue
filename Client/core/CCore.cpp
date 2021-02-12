@@ -8,9 +8,7 @@
  *
  *****************************************************************************/
 
-#include "StdInc.h"
 #include "CCore.h"
-// #include "CGUI.h"
 #include "CConsole.h"
 #include "CVersionUpdater.h"
 #include <game/CGame.h>
@@ -19,6 +17,7 @@
 #include "SharedUtil.hpp"
 #include "CTimingCheckpoints.hpp"
 #include "CModelCacheManager.h"
+#include "SharedUtil.Win32.h"
 #include <SharedUtil.Detours.h>
 #include <ServerBrowser/CServerCache.h>
 #include "CDiscordManager.h"

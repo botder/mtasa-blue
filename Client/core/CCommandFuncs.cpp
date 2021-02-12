@@ -8,7 +8,6 @@
  *
  *****************************************************************************/
 
-#include "StdInc.h"
 #include "CCommandFuncs.h"
 #include "CCore.h"
 #include "CGraphStats.h"

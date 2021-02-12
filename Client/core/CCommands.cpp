@@ -8,7 +8,6 @@
  *
  *****************************************************************************/
 
-#include "StdInc.h"
 #include "CCommands.h"
 #include "CGUI.h"
 #include "CConsole.h"

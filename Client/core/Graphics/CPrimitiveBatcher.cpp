@@ -8,7 +8,6 @@
  *
  *****************************************************************************/
 
-#include <StdInc.h>
 #include "CPrimitiveBatcher.h"
 #include <core/CGraphicsInterface.h>
 

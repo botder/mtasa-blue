@@ -1,15 +1,18 @@
 /*****************************************************************************
  *
- *  PROJECT:     Multi Theft Auto v1.0
+ *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
- *  FILE:        CScreenGrabber.h
  *  PURPOSE:
  *
- *  Multi Theft Auto is available from http://www.multitheftauto.com/
+ *  Multi Theft Auto is available from https://multitheftauto.com/
  *
  *****************************************************************************/
 
-typedef void (*PFN_SCREENSHOT_CALLBACK)(const CBuffer* pBuffer, uint uiTimeSpentInQueue, const SString& strError);
+#pragma once
+
+struct IDirect3DDevice9;
+
+typedef void (*PFN_SCREENSHOT_CALLBACK)(const CBuffer* pBuffer, unsigned int uiTimeSpentInQueue, const SString& strError);
 
 //
 // CScreenGrabberInterface

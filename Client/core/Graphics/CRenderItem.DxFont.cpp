@@ -1,14 +1,19 @@
 /*****************************************************************************
  *
- *  PROJECT:     Multi Theft Auto v1.0
+ *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
- *  FILE:        core/CRenderItem.DxFont.cpp
  *  PURPOSE:
  *
+ *  Multi Theft Auto is available from http://www.multitheftauto.com/
+ * 
  *****************************************************************************/
 
 #include "StdInc.h"
+#include "CRenderItemManager.h"
+#include "CCore.h"
 #include "utils/XFont.h"
+#include <d3d9.h>
+#include <d3dx9.h>
 
 ////////////////////////////////////////////////////////////////
 //

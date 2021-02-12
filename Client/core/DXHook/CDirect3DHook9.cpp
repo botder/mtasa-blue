@@ -1,15 +1,17 @@
 /*****************************************************************************
  *
- *  PROJECT:     Multi Theft Auto v1.0
+ *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
- *  FILE:        core/CDirect3DHook9.cpp
  *  PURPOSE:     Function hooker for Direct3D 9
  *
- *  Multi Theft Auto is available from http://www.multitheftauto.com/
+ *  Multi Theft Auto is available from https://multitheftauto.com/
  *
  *****************************************************************************/
 
 #include "StdInc.h"
+#include "CCore.h"
+#include "CDirect3DHook9.h"
+#include "CProxyDirect3D9.h"
 #include <SharedUtil.Detours.h>
 
 template <>

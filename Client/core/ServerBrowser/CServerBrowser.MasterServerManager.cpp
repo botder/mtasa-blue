@@ -1,10 +1,17 @@
-//
-// CMasterServerManager.cpp
-//
+/*****************************************************************************
+ *
+ *  PROJECT:     Multi Theft Auto
+ *  LICENSE:     See LICENSE in the top level directory
+ *  PURPOSE:     In-game server browser server manager
+ *
+ *  Multi Theft Auto is available from https://multitheftauto.com/
+ *
+ *****************************************************************************/
 
 #include "StdInc.h"
 #include "CServerBrowser.MasterServerManager.h"
 #include "CServerBrowser.RemoteMasterServer.h"
+#include "CVersionUpdater.h"
 
 ///////////////////////////////////////////////////////////////
 //

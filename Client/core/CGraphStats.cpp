@@ -1,14 +1,19 @@
 /*****************************************************************************
  *
- *  PROJECT:     Multi Theft Auto v1.0
+ *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
- *  FILE:        core/CGraphStats.cpp
+ *  PURPOSE:     Measuring and displaying a timing graph
  *
- *  Multi Theft Auto is available from http://www.multitheftauto.com/
+ *  Multi Theft Auto is available from https://multitheftauto.com/
  *
  *****************************************************************************/
 
-#include <StdInc.h>
+#include "StdInc.h"
+#include "CGraphStats.h"
+#include "CCore.h"
+#include <core/CGraphicsInterface.h>
+
+extern CCore* g_pCore;
 
 namespace
 {

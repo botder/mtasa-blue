@@ -1,15 +1,18 @@
 /*****************************************************************************
  *
- *  PROJECT:     Multi Theft Auto v1.0
+ *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
- *  FILE:        core/CVideoModeManager.cpp
  *  PURPOSE:     Video mode related operations
  *
- *  Multi Theft Auto is available from http://www.multitheftauto.com/
+ *  Multi Theft Auto is available from https://multitheftauto.com/
  *
  *****************************************************************************/
 
 #include "StdInc.h"
+#include "CVideoModeManager.h"
+#include "CSettings.h"
+#include "CCore.h"
+#include <DXHook/CProxyDirect3D9.h>
 #include <game/CGame.h>
 
 ///////////////////////////////////////////////////////////////

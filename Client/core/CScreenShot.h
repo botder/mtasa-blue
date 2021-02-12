@@ -1,17 +1,15 @@
 /*****************************************************************************
  *
- *  PROJECT:     Multi Theft Auto v1.0
+ *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
- *  FILE:        core/CScreenShot.h
- *  PURPOSE:     Header file for screen capture handling class
+ *  PURPOSE:     Screen capture file handling
  *
- *  Multi Theft Auto is available from http://www.multitheftauto.com/
+ *  Multi Theft Auto is available from https://multitheftauto.com/
  *
  *****************************************************************************/
 
 #pragma once
 
-#include "CCore.h"
 #include <time.h>
 
 class CScreenShot
@@ -25,7 +23,7 @@ public:
     static SString GetValidScreenshotFilename();
     static int     GetScreenShots();
 
-    static void  BeginSave(const char* szFileName, void* pData, uint uiDataSize, uint uiWidth, uint uiHeight);
-    static bool  IsSaving();
-    static DWORD ThreadProc(LPVOID lpdwThreadParam);
+    static void          BeginSave(const char* szFileName, void* pData, unsigned int uiDataSize, unsigned int uiWidth, unsigned int uiHeight);
+    static bool          IsSaving();
+    static unsigned long ThreadProc(void* lpdwThreadParam);
 };

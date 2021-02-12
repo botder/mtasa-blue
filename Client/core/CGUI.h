@@ -1,39 +1,28 @@
 /*****************************************************************************
  *
- *  PROJECT:     Multi Theft Auto v1.0
+ *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
- *  FILE:        core/CGUI.h
  *  PURPOSE:     Header file for core graphical user interface class
  *
- *  Multi Theft Auto is available from http://www.multitheftauto.com/
+ *  Multi Theft Auto is available from https://multitheftauto.com/
  *
  *****************************************************************************/
-
-class CLocalGUI;
 
 #pragma once
 
 #ifndef WM_MOUSEWHEEL
-#define WM_MOUSEWHEEL 0x20A // Defined only when including Windows.h -> Not getting defined? (<=XP only?)
+    #define WM_MOUSEWHEEL 0x20A // Defined only when including Windows.h -> Not getting defined? (<=XP only?)
 #endif
 
-#define DIRECT3D_VERSION         0x0900
-#include "d3d9.h"
-#include "d3dx9.h"
-
 #include <gui/CGUI.h>
-
-#include "CConsole.h"
-#include "CFilePathTranslator.h"
-#include "CMainMenu.h"
-#include "CSetCursorPosHook.h"
 #include "CSingleton.h"
-#include "CVersionUpdater.h"
-
-#include <windows.h>
 
 class CChat;
 class CDebugView;
+class CConsole;
+class CMainMenu;
+class CVersionUpdaterInterface;
+struct IUnknown;
 
 class CLocalGUI : public CSingleton<CLocalGUI>
 {
@@ -82,19 +71,17 @@ public:
     bool        IsDebugViewVisible();
     void        EchoDebug(const char* szText);
 
-    bool ProcessMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+    bool ProcessMessage(void* window, unsigned int uMsg, unsigned int wParam, unsigned long lParam);
     bool InputGoesToGUI();
     bool IsCursorForcedVisible() { return m_bForceCursorVisible; }
     void ForceCursorVisible(bool bVisible);
 
-    void InitiateUpdate(const char* szType, const char* szData, const char* szHost) { m_pVersionUpdater->InitiateUpdate(szType, szData, szHost); }
-    bool IsOptionalUpdateInfoRequired(const char* szHost) { return m_pVersionUpdater->IsOptionalUpdateInfoRequired(szHost); }
-    void InitiateDataFilesFix() { m_pVersionUpdater->InitiateDataFilesFix(); }
+    void InitiateUpdate(const char* szType, const char* szData, const char* szHost);
+    bool IsOptionalUpdateInfoRequired(const char* szHost);
+    void InitiateDataFilesFix();
 
 private:
     void UpdateCursor();
-
-    DWORD TranslateScanCodeToGUIKey(DWORD dwCharacter);
 
     CConsole*   m_pConsole;
     CMainMenu*  m_pMainMenu;
@@ -112,8 +99,8 @@ private:
     int   m_uiActiveCompositionSize;
     POINT m_StoredMousePosition;
 
-    int     m_LastSettingsRevision;            // the revision number the last time we saw the skin change
-    SString m_LastSkinName;
-    SString m_LastLocaleName;
-    uint    m_LocaleChangeCounter;
+    int          m_LastSettingsRevision;            // the revision number the last time we saw the skin change
+    SString      m_LastSkinName;
+    SString      m_LastLocaleName;
+    unsigned int m_LocaleChangeCounter;
 };

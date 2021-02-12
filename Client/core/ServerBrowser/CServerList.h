@@ -1,11 +1,10 @@
 /*****************************************************************************
  *
- *  PROJECT:     Multi Theft Auto v1.0
+ *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
- *  FILE:        core/CServerList.h
- *  PURPOSE:     Header file for master server/LAN querying list
+ *  PURPOSE:     Master server list and LAN server list querying
  *
- *  Multi Theft Auto is available from http://www.multitheftauto.com/
+ *  Multi Theft Auto is available from https://multitheftauto.com/
  *
  *****************************************************************************/
 
@@ -16,29 +15,13 @@ class CMasterServerManagerInterface;
 
 #pragma once
 
+#include "ServerBrowserConfig.h"
+#include "CSingleton.h"
+#include "CQueryReceiver.h"
 #include <windows.h>
 #include <string>
 #include <sstream>
 #include <vector>
-#include "CSingleton.h"
-
-// Master server list URL
-#define SERVER_LIST_MASTER_URL              "http://master.multitheftauto.com/ase/mta/"
-
-// Query response data buffer
-#define SERVER_LIST_QUERY_BUFFER            4096
-
-// Master server list timeout (in ms)
-#define SERVER_LIST_MASTER_TIMEOUT          10000
-
-// Maximum amount of server queries per pulse (so the list gradually streams in)
-#define SERVER_LIST_QUERIES_PER_PULSE       2
-
-// LAN packet broadcasting interval (in ms)
-#define SERVER_LIST_BROADCAST_REFRESH       2000
-
-// Timeout for one server in the server list to respond to a query (in ms)
-#define SERVER_LIST_ITEM_TIMEOUT       8000
 
 enum
 {

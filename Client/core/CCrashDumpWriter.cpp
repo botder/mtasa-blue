@@ -1,17 +1,26 @@
 /*****************************************************************************
  *
- *  PROJECT:     Multi Theft Auto v1.0
+ *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
- *  FILE:        core/CCrashDumpWriter.cpp
- *  PURPOSE:
+ *  PURPOSE:     Crash dump file writer
  *
- *  Multi Theft Auto is available from http://www.multitheftauto.com/
+ *  Multi Theft Auto is available from https://multitheftauto.com/
  *
  *****************************************************************************/
 
 #include "StdInc.h"
+#include "CCrashDumpWriter.h"
+#include "CExceptionInformation_Impl.h"
+#include "CMemStats.h"
+#include "CModManager.h"
+#include "CClientVariables.h"
+#include "CCore.h"
 #include <game/CGame.h>
 #include <multiplayer/CMultiplayer.h>
+#include <version.h>
+#include <tchar.h>
+#include <dbghelp.h>
+#include <net/CNet.h>
 
 #define LOG_EVENT_SIZE 200
 

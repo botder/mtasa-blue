@@ -1,16 +1,18 @@
 /*****************************************************************************
  *
- *  PROJECT:     Multi Theft Auto v1.0
+ *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
- *  FILE:        core/CDirectInputHook8.cpp
  *  PURPOSE:     Function hooker for DirectInput 8
  *
- *  Multi Theft Auto is available from http://www.multitheftauto.com/
+ *  Multi Theft Auto is available from https://multitheftauto.com/
  *
  *****************************************************************************/
 
 #include "StdInc.h"
+#include "CDirectInputHook8.h"
+#include "CProxyDirectInput8.h"
 #include <SharedUtil.Detours.h>
+#include <CSingleton.h>
 
 template <>
 CDirectInputHook8* CSingleton<CDirectInputHook8>::m_pSingleton = NULL;

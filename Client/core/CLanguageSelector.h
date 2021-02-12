@@ -1,12 +1,23 @@
 /*****************************************************************************
  *
- *  PROJECT:     Multi Theft Auto v1.0
+ *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
- *  FILE:        core/CLanguageSelector.h
+ *  PURPOSE:
  *
- *  Multi Theft Auto is available from http://www.multitheftauto.com/
+ *  Multi Theft Auto is available from https://multitheftauto.com/
  *
  *****************************************************************************/
+
+#pragma once
+
+#include <CVector2D.h>
+#include <vector>
+
+class CGUIElement;
+class CGUIStaticImage;
+class CGUILabel;
+class CGUIScrollPane;
+class CGUIWindow;
 
 struct CLangListItem
 {

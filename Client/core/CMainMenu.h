@@ -1,25 +1,25 @@
 /*****************************************************************************
  *
- *  PROJECT:     Multi Theft Auto v1.0
+ *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
- *  FILE:        core/CMainMenu.h
- *  PURPOSE:     Header file for main menu graphical user interface class
+ *  PURPOSE:     2D Main menu graphical user interface
  *
- *  Multi Theft Auto is available from http://www.multitheftauto.com/
+ *  Multi Theft Auto is available from https://multitheftauto.com/
  *
  *****************************************************************************/
 
-class CMainMenu;
-
 #pragma once
 
-#include "CCore.h"
 #include "CQuestionBox.h"
-#include <ServerBrowser/CServerBrowser.h>
-#include <ServerBrowser/CServerInfo.h>
 #include "CSettings.h"
 #include "CCredits.h"
+#include <ServerBrowser/CServerBrowser.h>
+#include <ServerBrowser/CServerInfo.h>
 #include <Graphics/CGraphics.h>
+#include <memory>
+#include <set>
+#include <deque>
+
 class CNewsBrowser;
 class CLanguageSelector;
 

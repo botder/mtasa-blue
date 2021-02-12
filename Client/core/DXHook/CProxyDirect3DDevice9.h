@@ -1,18 +1,19 @@
 /*****************************************************************************
  *
- *  PROJECT:     Multi Theft Auto v1.0
+ *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
- *  FILE:        core/CProxyDirect3DDevice8.h
  *  PURPOSE:     Header file for Direct3D 9 device proxy class
  *
- *  Multi Theft Auto is available from http://www.multitheftauto.com/
+ *  Multi Theft Auto is available from https://multitheftauto.com/
  *
  *****************************************************************************/
 
 #pragma once
 
+#include <map>
 #include <d3d9.h>
 #include "CDirect3DData.h"
+#include "CProxyDirect3D9.h"
 
 interface CProxyDirect3DDevice9 : public IDirect3DDevice9
 {

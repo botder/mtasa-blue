@@ -1,14 +1,18 @@
 /*****************************************************************************
  *
- *  PROJECT:     Multi Theft Auto v1.0
+ *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
- *  FILE:        CRenderItem.EffectParameters.cpp
  *  PURPOSE:     Handles and settings for a compiled effect
  *
+ *  Multi Theft Auto is available from https://multitheftauto.com/
+ * 
  *****************************************************************************/
 
 #include "StdInc.h"
 #include "CRenderItem.EffectParameters.h"
+#include "DXHook/CProxyDirect3DDevice9.h"
+#include "DXHook/CDirect3DEvents9.h"
+#include "CGraphics.h"
 
 IMPLEMENT_ENUM_BEGIN(EStateGroup)
 ADD_ENUM(STATE_GROUP_RENDER, "renderState")

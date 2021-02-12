@@ -1,15 +1,16 @@
 /*****************************************************************************
  *
- *  PROJECT:     Multi Theft Auto v1.0
+ *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
- *  FILE:        core/CDirect3DHookManager.cpp
  *  PURPOSE:     Direct3D version independant hook manager
  *
- *  Multi Theft Auto is available from http://www.multitheftauto.com/
+ *  Multi Theft Auto is available from https://multitheftauto.com/
  *
  *****************************************************************************/
 
 #include "StdInc.h"
+#include "CDirect3DHookManager.h"
+#include "CCore.h"
 
 CDirect3DHookManager::CDirect3DHookManager()
 {

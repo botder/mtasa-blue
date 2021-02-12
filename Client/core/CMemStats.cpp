@@ -1,15 +1,17 @@
 /*****************************************************************************
  *
- *  PROJECT:     Multi Theft Auto v1.0
+ *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
- *  FILE:        core/CMemStats.cpp
+ *  PURPOSE:     Memory usage statistics
  *
- *  Multi Theft Auto is available from http://www.multitheftauto.com/
+ *  Multi Theft Auto is available from https://multitheftauto.com/
  *
  *****************************************************************************/
 
-#include <StdInc.h>
-#include <Psapi.h>
+#include "StdInc.h"
+#include "CMemStats.h"
+#include "CCore.h"
+#include <psapi.h>
 #include <game/CGame.h>
 #include "CModelCacheManager.h"
 
@@ -476,9 +478,9 @@ void CMemStats::SampleState(SMemStatsInfo& memStatsInfo)
 
     char* pFileInfoArray = *(char**)(0x5B8B08 + 6);
     CGame* pGame = g_pCore->GetGame();
-    unsigned int RRR_BASE_ID = pGame->GetBaseIDforRRR();
+    int32_t RRR_BASE_ID = pGame->GetBaseIDforRRR();
 
-    for (uint i = 0; i < RRR_BASE_ID; i++)
+    for (int32_t i = 0; i < RRR_BASE_ID; i++)
     {
         char* pModelInfo = pFileInfoArray + 20 /* sizeof(CStreamingInfo) */ * i;
         char uiLoadedFlag = pModelInfo[0x10];  // CStreamingInfo.uiLoadFlag

@@ -1,20 +1,21 @@
 /*****************************************************************************
  *
- *  PROJECT:     Multi Theft Auto v1.0
+ *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
- *  FILE:        core/CCredits.h
- *  PURPOSE:     Header file for credits class
+ *  PURPOSE:     In-game credits window
  *
- *  Multi Theft Auto is available from http://www.multitheftauto.com/
+ *  Multi Theft Auto is available from https://multitheftauto.com/
  *
  *****************************************************************************/
 
-class CCredits;
-
 #pragma once
 
-#include "CMainMenu.h"
 #include <ctime>
+
+class CGUIElement;
+class CGUIWindow;
+class CGUILabel;
+class CGUIButton;
 
 class CCredits
 {

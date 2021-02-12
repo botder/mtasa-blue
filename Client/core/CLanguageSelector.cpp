@@ -1,15 +1,19 @@
 /*****************************************************************************
  *
- *  PROJECT:     Multi Theft Auto v1.0
+ *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
- *  FILE:        core/CLanguageSelector.cpp
+ *  PURPOSE:     Language selection GUI
  *
- *  Multi Theft Auto is available from http://www.multitheftauto.com/
+ *  Multi Theft Auto is available from https://multitheftauto.com/
  *
  *****************************************************************************/
 
 #include "StdInc.h"
 #include "CLanguageSelector.h"
+#include "CLocalization.h"
+#include "CGUI.h"
+#include "CCore.h"
+#include "CMainMenu.h"
 
 #define FLAG_SIZE_X             26
 #define FLAG_SIZE_Y             16
@@ -275,7 +279,7 @@ SString CLanguageSelector::GetFlagFilename(SString strLocale)
 {
     if (strLocale.empty())
         strLocale = CVARS_GET_VALUE<SString>("locale");
-    return CalcMTASAPath(SString(MTA_LOCALE_DIR "%s\\flag.png", *strLocale));
+    return CalcMTASAPath(SString("%s\\%s\\flag.png", CLocalization::MTA_LOCALE_DIR, *strLocale));
 }
 
 ///////////////////////////////////////////////////////////////

@@ -1,15 +1,20 @@
 /*****************************************************************************
  *
- *  PROJECT:     Multi Theft Auto v1.0
+ *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
- *  FILE:        core/CRenderItemManager.cpp
- *  PURPOSE:
+ *  PURPOSE:     Manager for render items
  *
+ *  Multi Theft Auto is available from https://multitheftauto.com/
+ * 
  *****************************************************************************/
 
 #include "StdInc.h"
-#include <game/CGame.h>
+#include "CRenderItemManager.h"
+#include "CCore.h"
 #include "CRenderItem.EffectCloner.h"
+#include "Graphics/CVideoModeManager.h"
+#include "DXHook/CProxyDirect3DDevice9.h"
+#include <game/CGame.h>
 
 // Type of vertex used to emulate StretchRect for SwiftShader bug
 struct SRTVertex

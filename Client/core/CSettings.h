@@ -2,26 +2,35 @@
  *
  *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
- *  FILE:        core/CSettings.h
  *  PURPOSE:     Header file for in-game settings window class
  *
- *  Multi Theft Auto is available from http://www.multitheftauto.com/
+ *  Multi Theft Auto is available from https://multitheftauto.com/
  *
  *****************************************************************************/
 
-class CSettings;
-
 #pragma once
 
-#include <core/CCoreInterface.h>
-#include "CMainMenu.h"
-#include "CCore.h"
+#include "CColor.h"
+#include <gui/CGUIEvent.h>
+#include <gui/CGUITypes.h>
+#include <core/CChatInterface.h>
+#include <list>
+#include <vector>
 
-#define SKINS_PATH                    "skins/*"
-#define CHAT_PRESETS_PATH             "mta/config/chatboxpresets.xml"
-#define CHAT_PRESETS_ROOT             "chatboxpresets"
-
-//#define SHOWALLSETTINGS
+class CGUIListItem;
+class CGUIElement;
+class CGUITabPanel;
+class CGUITab;
+class CGUIButton;
+class CGUILabel;
+class CGUIEdit;
+class CGUICheckBox;
+class CGUIComboBox;
+class CGUIScrollBar;
+class CGUIGridList;
+class CGUIScrollPane;
+class CGUIRadioButton;
+class CGUIStaticImage;
 
 struct SKeyBindSection
 {
@@ -63,8 +72,6 @@ struct SKeyBindSection
     class CGUIListItem* headerItem;
 };
 
-class CColor;
-
 enum
 {
     FULLSCREEN_STANDARD,
@@ -84,7 +91,7 @@ public:
     void CreateGUI();
     void DestroyGUI();
 
-    bool ProcessMessage(UINT uMsg, WPARAM wParam, LPARAM lParam);
+    bool ProcessMessage(unsigned int uMsg, unsigned int wParam, unsigned long lParam);
 
     void Update();
     void Initialize();
@@ -443,11 +450,11 @@ private:
 
     CGUIListItem* m_pSelectedBind;
 
-    DWORD m_dwFrameCount;
-    bool  m_bShownVolumetricShadowsWarning;
-    bool  m_bShownAllowScreenUploadMessage;
-    bool  m_bShownAllowExternalSoundsMessage;
-    int   m_iMaxAnisotropic;
+    unsigned long m_dwFrameCount;
+    bool          m_bShownVolumetricShadowsWarning;
+    bool          m_bShownAllowScreenUploadMessage;
+    bool          m_bShownAllowExternalSoundsMessage;
+    int           m_iMaxAnisotropic;
 
     std::list<SKeyBindSection*> m_pKeyBindSections;
 };

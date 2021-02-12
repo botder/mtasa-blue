@@ -2,11 +2,20 @@
  *
  *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
- *  FILE:        CPrimitiveBatcher.h
  *  PURPOSE:
  *
+ *  Multi Theft Auto is available from https://multitheftauto.com/
  *
  *****************************************************************************/
+
+#pragma once
+
+#include <d3d9.h>
+#include <d3dx9.h>
+#include <vector>
+
+struct PrimitiveVertice;
+
 // Vertex type used by the primitives batcher
 struct sPrimitive
 {

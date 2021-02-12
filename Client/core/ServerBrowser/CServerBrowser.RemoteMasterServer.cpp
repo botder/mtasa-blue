@@ -1,9 +1,18 @@
-//
-// CRemoteMasterServer.hpp
-//
+/*****************************************************************************
+ *
+ *  PROJECT:     Multi Theft Auto
+ *  LICENSE:     See LICENSE in the top level directory
+ *  PURPOSE:     In-game server browser master server
+ *
+ *  Multi Theft Auto is available from https://multitheftauto.com/
+ *
+ *****************************************************************************/
 
 #include "StdInc.h"
 #include "CServerBrowser.RemoteMasterServer.h"
+#include "CServerList.h"
+#include "CCore.h"
+#include <net/CNet.h>
 
 ///////////////////////////////////////////////////////////////
 //

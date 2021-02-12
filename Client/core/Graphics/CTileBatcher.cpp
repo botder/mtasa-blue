@@ -1,16 +1,19 @@
 /*****************************************************************************
  *
- *  PROJECT:     Multi Theft Auto v1.0
- *               (Shared logic for modifications)
+ *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
- *  FILE:        CTileBatcher.cpp
  *  PURPOSE:
  *
+ *  Multi Theft Auto is available from https://multitheftauto.com/
  *
  *****************************************************************************/
 
 #include <StdInc.h>
 #include "CTileBatcher.h"
+#include "DXHook/CProxyDirect3DDevice9.h"
+#include <core/CRenderItemManagerInterface.h>
+#include <d3dx9.h>
+
 #define DEG2RAD(deg) ( (deg) * (6.2832f/360.f) )
 
 ////////////////////////////////////////////////////////////////

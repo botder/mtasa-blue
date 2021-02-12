@@ -2,13 +2,16 @@
  *
  *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
- *  FILE:        Client/core/CQueryReceiver.cpp
+ *  PURPOSE:
  *
- *  Multi Theft Auto is available from http://www.multitheftauto.com/
+ *  Multi Theft Auto is available from https://multitheftauto.com/
  *
  *****************************************************************************/
 
 #include "StdInc.h"
+#include "CQueryReceiver.h"
+#include "CCore.h"
+#include <net/CNet.h>
 
 CQueryReceiver::CQueryReceiver()
 {

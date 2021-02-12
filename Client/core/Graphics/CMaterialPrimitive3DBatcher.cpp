@@ -1,16 +1,22 @@
 /*****************************************************************************
  *
  *  PROJECT:     Multi Theft Auto
- *               (Shared logic for modifications)
  *  LICENSE:     See LICENSE in the top level directory
- *  FILE:        CMaterialPrimitive3DBatcher.cpp
  *  PURPOSE:
  *
- *  Multi Theft Auto is available from http://www.multitheftauto.com/
+ *  Multi Theft Auto is available from https://multitheftauto.com/
  *
  *****************************************************************************/
+
 #include <StdInc.h>
 #include "CMaterialPrimitive3DBatcher.h"
+#include "DXHook/CProxyDirect3DDevice9.h"
+#include "CVector.h"
+#include <core/CGraphicsInterface.h>
+#include <core/CRenderItemManagerInterface.h>
+#include <d3d9.h>
+#include <d3dx9.h>
+
 ////////////////////////////////////////////////////////////////
 //
 // CMaterialPrimitive3DBatcher::CMaterialPrimitive3DBatcher

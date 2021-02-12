@@ -1,15 +1,16 @@
 /*****************************************************************************
  *
- *  PROJECT:     Multi Theft Auto v1.0
+ *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
- *  FILE:        core/CDirect3DEvents9.cpp
  *  PURPOSE:     Handler implementations for Direct3D 9 events
  *
- *  Multi Theft Auto is available from http://www.multitheftauto.com/
+ *  Multi Theft Auto is available from https://multitheftauto.com/
  *
  *****************************************************************************/
 
 #include "StdInc.h"
+#include "CDirect3DEvents9.h"
+#include <version.h>
 #define DECLARE_PROFILER_SECTION_CDirect3DEvents9
 #include "profiler/SharedUtil.Profiler.h"
 #include "CProxyDirect3DVertexBuffer.h"
@@ -19,6 +20,8 @@
 #include "CVertexStreamBoundingBoxManager.h"
 #include "CProxyDirect3DVertexDeclaration.h"
 #include "Graphics/CRenderItem.EffectTemplate.h"
+#include <game/CRenderWare.h>
+#include "CCore.h"
 
 bool g_bInMTAScene = false;
 

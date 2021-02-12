@@ -1,11 +1,10 @@
 /*****************************************************************************
  *
- *  PROJECT:     Multi Theft Auto v1.0
+ *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
- *  FILE:        core/CServerBrowser.h
- *  PURPOSE:     Header file for server browser class
+ *  PURPOSE:     In-game server browser user interface
  *
- *  Multi Theft Auto is available from http://www.multitheftauto.com/
+ *  Multi Theft Auto is available from https://multitheftauto.com/
  *
  *****************************************************************************/
 
@@ -13,19 +12,11 @@ class CServerBrowser;
 
 #pragma once
 
-// Amount of server lists/tabs (ServerBrowserType)
-#define SERVER_BROWSER_TYPE_COUNT           4
-
-// Amount of search types
-#define SERVER_BROWSER_SEARCH_TYPE_COUNT    2
-
-// Server browser list update interval (in ms)
-#define SERVER_BROWSER_UPDATE_INTERVAL      1000
-
-#include "CMainMenu.h"
+#include "ServerBrowserConfig.h"
 #include "CServerList.h"
 #include "CSingleton.h"
 #include "CServerInfo.h"
+#include <gui/CGUIEvent.h>
 #include <ctime>
 
 namespace ServerBrowserTypes

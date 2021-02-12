@@ -11,6 +11,7 @@
 #include "StdInc.h"
 #include "SharedUtil.Thread.h"
 #include "CDiscordManager.h"
+#include "CCore.h"
 
 #ifndef DISCORD_CLIENT_ID
     #define DISCORD_CLIENT_ID 468493322583801867

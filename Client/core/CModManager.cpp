@@ -1,16 +1,23 @@
 /*****************************************************************************
  *
- *  PROJECT:     Multi Theft Auto v1.0
+ *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
- *  FILE:        core/CModManager.cpp
  *  PURPOSE:     Game mod loading manager
  *
- *  Multi Theft Auto is available from http://www.multitheftauto.com/
+ *  Multi Theft Auto is available from https://multitheftauto.com/
  *
  *****************************************************************************/
 
 #include "StdInc.h"
+#include "CModManager.h"
+#include "CCore.h"
+#include "CDebugView.h"
+#include "CConsole.h"
+#include "CMainMenu.h"
+#include "CFilePathTranslator.h"
 #include <game/CGame.h>
+#include <net/CNet.h>
+#include <multiplayer/CMultiplayer.h>
 #define DECLARE_PROFILER_SECTION_CModManager
 #include "profiler/SharedUtil.Profiler.h"
 

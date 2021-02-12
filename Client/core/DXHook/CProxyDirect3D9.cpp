@@ -1,15 +1,24 @@
 /*****************************************************************************
  *
- *  PROJECT:     Multi Theft Auto v1.0
+ *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
- *  FILE:        core/CProxyDirect3D9.cpp
  *  PURPOSE:     Direct3D 9 function hooking proxy
  *
- *  Multi Theft Auto is available from http://www.multitheftauto.com/
+ *  Multi Theft Auto is available from https://multitheftauto.com/
  *
  *****************************************************************************/
 
 #include "StdInc.h"
+#include "CProxyDirect3D9.h"
+#include "CProxyDirect3DDevice9.h"
+#include "CDirect3DEvents9.h"
+#include "Graphics/CGraphics.h"
+#include "Graphics/CVideoModeManager.h"
+#include "CMessageLoopHook.h"
+#include "CCore.h"
+#include <net/CNet.h>
+#include <core/CRenderItemManagerInterface.h>
+
 HRESULT HandleCreateDeviceResult(HRESULT hResult, IDirect3D9* pDirect3D, UINT Adapter, D3DDEVTYPE DeviceType, HWND hFocusWindow, DWORD BehaviorFlags,
                                  D3DPRESENT_PARAMETERS* pPresentationParameters, IDirect3DDevice9** ppReturnedDeviceInterface);
 std::vector<IDirect3D9*> ms_CreatedDirect3D9List;

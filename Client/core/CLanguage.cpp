@@ -1,18 +1,19 @@
 /*****************************************************************************
  *
- *  PROJECT:     Multi Theft Auto v1.0
+ *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
- *  FILE:        core/CLanguage.cpp
  *  PURPOSE:     Class to abstract a translation file to translated strings
  *
- *  Multi Theft Auto is available from http://www.multitheftauto.com/
+ *  Multi Theft Auto is available from https://multitheftauto.com/
  *
  *****************************************************************************/
 
 #include "StdInc.h"
+#include "CLanguage.h"
 #include "po_parser.hpp"
+#include <fstream>
 
-CLanguage::CLanguage(const Dictionary& Dict, const SString& strLocale, const SString& strLangName)
+CLanguage::CLanguage(const tinygettext::Dictionary& Dict, const SString& strLocale, const SString& strLangName)
 {
     m_Dict = Dict;
     m_strCode = strLocale;
@@ -22,7 +23,7 @@ CLanguage::CLanguage(const Dictionary& Dict, const SString& strLocale, const SSt
 CLanguage::CLanguage(const SString& strPOPath)
 {
     std::ifstream in(FromUTF8(strPOPath));
-    POParser::parse(strPOPath, in, m_Dict);
+    tinygettext::POParser::parse(strPOPath, in, m_Dict);
     in.close();
 }
 

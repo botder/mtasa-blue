@@ -1,15 +1,23 @@
 /*****************************************************************************
  *
- *  PROJECT:     Multi Theft Auto v1.0
+ *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
- *  FILE:        core/CMessageLoopHook.cpp
  *  PURPOSE:     Windows message loop hooking
  *
- *  Multi Theft Auto is available from http://www.multitheftauto.com/
+ *  Multi Theft Auto is available from https://multitheftauto.com/
  *
  *****************************************************************************/
 
 #include "StdInc.h"
+#include "CMessageLoopHook.h"
+#include "CCore.h"
+#include "CMainMenu.h"
+#include "CSettings.h"
+#include "CChat.h"
+#include "CConsole.h"
+#include "Graphics/CVideoModeManager.h"
+#include "CJoystickManager.h"
+#include "CCommandFuncs.h"
 #include <game/CGame.h>
 
 extern CCore* g_pCore;
@@ -21,6 +29,12 @@ WPARAM CMessageLoopHook::m_LastVirtualKeyCode = NULL;
 UCHAR  CMessageLoopHook::m_LastScanCode = NULL;
 BYTE*  CMessageLoopHook::m_LastKeyboardState = new BYTE[256];
 bool   ms_bIgnoreNextEscapeCharacter = false;
+
+static WNDPROC mtasaSubclassWindow(HWND window, void* messageProcedure)
+{
+    LONG result = SetWindowLongPtr(window, GWLP_WNDPROC, reinterpret_cast<LONG>(messageProcedure));
+    return reinterpret_cast<WNDPROC>(result);
+}
 
 CMessageLoopHook::CMessageLoopHook()
 {
@@ -46,7 +60,7 @@ void CMessageLoopHook::ApplyHook(HWND hFocusWindow)
         m_HookedWindowHandle = hFocusWindow;
 
         // Subclass the window procedure.
-        m_HookedWindowProc = SubclassWindow(hFocusWindow, ProcessMessage);
+        m_HookedWindowProc = mtasaSubclassWindow(hFocusWindow, ProcessMessage);
 
         // Enable Unicode (UTF-16) characters in WM_CHAR messages
         SetWindowLongW(hFocusWindow, GWL_WNDPROC, GetWindowLong(hFocusWindow, GWL_WNDPROC));
@@ -74,7 +88,7 @@ void CMessageLoopHook::RemoveHook()
     if (m_HookedWindowProc != NULL && m_HookedWindowHandle != NULL)
     {
         // Restore the hooked window procedure.
-        SubclassWindow(m_HookedWindowHandle, m_HookedWindowProc);
+        mtasaSubclassWindow(m_HookedWindowHandle, m_HookedWindowProc);
 
         // Reset the window handle and procedure variables.
         m_HookedWindowProc = NULL;

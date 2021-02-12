@@ -1,16 +1,24 @@
 /*****************************************************************************
  *
- *  PROJECT:     Multi Theft Auto v1.0
+ *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
- *  FILE:        core/CConnectManager.cpp
  *  PURPOSE:     Manager for connecting to servers
  *
- *  Multi Theft Auto is available from http://www.multitheftauto.com/
+ *  Multi Theft Auto is available from https://multitheftauto.com/
  *
  *****************************************************************************/
 
 #include "StdInc.h"
+#include "CConnectManager.h"
+#include "CCore.h"
+#include "ServerBrowser/CServerBrowser.h"
+#include "CModManager.h"
+#include "CClientVariables.h"
+#include "CMainMenu.h"
+#include "CVersionUpdater.h"
 #include "net/packetenums.h"
+#include <net/CNet.h>
+
 using namespace std;
 
 static CConnectManager* g_pConnectManager = NULL;

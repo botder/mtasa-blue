@@ -1,18 +1,19 @@
 /*****************************************************************************
  *
- *  PROJECT:     Multi Theft Auto v1.0
+ *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
- *  FILE:        sdk/gui/CGUIEvent.h
  *  PURPOSE:     Event interface
  *
- *  Multi Theft Auto is available from http://www.multitheftauto.com/
+ *  Multi Theft Auto is available from https://multitheftauto.com/
  *
  *****************************************************************************/
 
 #pragma once
 
-#include "CGUI.h"
 #include "CGUITypes.h"
+#include <CVector2D.h>
+
+class CGUIElement;
 
 struct CGUIEventArgs
 {

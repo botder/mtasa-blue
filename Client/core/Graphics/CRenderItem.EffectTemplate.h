@@ -1,11 +1,14 @@
 /*****************************************************************************
  *
- *  PROJECT:     Multi Theft Auto v1.0
+ *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
- *  FILE:        CRenderItem.EffectTemplate.h
  *  PURPOSE:     A compiled effect to clone d3d effects from
  *
+ *  Multi Theft Auto is available from https://multitheftauto.com/
+ * 
  *****************************************************************************/
+
+#pragma once
 
 #include "CRenderItem.EffectParameters.h"
 

@@ -1,18 +1,26 @@
 /*****************************************************************************
  *
- *  PROJECT:     Multi Theft Auto v1.0
+ *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
- *  FILE:        core/CGUI.cpp
  *  PURPOSE:     Core graphical user interface container class
  *
- *  Multi Theft Auto is available from http://www.multitheftauto.com/
+ *  Multi Theft Auto is available from https://multitheftauto.com/
  *
  *****************************************************************************/
 
 #include "StdInc.h"
 #include "CNewsBrowser.h"
+#include "CDebugView.h"
+#include "CConsole.h"
+#include "CMainMenu.h"
+#include "CVersionUpdater.h"
+#include "CCore.h"
 #include <game/CGame.h>
 #include <windowsx.h>
+
+#define DIRECT3D_VERSION         0x0900
+#include <d3d9.h>
+#include <d3dx9.h>
 
 using std::string;
 
@@ -25,6 +33,8 @@ CLocalGUI* CSingleton<CLocalGUI>::m_pSingleton = NULL;
 #define GET_WHEEL_DELTA_WPARAM(wParam)  ((short)HIWORD(wParam))
 
 const char* const DEFAULT_SKIN_NAME = "Default";            // TODO: Change to whatever the default skin is if it changes
+
+DWORD TranslateScanCodeToGUIKey(DWORD dwCharacter);
 
 CLocalGUI::CLocalGUI()
 {
@@ -535,8 +545,9 @@ void CLocalGUI::EchoDebug(const char* szText)
     }
 }
 
-bool CLocalGUI::ProcessMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+bool CLocalGUI::ProcessMessage(void* window, unsigned int uMsg, unsigned int wParam, unsigned long lParam)
 {
+    auto  hwnd = reinterpret_cast<HWND>(window);
     CGUI* pGUI = CCore::GetSingleton().GetGUI();
 
     // If we have the focus, we handle the message
@@ -777,7 +788,7 @@ void CLocalGUI::UpdateCursor()
     }
 }
 
-DWORD CLocalGUI::TranslateScanCodeToGUIKey(DWORD dwCharacter)
+DWORD TranslateScanCodeToGUIKey(DWORD dwCharacter)
 {
     // The following switch case is necessary to convert input WM_KEY* messages
     // to corresponding DirectInput key messages.  CEGUI needs these.
@@ -839,4 +850,19 @@ void CLocalGUI::SetCursorPos(int iX, int iY, bool bForce, bool overrideStored)
         CSetCursorPosHook::GetSingleton().CallSetCursorPos(iX, iY);
     else
         ::SetCursorPos(iX, iY);
+}
+
+void CLocalGUI::InitiateUpdate(const char* szType, const char* szData, const char* szHost)
+{
+    m_pVersionUpdater->InitiateUpdate(szType, szData, szHost);
+}
+
+bool CLocalGUI::IsOptionalUpdateInfoRequired(const char* szHost)
+{
+    return m_pVersionUpdater->IsOptionalUpdateInfoRequired(szHost);
+}
+
+void CLocalGUI::InitiateDataFilesFix()
+{
+    m_pVersionUpdater->InitiateDataFilesFix();
 }

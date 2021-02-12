@@ -1,15 +1,20 @@
 /*****************************************************************************
  *
- *  PROJECT:     Multi Theft Auto v1.0
+ *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
- *  FILE:        core/CProxyDirect3DDevice9.cpp
  *  PURPOSE:     Direct3D 9 device function hooking proxy
  *
- *  Multi Theft Auto is available from http://www.multitheftauto.com/
+ *  Multi Theft Auto is available from https://multitheftauto.com/
  *
  *****************************************************************************/
 
 #include "StdInc.h"
+#include "CCore.h"
+#include "CProxyDirect3DDevice9.h"
+#include "CGraphStats.h"
+#include "Graphics/CVideoModeManager.h"
+#include "CDirect3DEvents9.h"
+#include <game/CGame.h>
 
 bool                                    g_bInGTAScene = false;
 CProxyDirect3DDevice9*                  g_pProxyDevice = NULL;

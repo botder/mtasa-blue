@@ -1,6 +1,16 @@
-//
-// CServerBrowser.MasterServerManager.h
-//
+/*****************************************************************************
+ *
+ *  PROJECT:     Multi Theft Auto
+ *  LICENSE:     See LICENSE in the top level directory
+ *  PURPOSE:     In-game server browser server manager
+ *
+ *  Multi Theft Auto is available from https://multitheftauto.com/
+ *
+ *****************************************************************************/
+
+#pragma once
+
+class CServerListItemList;
 
 class CMasterServerManagerInterface
 {

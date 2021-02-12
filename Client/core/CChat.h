@@ -1,60 +1,30 @@
 /*****************************************************************************
  *
- *  PROJECT:     Multi Theft Auto v1.0
+ *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
- *  FILE:        core/CChat.h
- *  PURPOSE:     Header file for the chatbox class
+ *  PURPOSE:     In-game chat box user interface implementation
  *
- *  Multi Theft Auto is available from http://www.multitheftauto.com/
+ *  Multi Theft Auto is available from https://multitheftauto.com/
  *
  *****************************************************************************/
 
 #pragma once
 
-#include "CGUI.h"
-#include <core/CCoreInterface.h>
+#include "CColor.h"
+#include <gui/CGUIEvent.h>
+#include <core/CChatInterface.h>
+#include <CRect2D.h>
+#include <CVector2D.h>
+#include <vector>
+#include <d3dx9core.h>
 
+class CGUI;
+class CGUIFont;
+class CGUITexture;
+class CGUIStaticImage;
+class CRenderTargetItem;
 class CChatLineSection;
-
-#define CHAT_WIDTH 320                                   // Chatbox default width
-#define CHAT_TEXT_COLOR CColor(235, 221, 178)            // Chatbox default text color
-#define CHAT_MAX_LINES 100                               // Chatbox maximum chat lines
-#define CHAT_MAX_CHAT_LENGTH 96                          // Chatbox maximum chat message length
-#define CHAT_BUFFER 1024                                 // Chatbox buffer size
-#define CHAT_INPUT_HISTORY_LENGTH 128                    // Chatbox input history length
-
-class CColor
-{
-public:
-    CColor() { R = G = B = A = 255; }
-    CColor(unsigned char _R, unsigned char _G, unsigned char _B, unsigned char _A = 255)
-    {
-        R = _R;
-        G = _G;
-        B = _B;
-        A = _A;
-    }
-    CColor(const CColor& other) { *this = other; }
-    CColor(unsigned long ulColor) { *this = ulColor; }
-    CColor& operator=(const CColor& color)
-    {
-        R = color.R;
-        G = color.G;
-        B = color.B;
-        A = color.A;
-        return *this;
-    }
-    CColor& operator=(unsigned long ulColor)
-    {
-        R = (ulColor >> 16) & 0xFF;
-        G = (ulColor >> 8) & 0xFF;
-        B = (ulColor)&0xFF;
-        return *this;
-    }
-    bool operator==(const CColor& other) const { return R == other.R && G == other.G && B == other.B && A == other.A; }
-
-    unsigned char R, G, B, A;
-};
+class CEntryHistory;
 
 class CChatLineSection
 {
@@ -154,7 +124,10 @@ class CChat
     friend class CChatLineSection;
 
 public:
-    CChat(){};
+    static constexpr auto CHAT_MAX_LINES = 100;            // Chatbox maximum chat lines
+
+public:
+    CChat();
     CChat(CGUI* pManager, const CVector2D& vecPosition);
     virtual ~CChat();
 
@@ -170,7 +143,7 @@ public:
     bool IsInputVisible() { return m_bVisible && m_bInputVisible; }
     void SetInputVisible(bool bVisible);
 
-    bool CanTakeInput() { return !CLocalGUI::GetSingleton().GetConsole()->IsVisible() && IsInputVisible(); };
+    bool CanTakeInput();
 
     void ResetHistoryChanges();
     void SelectInputHistoryEntry(int iEntry);
@@ -253,7 +226,7 @@ protected:
     // Contains a saved copy of initial input text when navigating history entries
     std::string m_strSavedInputText;
 
-    CEntryHistory* m_pInputHistory = new CEntryHistory(CHAT_INPUT_HISTORY_LENGTH);
+    CEntryHistory* m_pInputHistory;
     int            m_iSelectedInputHistoryEntry;
 
     bool  m_bVisible;

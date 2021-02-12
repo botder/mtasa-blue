@@ -2,14 +2,15 @@
  *
  *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
- *  FILE:        core/CEntryHistory.h
  *  PURPOSE:     Header file for the entry history class
  *
- *  Multi Theft Auto is available from http://www.multitheftauto.com/
+ *  Multi Theft Auto is available from https://multitheftauto.com/
  *
  *****************************************************************************/
 
 #pragma once
+
+#include <list>
 
 // Used for cleaning sensitive info from entries
 struct

@@ -1,26 +1,29 @@
 /*****************************************************************************
  *
- *  PROJECT:     Multi Theft Auto v1.0
+ *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
- *  FILE:        core/CLanguage.cpp
  *  PURPOSE:     Automatically load required language and localize MTA text according to locale
  *
- *  Multi Theft Auto is available from http://www.multitheftauto.com/
+ *  Multi Theft Auto is available from https://multitheftauto.com/
  *
  *****************************************************************************/
 
 #include "StdInc.h"
+#include "CClientVariables.h"
 #include "../../vendor/tinygettext/log.hpp"
+
 #define MTA_LOCALE_TEXTDOMAIN       "client"
 // TRANSLATORS: Replace with your language native name
 #define NATIVE_LANGUAGE_NAME _td("English")
 
+extern class CCore* g_pCore;
+
 CLocalization::CLocalization(const SString& strLocale, const SString& strLocalePath)
 {
     // Set log callbacks so we can record problems
-    Log::set_log_info_callback(NULL);
-    Log::set_log_warning_callback(LogCallback);
-    Log::set_log_error_callback(LogCallback);
+    tinygettext::Log::set_log_info_callback(NULL);
+    tinygettext::Log::set_log_warning_callback(LogCallback);
+    tinygettext::Log::set_log_error_callback(LogCallback);
 
     // Setup our dictionary manager
     m_DictManager.add_directory(strLocalePath.empty() ? CalcMTASAPath(MTA_LOCALE_DIR) : strLocalePath);
@@ -44,8 +47,8 @@ SString CLocalization::ValidateLocale(SString strLocale)
 {
     if (strLocale.empty() && (CClientVariables::GetSingletonPtr() == nullptr || !CVARS_GET("locale", strLocale)))
         strLocale = "en_US";
-    Language Lang = Language::from_name(strLocale);
-    Lang = Lang ? Lang : Language::from_name("en_US");
+    tinygettext::Language Lang = tinygettext::Language::from_name(strLocale);
+    Lang = Lang ? Lang : tinygettext::Language::from_name("en_US");
     return Lang.str();
 }
 
@@ -70,8 +73,8 @@ CLanguage* CLocalization::GetLanguage(SString strLocale)
     CLanguage* pLanguage = MapFindRef(m_LanguageMap, strLocale);
     if (!pLanguage)
     {
-        Language Lang = Language::from_name(strLocale);
-        Lang = Lang ? Lang : Language::from_name("en_US");
+        tinygettext::Language Lang = tinygettext::Language::from_name(strLocale);
+        Lang = Lang ? Lang : tinygettext::Language::from_name("en_US");
         pLanguage = new CLanguage(m_DictManager.get_dictionary(Lang, MTA_LOCALE_TEXTDOMAIN), Lang.str(), Lang.get_name());
         MapSet(m_LanguageMap, strLocale, pLanguage);
     }

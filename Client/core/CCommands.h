@@ -1,19 +1,19 @@
 /*****************************************************************************
  *
- *  PROJECT:     Multi Theft Auto v1.0
+ *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
- *  FILE:        core/CCommands.h
- *  PURPOSE:     Header file for dynamic command manager
+ *  PURPOSE:     Management for dynamically added commands
  *
- *  Multi Theft Auto is available from http://www.multitheftauto.com/
+ *  Multi Theft Auto is available from https://multitheftauto.com/
  *
  *****************************************************************************/
 
 #pragma once
 
+#include "CSingleton.h"
 #include <core/CCommandsInterface.h>
 #include <string>
-#include "CSingleton.h"
+#include <list>
 
 class CCommands : public CCommandsInterface, public CSingleton<CCommands>
 {

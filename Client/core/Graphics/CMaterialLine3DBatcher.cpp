@@ -1,17 +1,19 @@
 /*****************************************************************************
  *
- *  PROJECT:     Multi Theft Auto v1.0
- *               (Shared logic for modifications)
+ *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
- *  FILE:        CMaterialLine3DBatcher.cpp
  *  PURPOSE:
  *
+ *  Multi Theft Auto is available from https://multitheftauto.com/
  *
  *****************************************************************************/
 
 #include <StdInc.h>
+#include "CCore.h"
 #include "CTileBatcher.h"
 #include "CMaterialLine3DBatcher.h"
+#include "DXHook/CProxyDirect3DDevice9.h"
+#include <multiplayer/CMultiplayer.h>
 
 SMaterialLine3DItem* CMaterialLine3DBatcher::ms_pLines = NULL;
 

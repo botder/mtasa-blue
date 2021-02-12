@@ -1,11 +1,10 @@
 /*****************************************************************************
  *
- *  PROJECT:     Multi Theft Auto v1.0
+ *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
- *  FILE:        core/CKeyBinds.h
  *  PURPOSE:     Header file for core keybind manager class
  *
- *  Multi Theft Auto is available from http://www.multitheftauto.com/
+ *  Multi Theft Auto is available from https://multitheftauto.com/
  *
  *****************************************************************************/
 
@@ -19,6 +18,7 @@ class CKeyBinds;
 
 #include <core/CCoreInterface.h>
 #include <core/CCommandsInterface.h>
+#include <game/CPad.h>
 
 struct SDefaultCommandBind
 {

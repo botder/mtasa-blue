@@ -2,15 +2,15 @@
  *
  *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
- *  FILE:        core/CEntryHistory.cpp
  *  PURPOSE:     Maintaining the history of whatever
  *
- *  Multi Theft Auto is available from http://www.multitheftauto.com/
+ *  Multi Theft Auto is available from https://multitheftauto.com/
  *
  *****************************************************************************/
 
 #include "StdInc.h"
 #include "CEntryHistory.h"
+#include <fstream>
 
 //
 // Set the item entry content

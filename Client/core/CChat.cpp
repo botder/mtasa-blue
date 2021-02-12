@@ -2,23 +2,35 @@
  *
  *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
- *  FILE:        core/CChat.cpp
  *  PURPOSE:     In-game chat box user interface implementation
  *
- *  Multi Theft Auto is available from http://www.multitheftauto.com/
+ *  Multi Theft Auto is available from https://multitheftauto.com/
  *
  *****************************************************************************/
 
 #include "StdInc.h"
+#include "CChat.h"
+#include "CCore.h"
+#include "CConsole.h"
+#include "CEntryHistory.h"
 #include <game/CGame.h>
+#include <DXHook/CProxyDirect3DDevice9.h>
 
-using std::vector;
+#define CHAT_WIDTH                320                              // Chatbox default width
+#define CHAT_TEXT_COLOR           CColor(235, 221, 178)            // Chatbox default text color
+#define CHAT_MAX_CHAT_LENGTH      96                               // Chatbox maximum chat message length
+#define CHAT_BUFFER               1024                             // Chatbox buffer size
+#define CHAT_INPUT_HISTORY_LENGTH 128                              // Chatbox input history length
 
 extern CCore* g_pCore;
 
-CChat* g_pChat = NULL;
+CChat* g_pChat = nullptr;
 
-CChat::CChat(CGUI* pManager, const CVector2D& vecPosition)
+CChat::CChat() : m_pInputHistory(new CEntryHistory(CHAT_INPUT_HISTORY_LENGTH))
+{
+}
+
+CChat::CChat(CGUI* pManager, const CVector2D& vecPosition) : m_pInputHistory(new CEntryHistory(CHAT_INPUT_HISTORY_LENGTH))
 {
     g_pChat = this;
     m_pManager = pManager;
@@ -793,6 +805,11 @@ void CChat::SetInputVisible(bool bVisible)
     m_bInputVisible = bVisible;
 }
 
+bool CChat::CanTakeInput()
+{
+    return !CLocalGUI::GetSingleton().GetConsole()->IsVisible() && IsInputVisible();
+}
+
 void CChat::SetNumLines(unsigned int uiNumLines)
 {
     if (uiNumLines <= CHAT_MAX_LINES)
@@ -1221,7 +1238,7 @@ void CChatInputLine::Draw(CVector2D& vecPosition, unsigned char ucAlpha, bool bS
 
         float fLineDifference = CChat::GetFontHeight(g_pChat->m_vecScale.fY);
 
-        vector<CChatLine>::iterator iter = m_ExtraLines.begin();
+        std::vector<CChatLine>::iterator iter = m_ExtraLines.begin();
         for (; iter != m_ExtraLines.end(); iter++)
         {
             vecPosition.fY += fLineDifference;

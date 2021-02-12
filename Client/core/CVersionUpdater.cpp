@@ -1,11 +1,10 @@
 /*****************************************************************************
  *
- *  PROJECT:     Multi Theft Auto v1.0
+ *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
- *  FILE:        core/CVersionUpdater.cpp
  *  PURPOSE:     Version update check and message dialog class
  *
- *  Multi Theft Auto is available from http://www.multitheftauto.com/
+ *  Multi Theft Auto is available from https://multitheftauto.com/
  *
  *****************************************************************************/
 
@@ -13,6 +12,15 @@
 #include "CVersionUpdater.Util.hpp"
 #include "CNewsBrowser.h"
 #include "SharedUtil.Thread.h"
+#include "CCrashDumpWriter.h"
+#include "Graphics/CVideoModeManager.h"
+#include "CCommandFuncs.h"
+#include "DXHook/CProxyDirect3DDevice9.h"
+#include <net/CNet.h>
+#include <game/CGame.h>
+#include "CVersionUpdater.h"
+#include "CClientVariables.h"
+#include "CFilePathTranslator.h"
 
 ///////////////////////////////////////////////////////////////
 //

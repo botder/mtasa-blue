@@ -2,13 +2,16 @@
  *
  *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
- *  FILE:        core/CServerCache.h
- *  PURPOSE:
+ *  PURPOSE:     In-game server browser server cache
  *
- *
- *  Multi Theft Auto is available from http://www.multitheftauto.com/
+ *  Multi Theft Auto is available from https://multitheftauto.com/
  *
  *****************************************************************************/
+
+#pragma once
+
+class CServerList;
+class CServerListItem;
 
 class CServerCacheInterface
 {

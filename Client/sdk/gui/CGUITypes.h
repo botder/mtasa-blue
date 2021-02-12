@@ -1,11 +1,10 @@
 /*****************************************************************************
  *
- *  PROJECT:     Multi Theft Auto v1.0
+ *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
- *  FILE:        sdk/gui/CGUITypes.h
  *  PURPOSE:     Misc. type declarations
  *
- *  Multi Theft Auto is available from http://www.multitheftauto.com/
+ *  Multi Theft Auto is available from https://multitheftauto.com/
  *
  *****************************************************************************/
 
@@ -13,12 +12,7 @@
 
 #include <CVector2D.h>
 #include <CRect2D.h>
-
 #include <list>
-
-#ifndef NULL
-#define NULL 0
-#endif
 
 typedef int       CGUIHandle;
 typedef CVector2D CGUIPosition;

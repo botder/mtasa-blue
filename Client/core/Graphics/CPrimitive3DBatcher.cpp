@@ -1,16 +1,20 @@
 /*****************************************************************************
  *
  *  PROJECT:     Multi Theft Auto
- *               (Shared logic for modifications)
  *  LICENSE:     See LICENSE in the top level directory
- *  FILE:        CPrimitive3DBatcher.cpp
  *  PURPOSE:
  *
- *  Multi Theft Auto is available from http://www.multitheftauto.com/
+ *  Multi Theft Auto is available from https://multitheftauto.com/
  *
  *****************************************************************************/
+
 #include <StdInc.h>
 #include "CPrimitive3DBatcher.h"
+#include "DXHook/CProxyDirect3DDevice9.h"
+#include <core/CGraphicsInterface.h>
+#include <CVector.h>
+#include <d3dx9.h>
+
 ////////////////////////////////////////////////////////////////
 //
 // CPrimitive3DBatcher::CPrimitive3DBatcher

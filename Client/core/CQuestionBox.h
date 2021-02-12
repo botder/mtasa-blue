@@ -1,23 +1,25 @@
 /*****************************************************************************
  *
- *  PROJECT:     Multi Theft Auto v1.0
+ *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
- *  FILE:        core/CQuestionBox.h
- *  PURPOSE:     Header file for quick connect window class
+ *  PURPOSE:     Quick connect window
  *
- *
- *  Multi Theft Auto is available from http://www.multitheftauto.com/
+ *  Multi Theft Auto is available from https://multitheftauto.com/
  *
  *****************************************************************************/
 
-class CQuestionBox;
-
 #pragma once
 
-#include "CMainMenu.h"
+#include <vector>
 
 typedef void (*pfnQuestionCallback)(void*, unsigned int);
 typedef void (*pfnQuestionEditCallback)(void*, unsigned int, std::string);
+
+class CGUIEdit;
+class CGUIElement;
+class CGUIWindow;
+class CGUILabel;
+class CGUIButton;
 
 class CQuestionBox
 {

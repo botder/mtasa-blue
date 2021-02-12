@@ -1,13 +1,17 @@
 /*****************************************************************************
  *
- *  PROJECT:     Multi Theft Auto v1.0
+ *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
- *  FILE:        CRenderItemManager.h
- *  PURPOSE:
+ *  PURPOSE:     Manager for render items
  *
- *  Multi Theft Auto is available from http://www.multitheftauto.com/
+ *  Multi Theft Auto is available from https://multitheftauto.com/
  *
  *****************************************************************************/
+
+#pragma once
+
+#include <core/CRenderItemManagerInterface.h>
+#include <d3d9.h>
 
 //
 // CRenderItemManager

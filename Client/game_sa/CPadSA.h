@@ -1,11 +1,10 @@
 /*****************************************************************************
  *
- *  PROJECT:     Multi Theft Auto v1.0
+ *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
- *  FILE:        game_sa/CPadSA.h
- *  PURPOSE:     Header file for controller pad input class
+ *  PURPOSE:     Controller pad input logic
  *
- *  Multi Theft Auto is available from http://www.multitheftauto.com/
+ *  Multi Theft Auto is available from https://multitheftauto.com/
  *
  *****************************************************************************/
 
@@ -73,20 +72,20 @@ public:
 
     CControllerState* GetCurrentControllerState(CControllerState* ControllerState);
     CControllerState* GetLastControllerState(CControllerState* ControllerState);
-    VOID              SetCurrentControllerState(CControllerState* ControllerState);
-    VOID              SetLastControllerState(CControllerState* ControllerState);
-    VOID              Store();
-    VOID              Restore();
+    void              SetCurrentControllerState(CControllerState* ControllerState);
+    void              SetLastControllerState(CControllerState* ControllerState);
+    void              Store();
+    void              Restore();
     bool              IsEnabled();
-    VOID              Disable(bool bDisable);
-    VOID              Clear();
+    void              Disable(bool bDisable);
+    void              Clear();
     CPadSAInterface*  GetInterface() { return this->internalInterface; };
-    VOID              SetHornHistoryValue(bool value);
+    void              SetHornHistoryValue(bool value);
     long              GetAverageWeapon();
-    void              SetLastTimeTouched(DWORD dwTime);
+    void              SetLastTimeTouched(uint32_t dwTime);
 
-    uint GetDrunkInputDelay() { return internalInterface->DrunkDrivingBufferUsed; };
-    void SetDrunkInputDelay(uint inputDelay)
+    uint32_t GetDrunkInputDelay() { return internalInterface->DrunkDrivingBufferUsed; };
+    void     SetDrunkInputDelay(uint32_t inputDelay)
     {
         internalInterface->DrunkDrivingBufferUsed = inputDelay;
     };            // Does not work yet, guess it's caused by MTA's control logic

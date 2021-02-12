@@ -1,12 +1,18 @@
 /*****************************************************************************
  *
- *  PROJECT:     Multi Theft Auto v1.0
+ *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
- *  FILE:        core/CProxyDirect3DEffect.h
+ *  PURPOSE:     
  *
- *  Multi Theft Auto is available from http://www.multitheftauto.com/
+ *  Multi Theft Auto is available from https://multitheftauto.com/
  *
  *****************************************************************************/
+
+#pragma once
+
+#include <DXHook/CProxyDirect3DDevice9.h>
+#include <d3d9.h>
+#include <d3dx9.h>
 
 DEFINE_GUID(CProxyDirect3DEffect_GUID, 0x128A025E, 0x0123, 0x04F1, 0x40, 0x60, 0x53, 0x19, 0x44, 0x56, 0x59, 0x42);
 

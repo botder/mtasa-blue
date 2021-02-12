@@ -2,23 +2,22 @@
  *
  *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
- *  FILE:        core/CClientVariables.h
  *  PURPOSE:     Header file for client variable class
  *
- *  Multi Theft Auto is available from http://www.multitheftauto.com/
+ *  Multi Theft Auto is available from https://multitheftauto.com/
  *
  *****************************************************************************/
 
 #pragma once
 
-#include <string>
 #include "CSingleton.h"
+#include "CColor.h"
 #include <core/CCVarsInterface.h>
 #include <xml/CXMLNode.h>
 #include <xml/CXMLFile.h>
 #include <CVector.h>
 #include <CVector2D.h>
-#include "CChat.h"
+#include <string>
 
 // Macros
 #define CVARS_GET       CClientVariables::GetSingleton().Get

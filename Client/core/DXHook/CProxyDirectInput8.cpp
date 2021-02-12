@@ -1,17 +1,17 @@
 /*****************************************************************************
  *
- *  PROJECT:     Multi Theft Auto v1.0
+ *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
- *  FILE:        core/CProxyDirectInput8.cpp
  *  PURPOSE:     DirectInput 8 function hooking proxy
  *
- *  Multi Theft Auto is available from http://www.multitheftauto.com/
+ *  Multi Theft Auto is available from https://multitheftauto.com/
  *
  *****************************************************************************/
 
 #include "StdInc.h"
+#include "CProxyDirectInput8.h"
 
-CProxyDirectInput8::CProxyDirectInput8(IDirectInput8* pDevice)
+CProxyDirectInput8::CProxyDirectInput8(IDirectInput8A* pDevice)
 {
     WriteDebugEvent(SString("CProxyDirectInput8::CProxyDirectInput8 %08x", this));
 

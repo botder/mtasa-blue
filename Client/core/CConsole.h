@@ -1,23 +1,26 @@
 /*****************************************************************************
  *
- *  PROJECT:     Multi Theft Auto v1.0
+ *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
- *  FILE:        core/CConsole.h
  *  PURPOSE:     Header file for console class
  *
- *  Multi Theft Auto is available from http://www.multitheftauto.com/
+ *  Multi Theft Auto is available from https://multitheftauto.com/
  *
  *****************************************************************************/
 
-class CConsole;
-
 #pragma once
 
-#include <core/CConsoleInterface.h>
-#include "CCore.h"
 #include "CCommands.h"
 #include "CSingleton.h"
 #include "CEntryHistory.h"
+#include <core/CConsoleInterface.h>
+#include <CVector2D.h>
+
+class CGUI;
+class CGUIElement;
+class CGUIWindow;
+class CGUIMemo;
+class CGUIEdit;
 
 class CConsole : public CConsoleInterface
 {
@@ -41,7 +44,6 @@ public:
     bool IsInputActive();
     void ActivateInput();
 
-    void HandleTextAccepted(bool bHandled);
     void GetCommandInfo(const std::string& strIn, std::string& strCmdOut, std::string& strCmdLineOut);
 
     void ResetHistoryChanges();

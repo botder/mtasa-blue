@@ -1,16 +1,23 @@
 /*****************************************************************************
  *
- *  PROJECT:     Multi Theft Auto v1.0
+ *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
- *  FILE:        core/CCommandFuncs.cpp
  *  PURPOSE:     Implementation of all built-in commands
  *
- *  Multi Theft Auto is available from http://www.multitheftauto.com/
+ *  Multi Theft Auto is available from https://multitheftauto.com/
  *
  *****************************************************************************/
 
 #include "StdInc.h"
+#include "CCommandFuncs.h"
+#include "CCore.h"
+#include "CGraphStats.h"
+#include "CMemStats.h"
+#include "CCrashDumpWriter.h"
+#include "CDebugView.h"
+#include "CMainMenu.h"
 #include <game/CGame.h>
+#include <net/CNet.h>
 
 using std::list;
 

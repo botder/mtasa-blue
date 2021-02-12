@@ -2,14 +2,16 @@
  *
  *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
- *  FILE:        core/CClientVariables.cpp
  *  PURPOSE:     Managed storage of client variables (cvars)
  *
- *  Multi Theft Auto is available from http://www.multitheftauto.com/
+ *  Multi Theft Auto is available from https://multitheftauto.com/
  *
  *****************************************************************************/
 
 #include "StdInc.h"
+#include "CClientVariables.h"
+#include "CNickGen.h"
+#include "CCore.h"
 
 template <>
 CClientVariables* CSingleton<CClientVariables>::m_pSingleton = NULL;

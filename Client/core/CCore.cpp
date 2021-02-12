@@ -1,27 +1,43 @@
 /*****************************************************************************
  *
- *  PROJECT:     Multi Theft Auto v1.0
+ *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
- *  FILE:        core/CCore.cpp
  *  PURPOSE:     Base core class
  *
- *  Multi Theft Auto is available from http://www.multitheftauto.com/
+ *  Multi Theft Auto is available from https://multitheftauto.com/
  *
  *****************************************************************************/
 
 #include "StdInc.h"
+#include "CCore.h"
+// #include "CGUI.h"
+#include "CConsole.h"
+#include "CVersionUpdater.h"
 #include <game/CGame.h>
-#include <Accctrl.h>
-#include <Aclapi.h>
 #include "Userenv.h"        // This will enable SharedUtil::ExpandEnvString
 #define ALLOC_STATS_MODULE_NAME "core"
 #include "SharedUtil.hpp"
-#include <clocale>
 #include "CTimingCheckpoints.hpp"
 #include "CModelCacheManager.h"
 #include <SharedUtil.Detours.h>
 #include <ServerBrowser/CServerCache.h>
 #include "CDiscordManager.h"
+#include "CGraphStats.h"
+#include "CMemStats.h"
+#include "CCrashDumpWriter.h"
+#include "Graphics/CVideoModeManager.h"
+#include "CJoystickManager.h"
+#include "CCommandFuncs.h"
+#include "CDebugView.h"
+#include "DXHook/CDirect3DEvents9.h"
+#include "DXHook/CProxyDirect3DDevice9.h"
+#include "CMainMenu.h"
+#include <Common.h>
+#include <net/CNet.h>
+#include <multiplayer/CMultiplayer.h>
+#include <clocale>
+#include <accctrl.h>
+#include <aclapi.h>
 
 using SharedUtil::CalcMTASAPath;
 using namespace std;

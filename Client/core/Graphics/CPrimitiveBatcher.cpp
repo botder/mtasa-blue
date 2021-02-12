@@ -1,15 +1,17 @@
 /*****************************************************************************
  *
  *  PROJECT:     Multi Theft Auto
- *               (Shared logic for modifications)
  *  LICENSE:     See LICENSE in the top level directory
- *  FILE:        CPrimitiveBatcher.cpp
  *  PURPOSE:
  *
+ *  Multi Theft Auto is available from https://multitheftauto.com/
  *
  *****************************************************************************/
+
 #include <StdInc.h>
 #include "CPrimitiveBatcher.h"
+#include <core/CGraphicsInterface.h>
+
 ////////////////////////////////////////////////////////////////
 //
 // CPrimitiveBatcher::CPrimitiveBatcher

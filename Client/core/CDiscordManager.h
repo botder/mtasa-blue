@@ -2,9 +2,9 @@
  *
  *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
- *  FILE:        Client/core/CDiscordManager.h
+ *  PURPOSE:
  *
- *  Multi Theft Auto is available from http://www.multitheftauto.com/
+ *  Multi Theft Auto is available from https://multitheftauto.com/
  *
  *****************************************************************************/
 
@@ -12,6 +12,7 @@
 
 #include <core/CDiscordManagerInterface.h>
 #include "SharedUtil.Thread.h"
+#include "CQueryReceiver.h"
 
 namespace discord
 {

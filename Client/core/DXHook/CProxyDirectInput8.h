@@ -1,19 +1,20 @@
 /*****************************************************************************
  *
- *  PROJECT:     Multi Theft Auto v1.0
+ *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
- *  FILE:        core/CProxyDirectInput8.h
  *  PURPOSE:     Header file for DirectInput 8 proxy class
  *
- *  Multi Theft Auto is available from http://www.multitheftauto.com/
+ *  Multi Theft Auto is available from https://multitheftauto.com/
  *
  *****************************************************************************/
 
 #pragma once
 
-#define DIRECTINPUT_VERSION 0x0800
-#include <dinput.h>
+#ifndef DIRECTINPUT_VERSION
+    #define DIRECTINPUT_VERSION 0x0800
+#endif
 
+#include <dinput.h>
 #include "CProxyDirectInputDevice8.h"
 
 class CProxyDirectInput8 : public IDirectInput8A

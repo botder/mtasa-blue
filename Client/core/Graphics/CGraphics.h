@@ -1,11 +1,10 @@
 /*****************************************************************************
  *
- *  PROJECT:     Multi Theft Auto v1.0
+ *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
- *  FILE:        core/CGraphics.h
  *  PURPOSE:     Header file for general graphics subsystem class
  *
- *  Multi Theft Auto is available from http://www.multitheftauto.com/
+ *  Multi Theft Auto is available from https://multitheftauto.com/
  *
  *****************************************************************************/
 
@@ -13,11 +12,14 @@ class CGraphics;
 
 #pragma once
 
-#include <core/CGraphicsInterface.h>
-#include <gui/CGUI.h>
 #include "CGUI.h"
 #include "CSingleton.h"
 #include "CRenderItemManager.h"
+#include <core/CGraphicsInterface.h>
+#include <gui/CGUI.h>
+#include <d3dx9core.h>
+#include <vector>
+#include <map>
 
 #define DUMMY_PROGRESS_INITIAL_DELAY        1000    // Game stall time before spinner is displayed
 #define DUMMY_PROGRESS_MIN_DISPLAY_TIME     1000    // Minimum time spinner is drawn (to prevent flicker)

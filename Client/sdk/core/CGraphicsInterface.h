@@ -1,18 +1,24 @@
 /*****************************************************************************
  *
- *  PROJECT:     Multi Theft Auto v1.0
+ *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
- *  FILE:        sdk/core/CGraphicsInterface.h
  *  PURPOSE:     Graphics subsystem interface
  *
- *  Multi Theft Auto is available from http://www.multitheftauto.com/
+ *  Multi Theft Auto is available from https://multitheftauto.com/
  *
  *****************************************************************************/
 
 #pragma once
 
-#include "CVector.h"
+#include <CVector.h>
+#include <CVector2D.h>
 #include <d3d9.h>
+
+class CTextureItem;
+class CMaterialItem;
+class CRenderItemManagerInterface;
+class CScreenGrabberInterface;
+class CPixelsManagerInterface;
 
 // Vertex type used by the primitives batchers
 struct PrimitiveVertice

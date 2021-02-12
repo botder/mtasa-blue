@@ -1,15 +1,20 @@
 /*****************************************************************************
  *
- *  PROJECT:     Multi Theft Auto v1.0
+ *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
- *  FILE:        core/CJoystickManager.h
  *  PURPOSE:     Header file for the joystick manager class
  *
- *  Multi Theft Auto is available from http://www.multitheftauto.com/
+ *  Multi Theft Auto is available from https://multitheftauto.com/
  *
  *****************************************************************************/
 
 #pragma once
+
+#ifndef DIRECTINPUT_VERSION
+    #define DIRECTINPUT_VERSION 0x0800
+#endif
+
+#include <dinput.h>
 
 class CJoystickManagerInterface
 {

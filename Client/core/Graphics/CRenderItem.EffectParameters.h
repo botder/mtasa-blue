@@ -1,11 +1,17 @@
 /*****************************************************************************
  *
- *  PROJECT:     Multi Theft Auto v1.0
+ *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
- *  FILE:        CRenderItem.EffectParameters.h
  *  PURPOSE:     Handles and settings for a compiled effect
  *
+ *  Multi Theft Auto is available from http://www.multitheftauto.com/
+ * 
  *****************************************************************************/
+
+#pragma once
+
+#include <core/CRenderItemManagerInterface.h>
+#include <d3dx9.h>
 
 enum EStateGroup
 {

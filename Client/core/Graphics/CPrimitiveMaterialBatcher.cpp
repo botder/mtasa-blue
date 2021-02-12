@@ -1,15 +1,18 @@
 /*****************************************************************************
  *
  *  PROJECT:     Multi Theft Auto
- *               (Shared logic for modifications)
  *  LICENSE:     See LICENSE in the top level directory
- *  FILE:        CPrimitiveMaterialBatcher.cpp
  *  PURPOSE:
  *
+ *  Multi Theft Auto is available from https://multitheftauto.com/
  *
  *****************************************************************************/
+
 #include <StdInc.h>
 #include "CPrimitiveMaterialBatcher.h"
+#include "CGraphics.h"
+#include <core/CGraphicsInterface.h>
+
 ////////////////////////////////////////////////////////////////
 //
 // CPrimitiveMaterialBatcher::CPrimitiveMaterialBatcher

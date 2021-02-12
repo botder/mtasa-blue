@@ -1,16 +1,18 @@
 /*****************************************************************************
  *
- *  PROJECT:     Multi Theft Auto v1.0
- *               (Shared logic for modifications)
+ *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
- *  FILE:        CLine3DBatcher.cpp
  *  PURPOSE:
  *
+ *  Multi Theft Auto is available from https://multitheftauto.com/
  *
  *****************************************************************************/
 
 #include <StdInc.h>
 #include "CLine3DBatcher.h"
+#include "DXHook/CProxyDirect3DDevice9.h"
+#include <d3dx9math.h>
+#include <CVector.h>
 
 ////////////////////////////////////////////////////////////////
 //

@@ -1,15 +1,16 @@
 /*****************************************************************************
  *
- *  PROJECT:     Multi Theft Auto v1.0
+ *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
- *  FILE:        core/CScreenShot.cpp
  *  PURPOSE:     Screen capture file handling
  *
- *  Multi Theft Auto is available from http://www.multitheftauto.com/
+ *  Multi Theft Auto is available from https://multitheftauto.com/
  *
  *****************************************************************************/
 
 #include "StdInc.h"
+#include "CScreenShot.h"
+#include "CCore.h"
 #include <libpng/png.h>
 
 extern CCore* g_pCore;
@@ -137,7 +138,7 @@ SString CScreenShot::GetScreenShotPath(int iNumber)
 
 // Callback for threaded save
 // Static function
-DWORD CScreenShot::ThreadProc(LPVOID lpdwThreadParam)
+unsigned long CScreenShot::ThreadProc(void* lpdwThreadParam)
 {
     unsigned long ulScreenHeight = ms_uiHeight;
     unsigned long ulScreenWidth = ms_uiWidth;
@@ -207,7 +208,7 @@ DWORD CScreenShot::ThreadProc(LPVOID lpdwThreadParam)
 }
 
 // Static function
-void CScreenShot::BeginSave(const char* szFileName, void* pData, uint uiDataSize, uint uiWidth, uint uiHeight)
+void CScreenShot::BeginSave(const char* szFileName, void* pData, unsigned int uiDataSize, unsigned int uiWidth, unsigned int uiHeight)
 {
     if (ms_bIsSaving)
         return;

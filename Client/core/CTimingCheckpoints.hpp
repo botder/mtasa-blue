@@ -1,15 +1,14 @@
 /*****************************************************************************
  *
- *  PROJECT:     Multi Theft Auto v1.0
+ *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
+ *  PURPOSE:     Temporary file for debugging purposes only
  *
- *  Multi Theft Auto is available from http://www.multitheftauto.com/
+ *  Multi Theft Auto is available from https://multitheftauto.com/
  *
  *****************************************************************************/
 
-//
-// Temp file for debugging purposes only
-//
+#include "CCore.h"
 
 //
 // Class to record the CPU time used at various points in the game

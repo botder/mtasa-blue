@@ -1,15 +1,18 @@
 /*****************************************************************************
  *
- *  PROJECT:     Multi Theft Auto v1.0
+ *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
- *  FILE:        core/CDirect3DHook9.h
  *  PURPOSE:     Header file for Direct3D 8 hooker class
  *
- *  Multi Theft Auto is available from http://www.multitheftauto.com/
+ *  Multi Theft Auto is available from https://multitheftauto.com/
  *
  *****************************************************************************/
 
 #pragma once
+
+#include "CSingleton.h"
+
+struct IDirect3D9;
 
 typedef IDirect3D9*(__stdcall* pDirect3DCreate)(int SDKVersion);
 

@@ -1,12 +1,19 @@
 /*****************************************************************************
  *
- *  PROJECT:     Multi Theft Auto v1.0
+ *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
- *  FILE:        core/CMemStats.h
+ *  PURPOSE:     Memory usage statistics
  *
- *  Multi Theft Auto is available from http://www.multitheftauto.com/
+ *  Multi Theft Auto is available from https://multitheftauto.com/
  *
  *****************************************************************************/
+
+#pragma once
+
+#include "DXHook/CProxyDirect3DDevice9.h"
+#include <multiplayer/CMultiplayer.h>
+#include <game/CGame.h>
+#include <core/CRenderItemManagerInterface.h>
 
 struct SModelCacheStats
 {

@@ -1,13 +1,13 @@
 /*****************************************************************************
  *
- *  PROJECT:     Multi Theft Auto v1.1
+ *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
- *  FILE:        CNickGen.cpp
- *  PURPOSE:     Generate hillariously poor nicknames for players
+ *  PURPOSE:     Generate hilariously poor nicknames for players
  *
  *****************************************************************************/
 
 #include "StdInc.h"
+#include "CNickGen.h"
 #include "time.h"
 
 // These words are of a maximum length of 10 characters, capitalized, and stripped of whitespace

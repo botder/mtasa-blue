@@ -1,11 +1,10 @@
 /*****************************************************************************
  *
- *  PROJECT:     Multi Theft Auto v1.0
+ *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
- *  FILE:        core/CCore.h
- *  PURPOSE:     Header file for base core class
+ *  PURPOSE:     Base core class
  *
- *  Multi Theft Auto is available from http://www.multitheftauto.com/
+ *  Multi Theft Auto is available from https://multitheftauto.com/
  *
  *****************************************************************************/
 
@@ -13,8 +12,7 @@ class CCore;
 
 #pragma once
 
-#include "version.h"
-
+#include "CoreConfig.h"
 #include "CClientVariables.h"
 #include "CCommands.h"
 #include "CModuleLoader.h"
@@ -39,38 +37,18 @@ class CCore;
 #include <ijsify.h>
 #include <core/CWebCoreInterface.h>
 #include "CTrayIcon.h"
+#include "CLocalization.h"
+#include "CClientVariables.h"
+#include "CGUI.h"
 
-#define DIRECTINPUT_VERSION 0x0800
+#ifndef DIRECTINPUT_VERSION
+    #define DIRECTINPUT_VERSION 0x0800
+#endif
+
 #include <dinput.h>
-
-#define BLUE_VERSION_STRING     "Multi Theft Auto v" MTA_DM_BUILDTAG_LONG
-#define BLUE_COPYRIGHT_STRING   "Copyright (C) 2003 - %BUILD_YEAR% Multi Theft Auto"
-
-// Configuration file path (relative to MTA install directory)
-#define MTA_CONFIG_PATH             "mta/config/coreconfig.xml"
-#define MTA_SERVER_CACHE_PATH       "mta/config/servercache.xml"
-#define MTA_CONSOLE_LOG_PATH        "mta/logs/console.log"
-#define MTA_CONSOLE_INPUT_LOG_PATH  "mta/logs/console-input.log"
-#define CONFIG_ROOT                 "mainconfig"
-#define CONFIG_NODE_CVARS           "settings"                  // cvars node
-#define CONFIG_NODE_KEYBINDS        "binds"                     // keybinds node
-#define CONFIG_NODE_JOYPAD          "joypad"
-#define CONFIG_NODE_UPDATER         "updater"
-#define CONFIG_NODE_SERVER_INT      "internet_servers"          // backup of last successful master server list query
-#define CONFIG_NODE_SERVER_FAV      "favourite_servers"         // favourite servers list node
-#define CONFIG_NODE_SERVER_REC      "recently_played_servers"   // recently played servers list node
-#define CONFIG_NODE_SERVER_OPTIONS  "serverbrowser_options"     // saved options for the server browser
-#define CONFIG_NODE_SERVER_SAVED    "server_passwords"    // This contains saved passwords (as appose to save_server_passwords which is a setting)
-#define CONFIG_NODE_SERVER_HISTORY  "connect_history"
-#define CONFIG_INTERNET_LIST_TAG    "internet_server"
-#define CONFIG_FAVOURITE_LIST_TAG   "favourite_server"
-#define CONFIG_RECENT_LIST_TAG      "recently_played_server"
-#define CONFIG_HISTORY_LIST_TAG     "connected_server"
-#define IDT_TIMER1 1234
 
 extern class CCore*         g_pCore;
 extern class CGraphics*     g_pGraphics;
-extern class CLocalization* g_pLocalization;
 bool                        UsingAltD3DSetup();
 extern SString              g_strJingleBells;
 

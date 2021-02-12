@@ -2,11 +2,22 @@
  *
  *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
- *  FILE:        CPrimitiveMaterialBatcher.h
  *  PURPOSE:
  *
+ *  Multi Theft Auto is available from https://multitheftauto.com/
  *
  *****************************************************************************/
+
+#pragma once
+
+#include <d3d9.h>
+#include <d3dx9.h>
+#include <vector>
+
+class CGraphics;
+class CMaterialItem;
+struct PrimitiveMaterialVertice;
+
 // Vertex type used by the primitives batcher
 struct sPrimitiveMaterial
 {
@@ -14,6 +25,7 @@ struct sPrimitiveMaterial
     CMaterialItem*                          pMaterial;
     std::vector<PrimitiveMaterialVertice>*  pVecVertices;
 };
+
 //
 // Batches primitives drawing
 //

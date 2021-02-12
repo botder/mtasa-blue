@@ -2,16 +2,27 @@
  *
  *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
- *  FILE:        core/CSettings.cpp
  *  PURPOSE:     In-game settings window
  *
- *  Multi Theft Auto is available from http://www.multitheftauto.com/
+ *  Multi Theft Auto is available from https://multitheftauto.com/
  *
  *****************************************************************************/
 
 #include "StdInc.h"
+#include "CSettings.h"
+#include "CNickGen.h"
+#include "Graphics/CVideoModeManager.h"
+#include "DXHook/CProxyDirect3DDevice9.h"
+#include "CJoystickManager.h"
+#include "CMainMenu.h"
+#include "CVersionUpdater.h"
+#include "CCore.h"
+#include "CGUI.h"
 #include <core/CClientCommands.h>
+#include <core/CKeyBindsInterface.h>
 #include <game/CGame.h>
+#include <Common.h>
+#include <multiplayer/CMultiplayer.h>
 
 using namespace std;
 
@@ -20,6 +31,10 @@ using namespace std;
 #define CORE_SETTINGS_HEADERS 3
 #define CORE_SETTINGS_HEADER_SPACER " "
 #define CORE_SETTINGS_NO_KEY " "
+
+#define SKINS_PATH        "skins/*"
+#define CHAT_PRESETS_PATH "mta/config/chatboxpresets.xml"
+#define CHAT_PRESETS_ROOT "chatboxpresets"
 
 extern CCore*              g_pCore;
 extern SBindableGTAControl g_bcControls[];
@@ -2558,7 +2573,7 @@ bool CSettings::OnBindsListClick(CGUIElement* pElement)
 #define WM_XBUTTONUP 0x020C
 #endif
 
-bool CSettings::ProcessMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
+bool CSettings::ProcessMessage(unsigned int uMsg, unsigned int wParam, unsigned long lParam)
 {
     if (m_bCaptureKey)
     {

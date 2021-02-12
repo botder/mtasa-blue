@@ -53,6 +53,11 @@ project "Client Core"
 		"PNG_SETJMP_NOT_SUPPORTED"
 	}
 
+	disablewarnings {
+		"4244", -- 'conversion' conversion from 'type1' to 'type2', possible loss of data
+		"4995", -- 'function': name was marked as #pragma deprecated
+	}
+
 	filter "architecture:x64"
 		flags { "ExcludeFromBuild" }
 

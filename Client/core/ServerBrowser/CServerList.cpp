@@ -1,17 +1,19 @@
 /*****************************************************************************
  *
- *  PROJECT:     Multi Theft Auto v1.0
+ *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
- *  FILE:        core/CServerList.cpp
- *  PURPOSE:     Master server list querying
+ *  PURPOSE:     Master server list and LAN server list querying
  *
- *  Multi Theft Auto is available from http://www.multitheftauto.com/
+ *  Multi Theft Auto is available from https://multitheftauto.com/
  *
  *****************************************************************************/
 
 #include "StdInc.h"
+#include "CCore.h"
+#include "CMainMenu.h"
 #include "CServerBrowser.MasterServerManager.h"
 #include "CServerCache.h"
+#include <net/CNet.h>
 
 using namespace std;
 

@@ -1,15 +1,20 @@
 /*****************************************************************************
  *
- *  PROJECT:     Multi Theft Auto v1.0
+ *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
- *  FILE:        core/CConsole.cpp
  *  PURPOSE:     In-game console implementation
  *
- *  Multi Theft Auto is available from http://www.multitheftauto.com/
+ *  Multi Theft Auto is available from https://multitheftauto.com/
  *
  *****************************************************************************/
 
 #include "StdInc.h"
+#include "CConsole.h"
+#include "CGUI.h"
+#include "CCore.h"
+#include "CoreConfig.h"
+#include "CConsoleLogger.h"
+#include <multiplayer/CMultiplayer.h>
 
 using SharedUtil::CalcMTASAPath;
 using std::string;

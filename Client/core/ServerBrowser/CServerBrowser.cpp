@@ -14,6 +14,9 @@
 #include "CServerCache.h"
 #include "CVersionUpdater.h"
 #include "CMainMenu.h"
+#include <xml/CXMLNode.h>
+#include <xml/CXMLAttribute.h>
+#include <xml/CXMLAttributes.h>
 
 using namespace std;
 

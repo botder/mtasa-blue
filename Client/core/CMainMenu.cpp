@@ -16,6 +16,7 @@
 #include "CNewsBrowser.h"
 #include "CLanguageSelector.h"
 #include <multiplayer/CMultiplayer.h>
+#include <xml/CXMLNode.h>
 
 #define NATIVE_RES_X    1280.0f
 #define NATIVE_RES_Y    1024.0f

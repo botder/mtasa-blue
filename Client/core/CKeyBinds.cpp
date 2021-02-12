@@ -13,6 +13,9 @@
 #include "CJoystickManager.h"
 #include "CCore.h"
 #include <game/CGame.h>
+#include <xml/CXMLNode.h>
+#include <xml/CXMLAttribute.h>
+#include <xml/CXMLAttributes.h>
 
 using std::list;
 

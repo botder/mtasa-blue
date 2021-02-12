@@ -11,6 +11,9 @@
 #include "CVersionUpdater.h"
 #include "CCore.h"
 #include "CMainMenu.h"
+#include <xml/CXMLNode.h>
+#include <xml/CXMLAttribute.h>
+#include <xml/CXMLAttributes.h>
 
 class CVersionUpdater;
 

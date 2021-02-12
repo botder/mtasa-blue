@@ -23,6 +23,9 @@
 #include <game/CGame.h>
 #include <Common.h>
 #include <multiplayer/CMultiplayer.h>
+#include <xml/CXMLNode.h>
+#include <xml/CXMLAttribute.h>
+#include <xml/CXMLAttributes.h>
 
 using namespace std;
 

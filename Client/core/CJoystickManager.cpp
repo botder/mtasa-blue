@@ -15,6 +15,9 @@
 #include "XInput.h"
 #include <dinputd.h>
 #include "DXHook/CProxyDirectInputDevice8.h"
+#include <xml/CXMLNode.h>
+#include <xml/CXMLAttribute.h>
+#include <xml/CXMLAttributes.h>
 
 using std::string;
 

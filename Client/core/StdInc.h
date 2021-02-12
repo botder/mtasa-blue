@@ -20,9 +20,3 @@
 // Localization
 #include "../../vendor/tinygettext/tinygettext.hpp"
 #include "CLocalization.h"
-
-// SDK includes
-#include <xml/CXMLNode.h>
-#include <xml/CXMLFile.h>
-#include <xml/CXMLAttribute.h>
-#include <xml/CXMLAttributes.h>

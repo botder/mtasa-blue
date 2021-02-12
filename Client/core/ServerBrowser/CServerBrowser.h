@@ -19,6 +19,8 @@ class CServerBrowser;
 #include <gui/CGUIEvent.h>
 #include <ctime>
 
+class CXMLNode;
+
 namespace ServerBrowserTypes
 {
     enum ServerBrowserType

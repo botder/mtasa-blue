@@ -21,7 +21,6 @@
 #include "CVersionUpdater.h"
 #include "CClientVariables.h"
 #include "CFilePathTranslator.h"
-#include <windows.h>
 
 ///////////////////////////////////////////////////////////////
 //

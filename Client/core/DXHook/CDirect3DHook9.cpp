@@ -13,7 +13,6 @@
 #include "CProxyDirect3D9.h"
 #include "SharedUtil.Win32.h"
 #include <SharedUtil.Detours.h>
-#include <windows.h>
 
 template <>
 CDirect3DHook9* CSingleton<CDirect3DHook9>::m_pSingleton = NULL;

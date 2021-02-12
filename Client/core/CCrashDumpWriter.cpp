@@ -10,6 +10,7 @@
 
 #include "StdInc.h"
 #include "CCrashDumpWriter.h"
+#include "CrashHandler.h"
 #include "CExceptionInformation_Impl.h"
 #include "CMemStats.h"
 #include "CModManager.h"

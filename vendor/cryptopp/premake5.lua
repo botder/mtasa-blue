@@ -5,10 +5,14 @@ project "cryptopp"
 	optimize "Full"
 	exceptionhandling "SEH"
 
+	includedirs {
+		"8.4.0",
+	}
+
 	vpaths {
 		["Headers/*"] = "8.4.0/**.h",
 		["Sources"] = "8.4.0/**.cpp",
-		["*"] = "premake5.lua"
+		["*"] = "premake5.lua",
 	}
 
 	files {

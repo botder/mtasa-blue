@@ -9,6 +9,7 @@
  *****************************************************************************/
 
 #include "StdInc.h"
+#include "CLocalization.h"
 #include "CClientVariables.h"
 #include "../../vendor/tinygettext/log.hpp"
 

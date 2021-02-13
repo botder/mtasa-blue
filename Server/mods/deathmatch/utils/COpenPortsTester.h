@@ -8,8 +8,6 @@
  *
  *****************************************************************************/
 
-#include "Webserver.h"
-
 class COpenPortsTester
 {
 public:
@@ -37,9 +35,7 @@ public:
             CLogger::LogPrintfNoStamp("ASE is not enabled, so port UDP port %u will not be tested\n", usServerPort + 123);
         }
 
-        using namespace mtasa;
-
-        if (g_Webserver != nullptr && g_Webserver->IsRunning())
+        if (g_pGame->IsHTTPServerRunning())
         {
             strURL += SString("&h=%u", usHTTPPort);
         }

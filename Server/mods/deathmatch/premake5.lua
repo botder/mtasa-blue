@@ -49,7 +49,10 @@ project "Deathmatch"
 	
 	defines {
 		"SDK_WITH_BCRYPT",
-		"MG_ENABLE_MBEDTLS", -- for: mongoose
+		"MG_ENABLE_MBEDTLS=1", -- for: mongoose
+		"MG_ENABLE_IPV6=1", -- for: mongoose
+		"MG_ENABLE_LOG=0", -- for: mongoose
+		"MG_ENABLE_SOCKETPAIR=1", -- for: mongoose
 	}
 
 	links {

@@ -9,7 +9,7 @@
  *****************************************************************************/
 
 #include "StdInc.h"
-#include "Webserver.h"
+#include "ServerFactory.h"
 #include <sstream>
 
 #ifdef _CRT_SECURE_NO_WARNINGS
@@ -23,42 +23,91 @@ extern "C"
 
 namespace mtasa
 {
-    std::unique_ptr<Webserver> g_Webserver;
+    static mg_mgr mongooseManager{};
 
-    void Webserver::Initialize()
+    std::atomic_bool ServerFactory::ms_isRunning;
+    std::thread      ServerFactory::ms_worker;
+
+    void MongooseHTTPServerCallback(mg_connection* connection, int event, void* eventdata, void* userdata);
+
+    void ServerFactory::Initialize()
     {
-        if (g_Webserver != nullptr)
+        if (ms_isRunning.exchange(true))
             return;
 
-        g_Webserver = std::make_unique<Webserver>();
+        mg_mgr_init(&mongooseManager);
+
+        ms_worker = std::thread([] {
+            while (ms_isRunning.load())
+            {
+                mg_mgr_poll(&mongooseManager, 1000);
+                mg_usleep(50'000);
+            }
+        });
     }
 
-    void Webserver::Shutdown()
+    void ServerFactory::Shutdown()
     {
-        if (g_Webserver != nullptr)
+        if (!ms_isRunning.exchange(false))
+            return;
+
+        if (ms_worker.joinable())
+            ms_worker.join();
+
+        mg_mgr_free(&mongooseManager);
+    }
+
+    std::unique_ptr<HTTPServer> ServerFactory::CreateHTTPServer(const char* hostname, unsigned short port)
+    {
+        if (!ms_isRunning.load())
+            return nullptr;
+
+        std::stringstream address;
+        address << "http://" << hostname << ":" << port;
+
+        auto server = std::make_unique<HTTPServer>();
+
+        mg_connection* connection = mg_http_listen(&mongooseManager, address.str().c_str(), &MongooseHTTPServerCallback, server.get());
+        server->SetHandle(connection);
+
+        return std::move(server);
+    }
+
+    void ServerFactory::DestroyServer(std::unique_ptr<HTTPServer>& server)
+    {
+        if (!ms_isRunning.load())
+            return;
+
+        auto connection = reinterpret_cast<mg_connection*>(server->GetHandle());
+
+        if (connection != nullptr)
+            connection->is_closing = 1;
+
+        server.reset();
+    }
+
+    void MongooseHTTPServerCallback(mg_connection* connection, int event, void* eventdata, void* userdata)
+    {
+        if (event == MG_EV_ERROR)
         {
-            g_Webserver->Stop();
-            g_Webserver.reset();
+            auto        error = reinterpret_cast<const char*>(eventdata);
+            std::string message = "WEBSERVER ERROR: ";
+            message += error;
+            OutputDebugLine(message.c_str());
+            return;
         }
-    }
 
-    static void WebserverEventHandler(mg_connection* c, int event, void* data, void* userdata)
-    {
         if (event != MG_EV_HTTP_MSG)
             return;
 
-        auto request = reinterpret_cast<mg_http_message*>(data);
+        // auto server = reinterpret_cast<Server*>(userdata);
+
+        auto request = reinterpret_cast<mg_http_message*>(eventdata);
 
         std::stringstream ss;
 
-        ss << std::string_view(request->proto.ptr, request->proto.len)
-            << " REQUEST: <"
-            << std::string_view(request->method.ptr, request->method.len)
-            << "> "
-            << std::string_view(request->uri.ptr, request->uri.len)
-            << " [query: "
-            << std::string_view(request->query.ptr, request->query.len)
-            << "]";
+        ss << std::string_view(request->proto.ptr, request->proto.len) << " REQUEST: <" << std::string_view(request->method.ptr, request->method.len) << "> "
+           << std::string_view(request->uri.ptr, request->uri.len) << " [query: " << std::string_view(request->query.ptr, request->query.len) << "]";
 
         OutputDebugLine(ss.str().c_str());
         OutputDebugLine("HEADERS:");
@@ -79,63 +128,11 @@ namespace mtasa
         std::string body(std::string_view(request->body.ptr, request->body.len));
         OutputDebugLine(body.c_str());
 
-        // auto webserver = reinterpret_cast<Webserver*>(userdata);
-    }
-
-    bool Webserver::Start() noexcept
-    {
-        if (m_isRunning)
-            return false;
-
-        std::stringstream address;
-        address << "http://";
-        address << m_hostname
-                << ":"
-                << m_port;
-
-        auto manager = new mg_mgr;
-        mg_mgr_init(manager);
-        mg_connection* result = mg_http_listen(manager, address.str().c_str(), &WebserverEventHandler, this);
-
-        if (result == nullptr)
-            return false;
-
-        m_handle = manager;
-        m_worker = std::thread(&Webserver::WorkerThread, this);
-        m_isRunning = true;
-        return true;
-    }
-
-    void Webserver::Stop() noexcept
-    {
-        if (!m_isRunning)
-            return;
-
-        m_isRunning = false;
-
-        if (m_worker.joinable())
-            m_worker.join();
-
-        mg_mgr_free(reinterpret_cast<mg_mgr*>(m_handle));
-        m_handle = nullptr;
-    }
-
-    void Webserver::WorkerThread()
-    {
-        while (m_isRunning)
-        {
-            mg_mgr_poll(reinterpret_cast<mg_mgr*>(m_handle), 1000);
-        }
+        mg_http_reply(connection, 200, nullptr, "Hello, world!");
     }
 }            // namespace mtasa
 
 /*
-#include <cryptopp/rsa.h>
-#include <cryptopp/osrng.h>
-#include <SharedUtil.Crypto.h>
-
-extern CGame* g_pGame;
-
 CHTTPD::CHTTPD()
     : m_BruteForceProtect(4, 30000, 60000 * 5)            // Max of 4 attempts per 30 seconds, then 5 minute ignore
       ,
@@ -154,25 +151,9 @@ CHTTPD::CHTTPD()
     g_pGame->GetConfig()->GetHTTPDosExclude().Split(",", excludeList);
     m_HttpDosExcludeMap = std::set<SString>(excludeList.begin(), excludeList.end());
 }
+*/
 
-CHTTPD::~CHTTPD()
-{
-    StopHTTPD();
-}
-
-bool CHTTPD::StopHTTPD()
-{
-    // Stop the server if we started it
-    if (m_bStartedServer)
-    {
-        // Stop the server
-        StopServer();
-        m_bStartedServer = false;
-        return true;
-    }
-    return false;
-}
-
+/*
 bool CHTTPD::StartHTTPD(const char* szIP, unsigned int port)
 {
     bool bResult = false;

@@ -15,7 +15,7 @@
 #include "../utils/CHqComms.h"
 #include "../utils/CFunctionUseLogger.h"
 #include "net/SimHeaders.h"
-#include "Webserver.h"
+#include "ServerFactory.h"
 #include <signal.h>
 
 #define MAX_BULLETSYNC_DISTANCE 400.0f
@@ -206,6 +206,8 @@ CGame::CGame() : m_FloodProtect(4, 30000, 30000)            // Max of 4 connecti
 
     memset(&m_bGarageStates[0], 0, sizeof(m_bGarageStates));
 
+    ServerFactory::Initialize();
+
     // init our mutex
     pthread_mutex_init(&mutexhttp, NULL);
 }
@@ -251,11 +253,10 @@ CGame::~CGame()
 {
     m_bBeingDeleted = true;
 
-    // Stop the web server first to avoid threading issues
-    if (g_Webserver)
-        g_Webserver->Stop();
+    if (m_httpServer)
+        ServerFactory::DestroyServer(m_httpServer);
 
-    Webserver::Shutdown();
+    ServerFactory::Shutdown();
 
     // Stop the performance stats modules
     if (CPerfStatManager::GetSingleton() != NULL)
@@ -624,28 +625,19 @@ bool CGame::Start(int iArgumentCount, char* szArguments[])
     m_pLatentTransferManager = new CLatentTransferManager();
 
     // Create and start the HTTP server
-    Webserver::Initialize();
-
-    // Enable it if required
     if (m_pMainConfig->IsHTTPEnabled())
     {
-        if (!g_Webserver)
-        {
-            CLogger::ErrorPrintf("Could not initialize HTTP server!\n");
-            return false;
-        }
-
-        std::string hostname = "0.0.0.0";
+        // Bind to all interfaces by default
+        std::string hostname = "0.0.0.0"; // for IPv6: "[::]"
 
         if (!strServerIP.empty() && strServerIP == strServerIPList)
             hostname = strServerIP;
 
-        g_Webserver->SetHostname(hostname);
-
         unsigned short port = m_pMainConfig->GetHTTPPort();
-        g_Webserver->SetPort(port);
 
-        if (!g_Webserver->Start())
+        m_httpServer = ServerFactory::CreateHTTPServer(hostname.c_str(), port);
+
+        if (!m_httpServer)
         {
             CLogger::ErrorPrintf("Could not start HTTP server on interface '%s' and port '%u'!\n", hostname.c_str(), port);
             return false;

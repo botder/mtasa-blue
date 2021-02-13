@@ -19,7 +19,10 @@ project "mongoose"
     }
 
     defines {
-        "MG_ENABLE_MBEDTLS",
+        "MG_ENABLE_MBEDTLS=1",
+		"MG_ENABLE_IPV6=1",
+		"MG_ENABLE_LOG=0",
+		"MG_ENABLE_SOCKETPAIR=1",
     }
 
     disablewarnings {

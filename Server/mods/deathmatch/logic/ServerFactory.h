@@ -2,7 +2,7 @@
  *
  *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
- *  PURPOSE:     Built-in HTTP webserver
+ *  PURPOSE:     General purpose server manager
  *
  *  Multi Theft Auto is available from https://multitheftauto.com/
  *
@@ -10,40 +10,35 @@
 
 #pragma once
 
-#include <memory>
-#include <string>
 #include <thread>
+#include <atomic>
+#include <memory>
 
 namespace mtasa
 {
-    class Webserver
+    class HTTPServer
+    {
+    public:
+        void  SetHandle(void* handle) noexcept { m_handle = handle; }
+        void* GetHandle() const noexcept { return m_handle; }
+
+    private:
+        void* m_handle;
+    };
+
+    class ServerFactory
     {
     public:
         static void Initialize();
         static void Shutdown();
 
-    public:
-        bool IsRunning() const noexcept { return m_isRunning; }
-
-        void SetHostname(std::string hostname) noexcept { m_hostname = std::move(hostname); }
-        void SetPort(unsigned short port) noexcept { m_port = port; }
-
-        bool Start() noexcept;
-        void Stop() noexcept;
+        static std::unique_ptr<HTTPServer> CreateHTTPServer(const char* hostname, unsigned short port);
+        static void                    DestroyServer(std::unique_ptr<HTTPServer>& server);
 
     private:
-        void WorkerThread();
-
-    private:
-        bool           m_isRunning = false;
-        std::string    m_hostname;
-        unsigned short m_port;
-
-        void*       m_handle = nullptr;
-        std::thread m_worker;
+        static std::atomic_bool ms_isRunning;
+        static std::thread      ms_worker;
     };
-
-    extern std::unique_ptr<Webserver> g_Webserver;
 }            // namespace mtasa
 
 /*

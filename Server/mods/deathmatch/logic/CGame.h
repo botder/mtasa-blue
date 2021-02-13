@@ -19,7 +19,6 @@ class CGame;
 #include "CCommandLineParser.h"
 #include "CConnectHistory.h"
 #include "CElementDeleter.h"
-
 #include "packets/CCommandPacket.h"
 #include "packets/CExplosionSyncPacket.h"
 #include "packets/CProjectileSyncPacket.h"
@@ -50,13 +49,11 @@ class CGame;
 #include "packets/CPlayerModInfoPacket.h"
 #include "packets/CPlayerACInfoPacket.h"
 #include "packets/CPlayerScreenShotPacket.h"
-
 #include "CRPCFunctions.h"
-
 #include "lua/CLuaManager.h"
-
 #include "CLightsyncManager.h"
 #include "CBanManager.h"
+#include <memory>
 
 // Forward declarations
 class ASE;
@@ -109,6 +106,11 @@ class COpenPortsTester;
 class CMasterServerAnnouncer;
 class CHqComms;
 class CFunctionUseLogger;
+
+namespace mtasa
+{
+    class HTTPServer;
+}
 
 // Packet forward declarations
 class CCommandPacket;
@@ -459,6 +461,8 @@ public:
     bool IsClientTransferBoxVisible() const { return m_showClientTransferBox; }
     void SetClientTransferBoxVisible(bool visible) { m_showClientTransferBox = visible; }
 
+    bool IsHTTPServerRunning() const noexcept { return m_httpServer != nullptr; }
+
 private:
     void AddBuiltInEvents();
     void RelayPlayerPuresync(class CPacket& Packet);
@@ -551,6 +555,8 @@ private:
     CRPCFunctions*             m_pRPCFunctions;
     CLanBroadcast*             m_pLanBroadcast;
     CWaterManager*             m_pWaterManager;
+
+    std::unique_ptr<mtasa::HTTPServer> m_httpServer;
 
     CWeaponStatManager*      m_pWeaponStatsManager;
     CBuildingRemovalManager* m_pBuildingRemovalManager;

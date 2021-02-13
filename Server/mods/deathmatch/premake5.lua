@@ -22,6 +22,7 @@ project "Deathmatch"
 			"../../../vendor/json-c",
 			"../../../vendor/bob_withers",
 			"../../../vendor/lua/src",
+			"../../../vendor/mongoose/7.1",
 			"../../../Shared/gta",
 			"../../../Shared/mods/deathmatch/logic",
 			"../../../Shared/animation",
@@ -32,9 +33,13 @@ project "Deathmatch"
 			"."
 		}
 
-	defines { "SDK_WITH_BCRYPT" }
+	defines {
+		"SDK_WITH_BCRYPT",
+		"MG_ENABLE_MBEDTLS", -- from: mongoose
+	}
+
 	links {
-		"Lua_Server", "sqlite", "ehs", "cryptopp", "pme", "pcre", "json-c", "zip", "zlib", "blowfish_bcrypt",
+		"Lua_Server", "sqlite", "mongoose", "mbedtls", "cryptopp", "pme", "pcre", "json-c", "zip", "zlib", "blowfish_bcrypt",
 	}
 
 	vpaths {

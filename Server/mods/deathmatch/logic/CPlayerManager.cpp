@@ -257,7 +257,8 @@ static void DoBroadcast(const CPacket& Packet, const std::multimap<ushort, CPlay
             g_pGame->SendPacketBatchBegin(Packet.GetPacketID(), pBitStream);
 
             // For each player, send the packet
-            const pair<mapIter, mapIter> keyRange = groupMap.equal_range(usBitStreamVersion);
+            const std::pair<mapIter, mapIter> keyRange = groupMap.equal_range(usBitStreamVersion);
+
             for (s_it = keyRange.first; s_it != keyRange.second; ++s_it)
             {
                 CPlayer* pPlayer = s_it->second;
@@ -270,7 +271,8 @@ static void DoBroadcast(const CPacket& Packet, const std::multimap<ushort, CPlay
         else
         {
             // Skip
-            const pair<mapIter, mapIter> keyRange = groupMap.equal_range(usBitStreamVersion);
+            const std::pair<mapIter, mapIter> keyRange = groupMap.equal_range(usBitStreamVersion);
+
             for (s_it = keyRange.first; s_it != keyRange.second; ++s_it)
             {
             }

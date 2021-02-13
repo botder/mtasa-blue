@@ -1,18 +1,15 @@
 /*****************************************************************************
  *
- *  PROJECT:     Multi Theft Auto v1.0
+ *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
- *  FILE:        mods/deathmatch/logic/CResourceHTMLItem.cpp
  *  PURPOSE:     Resource server-side HTML item class
  *
- *  Multi Theft Auto is available from http://www.multitheftauto.com/
+ *  Multi Theft Auto is available from https://multitheftauto.com/
  *
  *****************************************************************************/
 
-// This class represents a single HTML resource item.
-// This parses it and converts into into a script
-
 #include "StdInc.h"
+#include "CResourceHTMLItem.h"
 
 extern CServerInterface* g_pServerInterface;
 extern CGame*            g_pGame;
@@ -35,6 +32,7 @@ CResourceHTMLItem::~CResourceHTMLItem()
     Stop();
 }
 
+/*
 ResponseCode CResourceHTMLItem::Request(HttpRequest* ipoHttpRequest, HttpResponse* ipoHttpResponse, CAccount* account)
 {
     if (!m_pVM)
@@ -185,6 +183,7 @@ bool CResourceHTMLItem::AppendToPageBuffer(const char* szText, size_t length)
         m_strPageBuffer.append(szText, length);
     return true;
 }
+*/
 
 bool CResourceHTMLItem::Start()
 {

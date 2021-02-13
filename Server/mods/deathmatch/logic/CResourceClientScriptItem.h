@@ -1,11 +1,10 @@
 /*****************************************************************************
  *
- *  PROJECT:     Multi Theft Auto v1.0
+ *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
- *  FILE:        mods/deathmatch/logic/CResourceClientScriptItem.h
  *  PURPOSE:     Resource client-side script item class
  *
- *  Multi Theft Auto is available from http://www.multitheftauto.com/
+ *  Multi Theft Auto is available from https://multitheftauto.com/
  *
  *****************************************************************************/
 
@@ -13,6 +12,8 @@
 
 #include "CResourceFile.h"
 
+// This class represents a single resource script item, being a .lua file
+// It's task is to load and unload the script client side
 class CResourceClientScriptItem : public CResourceFile
 {
 public:
@@ -25,7 +26,9 @@ public:
     bool           IsNoClientCache() const { return m_bIsNoClientCache; }
     const SString& GetSourceCode() const { return m_sourceCode; }
 
+    /*
     ResponseCode Request(HttpRequest* ipoHttpRequest, HttpResponse* ipoHttpResponse);
+    */
 
 private:
     bool    m_bIsNoClientCache;

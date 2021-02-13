@@ -1,15 +1,15 @@
 /*****************************************************************************
  *
- *  PROJECT:     Multi Theft Auto v1.0
+ *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
- *  FILE:        mods/deathmatch/logic/packets/CPickupHideShowPacket.cpp
  *  PURPOSE:     Pickup hide/show packet class
  *
- *  Multi Theft Auto is available from http://www.multitheftauto.com/
+ *  Multi Theft Auto is available from https://multitheftauto.com/
  *
  *****************************************************************************/
 
 #include "StdInc.h"
+#include "CPickupHideShowPacket.h"
 
 bool CPickupHideShowPacket::Write(NetBitStreamInterface& BitStream) const
 {
@@ -20,9 +20,10 @@ bool CPickupHideShowPacket::Write(NetBitStreamInterface& BitStream) const
         BitStream.WriteBit(m_bShow);
 
         // Write the pickup ids
-        unsigned short                   usPickupModelID;
-        CPickup*                         pPickup;
-        vector<CPickup*>::const_iterator iter = m_List.begin();
+        unsigned short                        usPickupModelID;
+        CPickup*                              pPickup;
+        std::vector<CPickup*>::const_iterator iter = m_List.begin();
+
         for (; iter != m_List.end(); ++iter)
         {
             pPickup = *iter;

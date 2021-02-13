@@ -250,8 +250,9 @@ CGame::~CGame()
     m_bBeingDeleted = true;
 
     // Stop the web server first to avoid threading issues
-    if (m_pHTTPD)
-        m_pHTTPD->StopHTTPD();
+    // if (m_pHTTPD)
+    //     m_pHTTPD->StopHTTPD();
+    // TODO: ^
 
     // Stop the performance stats modules
     if (CPerfStatManager::GetSingleton() != NULL)
@@ -627,11 +628,12 @@ bool CGame::Start(int iArgumentCount, char* szArguments[])
     {
         // Slight hack for internal HTTPD: Listen on all IPs if multiple IPs declared
         SString strUseIP = (strServerIP == strServerIPList) ? strServerIP : "";
-        if (!m_pHTTPD->StartHTTPD(strUseIP, m_pMainConfig->GetHTTPPort()))
-        {
-            CLogger::ErrorPrintf("Could not start HTTP server on interface '%s' and port '%u'!\n", strUseIP.c_str(), m_pMainConfig->GetHTTPPort());
-            return false;
-        }
+        // if (!m_pHTTPD->StartHTTPD(strUseIP, m_pMainConfig->GetHTTPPort()))
+        // {
+        //     CLogger::ErrorPrintf("Could not start HTTP server on interface '%s' and port '%u'!\n", strUseIP.c_str(), m_pMainConfig->GetHTTPPort());
+        //     return false;
+        // }
+        // TODO: ^
     }
 
     m_pFunctionUseLogger = new CFunctionUseLogger(m_pMainConfig->GetLoadstringLogFilename());

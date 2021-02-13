@@ -1,19 +1,20 @@
 /*****************************************************************************
  *
- *  PROJECT:     Multi Theft Auto v1.0
+ *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
- *  FILE:        mods/deathmatch/logic/CCustomData.cpp
  *  PURPOSE:     Custom entity data class
  *
- *  Multi Theft Auto is available from http://www.multitheftauto.com/
+ *  Multi Theft Auto is available from https://multitheftauto.com/
  *
  *****************************************************************************/
 
 #include "StdInc.h"
+#include "CCustomData.h"
 
 void CCustomData::Copy(CCustomData* pCustomData)
 {
-    map<std::string, SCustomData>::const_iterator iter = pCustomData->IterBegin();
+    std::map<std::string, SCustomData>::const_iterator iter = pCustomData->IterBegin();
+
     for (; iter != pCustomData->IterEnd(); iter++)
     {
         Set(iter->first.c_str(), iter->second.Variable);

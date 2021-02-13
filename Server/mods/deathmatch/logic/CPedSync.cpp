@@ -1,15 +1,15 @@
 /*****************************************************************************
  *
- *  PROJECT:     Multi Theft Auto v1.0
+ *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
- *  FILE:        mods/deathmatch/logic/CPedSync.cpp
  *  PURPOSE:     Ped entity synchronization class
  *
- *  Multi Theft Auto is available from http://www.multitheftauto.com/
+ *  Multi Theft Auto is available from https://multitheftauto.com/
  *
  *****************************************************************************/
 
 #include "StdInc.h"
+#include "CPedSync.h"
 
 CPedSync::CPedSync(CPlayerManager* pPlayerManager, CPedManager* pPedManager)
 {
@@ -194,7 +194,8 @@ void CPedSync::Packet_PedSync(CPedSyncPacket& Packet)
     if (pPlayer && pPlayer->IsJoined())
     {
         // Apply the data for each ped in the packet
-        vector<CPedSyncPacket::SyncData*>::const_iterator iter = Packet.IterBegin();
+        std::vector<CPedSyncPacket::SyncData*>::const_iterator iter = Packet.IterBegin();
+
         for (; iter != Packet.IterEnd(); iter++)
         {
             CPedSyncPacket::SyncData* pData = *iter;

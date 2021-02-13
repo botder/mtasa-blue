@@ -1,16 +1,17 @@
 /*****************************************************************************
  *
- *  PROJECT:     Multi Theft Auto v1.0
+ *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
- *  FILE:        mods/deathmatch/logic/CDatabaseManager.cpp
  *  PURPOSE:     Outside world interface for enjoying asynchronous database functionality
  *
- *  Multi Theft Auto is available from http://www.multitheftauto.com/
+ *  Multi Theft Auto is available from https://multitheftauto.com/
  *
  *****************************************************************************/
 
 #include "StdInc.h"
+#include "CDatabaseManager.h"
 #include "CDatabaseJobQueueManager.h"
+
 SString InsertQueryArgumentsSqlite(const SString& strQuery, CLuaArguments* pArgs);
 SString InsertQueryArgumentsMySql(const SString& strQuery, CLuaArguments* pArgs);
 SString InsertQueryArgumentsSqlite(const char* szQuery, va_list vl);
@@ -732,4 +733,9 @@ SString CDbJobData::GetCommandStringForLog()
         }
     }
     return command.strData;
+}
+
+void CDatabaseConnectionElement::Unlink()
+{
+    g_pGame->GetDatabaseManager()->Disconnect(m_Connection);
 }

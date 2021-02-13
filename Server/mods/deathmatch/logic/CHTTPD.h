@@ -1,21 +1,22 @@
 /*****************************************************************************
  *
- *  PROJECT:     Multi Theft Auto v1.0
+ *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
- *  FILE:        mods/deathmatch/logic/CHTTPD.h
- *  PURPOSE:     Built-in HTTP webserver class
+ *  PURPOSE:     Built-in HTTP webserver
  *
- *  Multi Theft Auto is available from http://www.multitheftauto.com/
+ *  Multi Theft Auto is available from https://multitheftauto.com/
  *
  *****************************************************************************/
 
-// This class implements the webserver, it uses EHS to do this
-
 #pragma once
 
-#include <string>
-#include <list>
+class CHTTPD
+{
+public:
 
+};
+
+/*
 #include "ehs/ehs.h"
 
 class CHTTPD : public EHS
@@ -57,3 +58,4 @@ private:
     SString                m_strWarnMessageForIp;
     CElapsedTime           m_WarnMessageTimer;
 };
+*/

@@ -58,7 +58,8 @@ void CLuaArguments::CopyRecursive(const CLuaArguments& Arguments, CFastHashMap<C
     pKnownTables->insert(std::make_pair((CLuaArguments*)&Arguments, (CLuaArguments*)this));
 
     // Copy all the arguments
-    vector<CLuaArgument*>::const_iterator iter = Arguments.m_Arguments.begin();
+    std::vector<CLuaArgument*>::const_iterator iter = Arguments.m_Arguments.begin();
+
     for (; iter != Arguments.m_Arguments.end(); ++iter)
     {
         CLuaArgument* pArgument = new CLuaArgument(**iter, pKnownTables);
@@ -132,7 +133,8 @@ void CLuaArguments::ReadArgument(lua_State* luaVM, int iIndex)
 void CLuaArguments::PushArguments(lua_State* luaVM) const
 {
     // Push all our arguments
-    vector<CLuaArgument*>::const_iterator iter = m_Arguments.begin();
+    std::vector<CLuaArgument*>::const_iterator iter = m_Arguments.begin();
+
     for (; iter != m_Arguments.end(); ++iter)
     {
         (*iter)->Push(luaVM);
@@ -167,7 +169,8 @@ void CLuaArguments::PushAsTable(lua_State* luaVM, CFastHashMap<CLuaArguments*, i
     lua_pop(luaVM, 1);
     pKnownTables->insert(std::make_pair((CLuaArguments*)this, size));
 
-    vector<CLuaArgument*>::const_iterator iter = m_Arguments.begin();
+    std::vector<CLuaArgument*>::const_iterator iter = m_Arguments.begin();
+
     for (; iter != m_Arguments.end() && (iter + 1) != m_Arguments.end(); ++iter)
     {
         (*iter)->Push(luaVM, pKnownTables);            // index
@@ -187,7 +190,8 @@ void CLuaArguments::PushAsTable(lua_State* luaVM, CFastHashMap<CLuaArguments*, i
 
 void CLuaArguments::PushArguments(const CLuaArguments& Arguments)
 {
-    vector<CLuaArgument*>::const_iterator iter = Arguments.IterBegin();
+    std::vector<CLuaArgument*>::const_iterator iter = Arguments.IterBegin();
+
     for (; iter != Arguments.IterEnd(); ++iter)
     {
         CLuaArgument* pArgument = new CLuaArgument(**iter);
@@ -439,7 +443,8 @@ CLuaArgument* CLuaArguments::PushDbQuery(CDbJobData* pJobData)
 void CLuaArguments::DeleteArguments()
 {
     // Delete each item
-    vector<CLuaArgument*>::iterator iter = m_Arguments.begin();
+    std::vector<CLuaArgument*>::iterator iter = m_Arguments.begin();
+
     for (; iter != m_Arguments.end(); ++iter)
     {
         delete *iter;
@@ -464,7 +469,8 @@ void CLuaArguments::ValidateTableKeys()
 {
     // Iterate over m_Arguments as pairs
     // If first is LUA_TNIL, then remove pair
-    vector<CLuaArgument*>::iterator iter = m_Arguments.begin();
+    std::vector<CLuaArgument*>::iterator iter = m_Arguments.begin();
+
     for (; iter != m_Arguments.end();)
     {
         // Check first in pair
@@ -539,10 +545,11 @@ bool CLuaArguments::WriteToBitStream(NetBitStreamInterface& bitStream, CFastHash
     }
 
     bool bSuccess = true;
-    pKnownTables->insert(make_pair((CLuaArguments*)this, pKnownTables->size()));
+    pKnownTables->insert(std::make_pair((CLuaArguments*)this, pKnownTables->size()));
     bitStream.WriteCompressed(static_cast<unsigned int>(m_Arguments.size()));
 
-    vector<CLuaArgument*>::const_iterator iter = m_Arguments.begin();
+    std::vector<CLuaArgument*>::const_iterator iter = m_Arguments.begin();
+
     for (; iter != m_Arguments.end(); ++iter)
     {
         CLuaArgument* pArgument = *iter;
@@ -572,8 +579,9 @@ bool CLuaArguments::WriteToJSONString(std::string& strJSON, bool bSerialize, int
 
 json_object* CLuaArguments::WriteToJSONArray(bool bSerialize)
 {
-    json_object*                          my_array = json_object_new_array();
-    vector<CLuaArgument*>::const_iterator iter = m_Arguments.begin();
+    json_object*                               my_array = json_object_new_array();
+    std::vector<CLuaArgument*>::const_iterator iter = m_Arguments.begin();
+
     for (; iter != m_Arguments.end(); ++iter)
     {
         CLuaArgument* pArgument = *iter;
@@ -601,9 +609,10 @@ json_object* CLuaArguments::WriteTableToJSONObject(bool bSerialize, CFastHashMap
 
     pKnownTables->insert(std::make_pair(this, pKnownTables->size()));
 
-    bool                                  bIsArray = true;
-    unsigned int                          iArrayPos = 1;            // lua arrays are 1 based
-    vector<CLuaArgument*>::const_iterator iter = m_Arguments.begin();
+    bool                                       bIsArray = true;
+    unsigned int                               iArrayPos = 1;            // lua arrays are 1 based
+    std::vector<CLuaArgument*>::const_iterator iter = m_Arguments.begin();
+
     for (; iter != m_Arguments.end(); iter += 2)
     {
         CLuaArgument* pArgument = *iter;
@@ -635,8 +644,9 @@ json_object* CLuaArguments::WriteTableToJSONObject(bool bSerialize, CFastHashMap
 
     if (bIsArray)
     {
-        json_object*                          my_array = json_object_new_array();
-        vector<CLuaArgument*>::const_iterator iter = m_Arguments.begin();
+        json_object*                               my_array = json_object_new_array();
+        std::vector<CLuaArgument*>::const_iterator iter = m_Arguments.begin();
+
         for (; iter != m_Arguments.end(); ++iter)
         {
             iter++;            // skip the key values

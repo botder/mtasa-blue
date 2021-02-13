@@ -1,15 +1,16 @@
 /*****************************************************************************
  *
- *  PROJECT:     Multi Theft Auto v1.0
+ *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
- *  FILE:        mods/deathmatch/logic/CMainConfig.cpp
  *  PURPOSE:     XML-based main configuration file parser class
  *
- *  Multi Theft Auto is available from http://www.multitheftauto.com/
+ *  Multi Theft Auto is available from https://multitheftauto.com/
  *
  *****************************************************************************/
 
 #include "StdInc.h"
+#include "CMainConfig.h"
+
 #define MTA_SERVER_CONF_TEMPLATE "mtaserver.conf.template"
 
 extern CGame* g_pGame;
@@ -719,7 +720,8 @@ bool CMainConfig::LoadExtended()
                                 std::string strName = loadedResource->GetName();
                                 if (!strName.empty())
                                 {
-                                    g_pGame->GetHTTPD()->SetDefaultResource(strName.c_str());
+                                    // g_pGame->GetHTTPD()->SetDefaultResource(strName.c_str());
+                                    // TODO: ^
                                 }
 
                                 bFoundDefault = true;

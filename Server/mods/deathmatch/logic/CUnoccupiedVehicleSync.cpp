@@ -241,7 +241,8 @@ void CUnoccupiedVehicleSync::Packet_UnoccupiedVehicleSync(CUnoccupiedVehicleSync
     if (pPlayer && pPlayer->IsJoined())
     {
         // Apply the data for each vehicle in the packet
-        vector<CUnoccupiedVehicleSyncPacket::SyncData>::iterator iter = Packet.IterBegin();
+        std::vector<CUnoccupiedVehicleSyncPacket::SyncData>::iterator iter = Packet.IterBegin();
+
         for (; iter != Packet.IterEnd(); ++iter)
         {
             CUnoccupiedVehicleSyncPacket::SyncData& data = *iter;

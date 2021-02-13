@@ -1,23 +1,17 @@
 /*****************************************************************************
  *
- *  PROJECT:     Multi Theft Auto v1.0
+ *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
- *  FILE:        mods/deathmatch/logic/packets/CEntityAddPacket.h
- *  PURPOSE:     Entity add packet class
+ *  PURPOSE:     Entity-add packet class
  *
- *  Multi Theft Auto is available from http://www.multitheftauto.com/
+ *  Multi Theft Auto is available from https://multitheftauto.com/
  *
  *****************************************************************************/
-
-class CEntityAddPacket;
 
 #pragma once
 
 #include "../packets/CPacket.h"
 #include <vector>
-#include "../CGame.h"
-
-extern CGame* g_pGame;
 
 class CEntityAddPacket final : public CPacket
 {

@@ -1,29 +1,24 @@
 /*****************************************************************************
  *
- *  PROJECT:     Multi Theft Auto v1.0
+ *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
- *  FILE:        mods/deathmatch/logic/lua/CLuaModule.h
- *  PURPOSE:     Lua module extension class
+ *  PURPOSE:     Lua dynamic modules
  *
- *  Multi Theft Auto is available from http://www.multitheftauto.com/
+ *  Multi Theft Auto is available from https://multitheftauto.com/
  *
  *****************************************************************************/
 
-// IMPLEMENTATION of Lua dynamic modules
-
-#ifndef WIN32
-typedef void* HMODULE;
-#endif
-
-class CLuaModule;
-
 #pragma once
+
+#include "ILuaModuleManager.h"
+
+struct lua_State;
 
 typedef bool (*DefaultModuleFunc)();
 typedef void (*RegisterModuleFunc)(lua_State*);
 typedef bool (*InitModuleFunc)(ILuaModuleManager*, char*, char*, float*);
 
-struct FunctionInfo
+struct LuaModuleInfo
 {
     // module information
     char    szModuleName[MAX_INFO_LENGTH];
@@ -77,17 +72,18 @@ public:
     void _ResourceStopped(lua_State* luaVM);
     bool _DoesFunctionExist(const char* szFunctionName);
 
-    HMODULE      _GetHandle() { return m_hModule; };
-    SString      _GetName() { return m_szShortFileName; };
-    FunctionInfo _GetFunctions() { return m_FunctionInfo; };
+    const SString&       _GetName() const { return m_szShortFileName; }
+    const LuaModuleInfo& _GetInfo() const { return m_moduleInfo; }
+
+    // HMODULE      _GetHandle() { return m_hModule; };
 
 private:
-    SString         m_szFileName;
-    SString         m_szShortFileName;
-    FunctionInfo    m_FunctionInfo;
-    HMODULE         m_hModule;
-    vector<SString> m_Functions;
-    bool            m_bInitialised;
+    SString              m_szFileName;
+    SString              m_szShortFileName;
+    LuaModuleInfo        m_moduleInfo;
+    void*                m_hModule;
+    std::vector<SString> m_Functions;
+    bool                 m_bInitialised;
 
     CScriptDebugging*  m_pScriptDebugging;
     CLuaModuleManager* m_pLuaModuleManager;

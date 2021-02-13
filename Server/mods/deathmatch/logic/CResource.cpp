@@ -91,9 +91,11 @@ bool CResource::Load()
     m_timeStarted = 0;
 
     // Register us in the EHS stuff
+    /*
     g_pGame->GetHTTPD()->RegisterEHS(this, m_strResourceName.c_str());
     this->m_oEHSServerParameters["norouterequest"] = true;
     this->RegisterEHS(this, "call");
+    */
 
     // Store the actual directory and zip paths for fast access
     m_strResourceDirectoryPath = PathJoin(m_strAbsPath, m_strResourceName, "/");
@@ -105,7 +107,7 @@ bool CResource::Load()
         if (!UnzipResource())
         {
             // Unregister EHS stuff
-            g_pGame->GetHTTPD()->UnregisterEHS(m_strResourceName.c_str());
+            // g_pGame->GetHTTPD()->UnregisterEHS(m_strResourceName.c_str());
 
             return false;
         }
@@ -116,7 +118,7 @@ bool CResource::Load()
     if (!GetFilePath("meta.xml", strMeta))
     {
         // Unregister the EHS stuff
-        g_pGame->GetHTTPD()->UnregisterEHS(m_strResourceName.c_str());
+        // g_pGame->GetHTTPD()->UnregisterEHS(m_strResourceName.c_str());
 
         // Show error
         m_strFailureReason = SString("Couldn't find meta.xml file for resource '%s'\n", m_strResourceName.c_str());
@@ -243,7 +245,7 @@ bool CResource::Load()
                 !ReadIncludedHTML(pRoot) || !ReadIncludedExports(pRoot) || !ReadIncludedConfigs(pRoot))
             {
                 delete pMetaFile;
-                g_pGame->GetHTTPD()->UnregisterEHS(m_strResourceName.c_str());
+                // g_pGame->GetHTTPD()->UnregisterEHS(m_strResourceName.c_str());
                 return false;
             }
         }
@@ -267,7 +269,7 @@ bool CResource::Load()
         if (pMetaFile)
             delete pMetaFile;
 
-        g_pGame->GetHTTPD()->UnregisterEHS(m_strResourceName.c_str());
+        // g_pGame->GetHTTPD()->UnregisterEHS(m_strResourceName.c_str());
         return false;
     }
 
@@ -373,8 +375,8 @@ void CResource::TidyUp()
     for (CResource* pDependent : m_Dependents)
         pDependent->InvalidateIncludedResourceReference(this);
 
-    this->UnregisterEHS("call");
-    g_pGame->GetHTTPD()->UnregisterEHS(m_strResourceName.c_str());
+    // this->UnregisterEHS("call");
+    // g_pGame->GetHTTPD()->UnregisterEHS(m_strResourceName.c_str());
 }
 
 bool CResource::GetInfoValue(const char* szKey, std::string& strValue) const
@@ -2307,6 +2309,7 @@ void CResource::RemoveDependent(CResource* pResource)
 }
 
 // Called on another thread, but g_pGame->Lock() has been called, so everything is going to be OK
+/*
 ResponseCode CResource::HandleRequest(HttpRequest* ipoHttpRequest, HttpResponse* ipoHttpResponse)
 {
     std::string strAccessType;
@@ -2773,6 +2776,7 @@ bool CResource::IsHttpAccessAllowed(CAccount* pAccount)
     // If nothing explicitly set, then default to denied
     return false;
 }
+*/
 
 bool CResource::CallExportedFunction(const char* szFunctionName, CLuaArguments& Arguments, CLuaArguments& Returns, CResource& Caller)
 {

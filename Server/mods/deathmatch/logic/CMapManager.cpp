@@ -1,15 +1,15 @@
 /*****************************************************************************
  *
- *  PROJECT:     Multi Theft Auto v1.0
+ *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
- *  FILE:        mods/deathmatch/logic/CMapManager.cpp
  *  PURPOSE:     Map manager class
  *
- *  Multi Theft Auto is available from http://www.multitheftauto.com/
+ *  Multi Theft Auto is available from https://www.multitheftauto.com/
  *
  *****************************************************************************/
 
 #include "StdInc.h"
+#include "CMapManager.h"
 
 extern CGame* g_pGame;
 
@@ -62,13 +62,15 @@ void CMapManager::DoPulse()
 CElement* CMapManager::LoadMapData(CResource& Loader, CElement& Parent, CXMLNode& Node)
 {
     // Load the elements
-    vector<CElement*> ElementsAdded;
-    CElement*         pLoadedRoot = LoadNode(Loader, Node, &Parent, &ElementsAdded, false);
+    std::vector<CElement*> ElementsAdded;
+    CElement*              pLoadedRoot = LoadNode(Loader, Node, &Parent, &ElementsAdded, false);
+
     if (pLoadedRoot)
     {
         // Add all the elements that are entities to a sync packet
         CEntityAddPacket                  AddPacket;
-        vector<CElement*>::const_iterator iter = ElementsAdded.begin();
+        std::vector<CElement*>::const_iterator iter = ElementsAdded.begin();
+
         for (; iter != ElementsAdded.end(); iter++)
         {
             // Is it a per-player entity? Sync it. Otherwize add it to the packet.
@@ -89,7 +91,8 @@ CElement* CMapManager::LoadMapData(CResource& Loader, CElement& Parent, CXMLNode
 
     // If unsuccessfull, destroy the new elements. Remember removing it from our element group.
     CElementGroup*                    pElementGroup = Loader.GetElementGroup();
-    vector<CElement*>::const_iterator iter = ElementsAdded.begin();
+    std::vector<CElement*>::const_iterator iter = ElementsAdded.begin();
+
     for (; iter != ElementsAdded.end(); iter++)
     {
         pElementGroup->Remove(*iter);
@@ -152,7 +155,8 @@ void CMapManager::BroadcastMapInformation()
     }
 
     // Add the colshapes to the packet
-    vector<CColShape*>::const_iterator iterColShapes = m_pColManager->IterBegin();
+    std::vector<CColShape*>::const_iterator iterColShapes = m_pColManager->IterBegin();
+
     for (; iterColShapes != m_pColManager->IterEnd(); iterColShapes++)
     {
         CColShape* pColShape = *iterColShapes;
@@ -240,7 +244,8 @@ void CMapManager::SendMapInformation(CPlayer& Player)
     marker.Set("Peds");
 
     // Add the colshapes to the packet
-    vector<CColShape*>::const_iterator iterColShapes = m_pColManager->IterBegin();
+    std::vector<CColShape*>::const_iterator iterColShapes = m_pColManager->IterBegin();
+
     for (; iterColShapes != m_pColManager->IterEnd(); iterColShapes++)
     {
         CColShape* pColShape = *iterColShapes;
@@ -809,7 +814,7 @@ void CMapManager::DoVehicleRespawning()
     m_pPlayerManager->BroadcastOnlyJoined(VehicleSpawnPacket);
 }
 
-CElement* CMapManager::LoadNode(CResource& Loader, CXMLNode& Node, CElement* pParent, vector<CElement*>* pAdded, bool bIsDuringStart)
+CElement* CMapManager::LoadNode(CResource& Loader, CXMLNode& Node, CElement* pParent, std::vector<CElement*>* pAdded, bool bIsDuringStart)
 {
     // Load the given node and its children
     CElement* pLoadedRoot;
@@ -818,7 +823,7 @@ CElement* CMapManager::LoadNode(CResource& Loader, CXMLNode& Node, CElement* pPa
     return pLoadedRoot;
 }
 
-bool CMapManager::LoadSubNodes(CResource& Loader, CXMLNode& Node, CElement* pParent, vector<CElement*>* pAdded, bool bIsDuringStart)
+bool CMapManager::LoadSubNodes(CResource& Loader, CXMLNode& Node, CElement* pParent, std::vector<CElement*>* pAdded, bool bIsDuringStart)
 {
     // Iterate the nodes
     CXMLNode*    pNode = NULL;
@@ -841,7 +846,7 @@ bool CMapManager::LoadSubNodes(CResource& Loader, CXMLNode& Node, CElement* pPar
     return true;
 }
 
-bool CMapManager::HandleNode(CResource& Loader, CXMLNode& Node, CElement* pParent, vector<CElement*>* pAdded, bool bIsDuringStart, CElement** pCreated)
+bool CMapManager::HandleNode(CResource& Loader, CXMLNode& Node, CElement* pParent, std::vector<CElement*>* pAdded, bool bIsDuringStart, CElement** pCreated)
 {
     // Grab the name
     std::string strBuffer = Node.GetTagName();

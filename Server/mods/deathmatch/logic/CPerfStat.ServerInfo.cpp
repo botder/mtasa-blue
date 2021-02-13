@@ -382,17 +382,19 @@ void CPerfStatServerInfoImpl::GetStats(CPerfStatResult* pResult, const std::map<
         m_InfoList.push_back(StringPair("Lowest connected player version", g_pGame->GetPlayerManager()->GetLowestConnectedPlayerVersion()));
     }
 
-    SAllocationStats httpAllocationStats;
-    EHS::StaticGetAllocationStats(httpAllocationStats);
-    m_InfoList.push_back(StringPair("HTTP allocated active", SString("%d KB", httpAllocationStats.uiActiveKBAllocated)));
+    // SAllocationStats httpAllocationStats;
+    // EHS::StaticGetAllocationStats(httpAllocationStats);
+    // m_InfoList.push_back(StringPair("HTTP allocated active", SString("%d KB", httpAllocationStats.uiActiveKBAllocated)));
+    // TODO: ^
 
     if (bIncludeDebugInfo)
     {
-        m_InfoList.push_back(StringPair("HTTP requests active", SString("%d", httpAllocationStats.uiActiveNumRequests)));
-        m_InfoList.push_back(StringPair("HTTP responses active", SString("%d", httpAllocationStats.uiActiveNumResponses)));
-        m_InfoList.push_back(StringPair("HTTP allocated total", SString("%d MB", httpAllocationStats.uiTotalKBAllocated / 1024)));
-        m_InfoList.push_back(StringPair("HTTP requests total", SString("%d", httpAllocationStats.uiTotalNumRequests)));
-        m_InfoList.push_back(StringPair("HTTP responses total", SString("%d", httpAllocationStats.uiTotalNumResponses)));
+        // m_InfoList.push_back(StringPair("HTTP requests active", SString("%d", httpAllocationStats.uiActiveNumRequests)));
+        // m_InfoList.push_back(StringPair("HTTP responses active", SString("%d", httpAllocationStats.uiActiveNumResponses)));
+        // m_InfoList.push_back(StringPair("HTTP allocated total", SString("%d MB", httpAllocationStats.uiTotalKBAllocated / 1024)));
+        // m_InfoList.push_back(StringPair("HTTP requests total", SString("%d", httpAllocationStats.uiTotalNumRequests)));
+        // m_InfoList.push_back(StringPair("HTTP responses total", SString("%d", httpAllocationStats.uiTotalNumResponses)));
+        // TODO: ^
 
         // Get net performance stats
         if (m_NetPerformanceStatsUpdateTimer.Get() > 2000)

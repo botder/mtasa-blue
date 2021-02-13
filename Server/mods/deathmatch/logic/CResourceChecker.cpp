@@ -2,16 +2,17 @@
  *
  *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
- *  FILE:        mods/deathmatch/logic/CResourceChecker.cpp
  *  PURPOSE:     Resource file content checker/validator/upgrader
  *
- *  Multi Theft Auto is available from http://www.multitheftauto.com/
+ *  Multi Theft Auto is available from https://multitheftauto.com/
  *
  *****************************************************************************/
 
 #include "StdInc.h"
+#include "CResourceChecker.h"
 #include "CResourceChecker.Data.h"
 #include <clocale>
+
 extern CNetServer* g_pRealNetServer;
 
 ///////////////////////////////////////////////////////////////
@@ -98,7 +99,7 @@ void CResourceChecker::CheckResourceForIssues(CResource* pResource, const string
 
             string strCacheDir = pResource->GetResourceCacheDirectoryPath();
 
-            vector<string> pathInArchiveList;
+            std::vector<string> pathInArchiveList;
 
             for (unsigned long i = 0; i < m_upgradedFullPathList.size(); i++)
             {
@@ -159,7 +160,7 @@ void CResourceChecker::CheckFileForIssues(const string& strPath, const string& s
     }
     else
     {
-        const char* szExt = strPath.c_str() + max<long>(0, strPath.length() - 4);
+        const char* szExt = strPath.c_str() + std::max<long>(0, strPath.length() - 4);
 
         if (stricmp(szExt, ".PNG") == 0)
         {
@@ -832,8 +833,8 @@ bool CResourceChecker::RenameBackupFile(const string& strOrigFilename, const str
 // by Ivan A. Krestinin
 //
 ///////////////////////////////////////////////////////////////
-int CResourceChecker::ReplaceFilesInZIP(const string& strOrigZip, const string& strTempZip, const vector<string>& pathInArchiveList,
-                                        const vector<string>& m_upgradedFullPathList)
+int CResourceChecker::ReplaceFilesInZIP(const string& strOrigZip, const string& strTempZip, const std::vector<string>& pathInArchiveList,
+                                        const std::vector<string>& m_upgradedFullPathList)
 {
     // open source and destination file
     zlib_filefunc_def ffunc;

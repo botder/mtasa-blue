@@ -29,7 +29,7 @@ CRPCFunctions::CRPCFunctions()
 
 CRPCFunctions::~CRPCFunctions()
 {
-    vector<SRPCHandler*>::iterator iter = m_RPCHandlers.begin();
+    std::vector<SRPCHandler*>::iterator iter = m_RPCHandlers.begin();
     for (; iter != m_RPCHandlers.end(); iter++)
     {
         delete *iter;
@@ -68,8 +68,8 @@ void CRPCFunctions::ProcessPacket(const NetServerPlayerID& Socket, NetBitStreamI
 
         CPerfStatRPCPacketUsage::GetSingleton()->UpdatePacketUsageIn(ucFunctionID, bitStream.GetNumberOfBytesUsed());
 
-        SRPCHandler*                   pHandler;
-        vector<SRPCHandler*>::iterator iter = m_RPCHandlers.begin();
+        SRPCHandler*                        pHandler;
+        std::vector<SRPCHandler*>::iterator iter = m_RPCHandlers.begin();
         for (; iter != m_RPCHandlers.end(); iter++)
         {
             pHandler = *iter;

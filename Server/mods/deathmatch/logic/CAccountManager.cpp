@@ -1,15 +1,15 @@
 /*****************************************************************************
  *
- *  PROJECT:     Multi Theft Auto v1.0
+ *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
- *  FILE:        mods/deathmatch/logic/CAccountManager.cpp
  *  PURPOSE:     User account manager class
  *
- *  Multi Theft Auto is available from http://www.multitheftauto.com/
+ *  Multi Theft Auto is available from https://multitheftauto.com/
  *
  *****************************************************************************/
 
 #include "StdInc.h"
+#include "CAccountManager.h"
 
 CAccountManager::CAccountManager(const SString& strDbPathFilename)
     : m_AccountProtect(6, 30000, 60000 * 1)            // Max of 6 attempts per 30 seconds, then 1 minute ignore

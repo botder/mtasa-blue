@@ -1,18 +1,16 @@
 /*****************************************************************************
  *
- *  PROJECT:     Multi Theft Auto v1.0
+ *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
- *  FILE:        mods/deathmatch/logic/CResourceManager.cpp
  *  PURPOSE:     Resource manager class
  *
- *  Multi Theft Auto is available from http://www.multitheftauto.com/
+ *  Multi Theft Auto is available from https://multitheftauto.com/
  *
  *****************************************************************************/
 
-// This class controls all the resources that are loaded, and loads
-// new resources on demand
-
 #include "StdInc.h"
+#include "CResourceManager.h"
+
 #define BLOCKED_DB_FILE_NAME    "fileblock.db"
 #define BLOCKED_DB_TABLE_NAME   "`block_reasons`"
 
@@ -811,7 +809,7 @@ void CResourceManager::ProcessQueue()
         else if (sItem.eQueue == QUEUE_RESTART2)
         {
             list<CResource*> resourceListCopy;
-            for (vector<SString>::iterator it = sItem.dependents.begin(); it != sItem.dependents.end(); ++it)
+            for (std::vector<SString>::iterator it = sItem.dependents.begin(); it != sItem.dependents.end(); ++it)
             {
                 CResource* pResource = GetResource(*it);
                 if (pResource)

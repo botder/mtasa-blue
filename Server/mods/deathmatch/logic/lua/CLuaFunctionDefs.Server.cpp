@@ -489,8 +489,8 @@ int CLuaFunctionDefs::Get(lua_State* luaVM)
             bool         bDeleteNode;
 
             // Extract attribute name if setting to be gotten has three parts i.e. resname.settingname.attributename
-            SString         strAttribute = "value";
-            vector<SString> Result;
+            SString              strAttribute = "value";
+            std::vector<SString> Result;
             strSetting.Split(".", Result);
             if (Result.size() == 3 && Result[2].length())
             {
@@ -1071,15 +1071,15 @@ int CLuaFunctionDefs::GetModuleInfo(lua_State* luaVM)
                 lua_newtable(luaVM);
 
                 lua_pushstring(luaVM, "name");
-                lua_pushstring(luaVM, mod->_GetFunctions().szModuleName);
+                lua_pushstring(luaVM, mod->_GetInfo().szModuleName);
                 lua_settable(luaVM, -3);
 
                 lua_pushstring(luaVM, "author");
-                lua_pushstring(luaVM, mod->_GetFunctions().szAuthor);
+                lua_pushstring(luaVM, mod->_GetInfo().szAuthor);
                 lua_settable(luaVM, -3);
 
                 lua_pushstring(luaVM, "version");
-                SString strVersion("%.2f", mod->_GetFunctions().fVersion);
+                SString strVersion("%.2f", mod->_GetInfo().fVersion);
                 lua_pushstring(luaVM, strVersion);
                 lua_settable(luaVM, -3);
 
@@ -1103,7 +1103,7 @@ int CLuaFunctionDefs::GetModules(lua_State* luaVM)
     for (; iter != lua_LoadedModules.end(); ++iter)
     {
         lua_pushnumber(luaVM, uiIndex++);
-        lua_pushstring(luaVM, (*iter)->_GetFunctions().szFileName);
+        lua_pushstring(luaVM, (*iter)->_GetInfo().szFileName);
         lua_settable(luaVM, -3);
     }
     return 1;

@@ -1,11 +1,10 @@
 /*****************************************************************************
  *
- *  PROJECT:     Multi Theft Auto v1.0
+ *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
- *  FILE:        mods/deathmatch/logic/CMapManager.h
  *  PURPOSE:     Map manager class
  *
- *  Multi Theft Auto is available from http://www.multitheftauto.com/
+ *  Multi Theft Auto is available from https://www.multitheftauto.com/
  *
  *****************************************************************************/
 
@@ -24,8 +23,8 @@ class CMapManager;
 #include "CVehicleManager.h"
 #include "CTeamManager.h"
 #include "CGroups.h"
-
 #include "CResourceMapItem.h"
+#include <vector>
 
 class CMapManager
 {
@@ -74,9 +73,9 @@ private:
     void ProcessVisibleToData(CPerPlayerEntity& Entity);
     bool ParseVisibleToData(CPerPlayerEntity& Entity, char* szData);
 
-    CElement* LoadNode(CResource& Loader, CXMLNode& Node, CElement* pParent, vector<CElement*>* pAdded, bool bIsDuringStart);
-    bool      LoadSubNodes(CResource& Loader, CXMLNode& Node, CElement* pParent, vector<CElement*>* pAdded, bool bIsDuringStart);
-    bool      HandleNode(CResource& Loader, CXMLNode& Node, CElement* pParent, vector<CElement*>* pAdded, bool bIsDuringStart, CElement** pCreated);
+    CElement* LoadNode(CResource& Loader, CXMLNode& Node, CElement* pParent, std::vector<CElement*>* pAdded, bool bIsDuringStart);
+    bool      LoadSubNodes(CResource& Loader, CXMLNode& Node, CElement* pParent, std::vector<CElement*>* pAdded, bool bIsDuringStart);
+    bool      HandleNode(CResource& Loader, CXMLNode& Node, CElement* pParent, std::vector<CElement*>* pAdded, bool bIsDuringStart, CElement** pCreated);
     void      LinkupElements();
 
     CBlipManager*           m_pBlipManager;

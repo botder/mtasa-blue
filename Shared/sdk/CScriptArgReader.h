@@ -1,14 +1,15 @@
 /*****************************************************************************
  *
- *  PROJECT:     Multi Theft Auto v1.0
+ *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
- *  FILE:        CScriptArgReader.h
  *  PURPOSE:
  *
- *  Multi Theft Auto is available from http://www.multitheftauto.com/
+ *  Multi Theft Auto is available from https://multitheftauto.com/
  *
  *****************************************************************************/
+
 #pragma once
+
 #include <limits>
 #include <type_traits>
 #include <cfloat>
@@ -16,6 +17,11 @@
 
 #ifdef MTA_CLIENT
     #include "CScriptDebugging.h"
+#endif
+
+#ifndef MTA_CLIENT
+    #include "CGame.h"
+    extern CGame* g_pGame;
 #endif
 
 /////////////////////////////////////////////////////////////////////////

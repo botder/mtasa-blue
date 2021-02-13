@@ -1,15 +1,18 @@
 /*****************************************************************************
  *
- *  PROJECT:     Multi Theft Auto v1.0
+ *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
- *  FILE:        mods/deathmatch/logic/packets/CEntityAddPacket.cpp
  *  PURPOSE:     Entity-add packet class
  *
- *  Multi Theft Auto is available from http://www.multitheftauto.com/
+ *  Multi Theft Auto is available from https://multitheftauto.com/
  *
  *****************************************************************************/
 
 #include "StdInc.h"
+#include "CEntityAddPacket.h"
+#include "CGame.h"
+
+extern CGame* g_pGame;
 
 //
 // Temporary helper functions for fixing crashes on pre r6459 clients.
@@ -77,8 +80,8 @@ bool CEntityAddPacket::Write(NetBitStreamInterface& BitStream) const
         BitStream.WriteCompressed(NumElements);
 
         // For each entity ...
-        CVector                           vecTemp;
-        vector<CElement*>::const_iterator iter = m_Entities.begin();
+        CVector                                vecTemp;
+        std::vector<CElement*>::const_iterator iter = m_Entities.begin();
         for (; iter != m_Entities.end(); ++iter)
         {
             // Entity id
@@ -157,7 +160,7 @@ bool CEntityAddPacket::Write(NetBitStreamInterface& BitStream) const
             CCustomData* pCustomData = pElement->GetCustomDataPointer();
             assert(pCustomData);
             BitStream.WriteCompressed(pCustomData->CountOnlySynchronized());
-            map<string, SCustomData>::const_iterator iter = pCustomData->SyncedIterBegin();
+            std::map<string, SCustomData>::const_iterator iter = pCustomData->SyncedIterBegin();
             for (; iter != pCustomData->SyncedIterEnd(); ++iter)
             {
                 const char*         szName = iter->first.c_str();

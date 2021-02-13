@@ -1,18 +1,21 @@
 /*****************************************************************************
  *
- *  PROJECT:     Multi Theft Auto v1.0
+ *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
- *  FILE:        mods/deathmatch/logic/CDatabaseManager.h
  *  PURPOSE:     Outside world interface for enjoying asynchronous database functionality
  *
- *  Multi Theft Auto is available from http://www.multitheftauto.com/
+ *  Multi Theft Auto is available from https://multitheftauto.com/
  *
  *****************************************************************************/
 
+#pragma once
+
 class CDatabaseJobQueue;
+
 typedef uint            SDbConnectionId;
 typedef intptr_t        SDbJobId;
 typedef SDbConnectionId SConnectionHandle;
+
 #define INVALID_DB_HANDLE (0)
 #define DB_SQLITE_QUEUE_NAME_INTERNAL   "sqlite internal"
 #define DB_SQLITE_QUEUE_NAME_DEFAULT    "sqlite"            // Note: MySql default queue name is the host string
@@ -189,7 +192,7 @@ public:
     virtual ~CDatabaseConnectionElement() {}
 
     // CElement
-    virtual void Unlink() { g_pGame->GetDatabaseManager()->Disconnect(m_Connection); }
+    void Unlink() override;
 
     // CDatabaseConnectionElement
     SConnectionHandle GetConnectionHandle() { return m_Connection; }

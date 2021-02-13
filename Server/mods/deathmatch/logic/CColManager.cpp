@@ -1,15 +1,15 @@
 /*****************************************************************************
  *
- *  PROJECT:     Multi Theft Auto v1.0
+ *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
- *  FILE:        mods/deathmatch/logic/CColManager.cpp
  *  PURPOSE:     Collision entity manager class
  *
- *  Multi Theft Auto is available from http://www.multitheftauto.com/
+ *  Multi Theft Auto is available from https://multitheftauto.com/
  *
  *****************************************************************************/
 
 #include "StdInc.h"
+#include "CColManager.h"
 
 CColManager::CColManager()
 {
@@ -207,7 +207,8 @@ void CColManager::RemoveFromList(CColShape* pShape)
 
 void CColManager::TakeOutTheTrash()
 {
-    vector<CColShape*>::const_iterator iter = m_TrashCan.begin();
+    std::vector<CColShape*>::const_iterator iter = m_TrashCan.begin();
+
     for (; iter != m_TrashCan.end(); iter++)
     {
         ListRemove(m_List, *iter);

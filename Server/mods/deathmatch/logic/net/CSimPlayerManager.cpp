@@ -1,13 +1,15 @@
 /*****************************************************************************
  *
- *  PROJECT:     Multi Theft Auto v1.0
+ *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
+ *  PURPOSE:
  *
- *  Multi Theft Auto is available from http://www.multitheftauto.com/
+ *  Multi Theft Auto is available from https://multitheftauto.com/
  *
  *****************************************************************************/
 
 #include "StdInc.h"
+#include "CSimPlayerManager.h"
 #include "SimHeaders.h"
 
 //
@@ -487,7 +489,7 @@ void CSimPlayerManager::Broadcast(const CSimPacket& Packet, const std::multimap<
         if (Packet.Write(*pBitStream))
         {
             // For each player, send the packet
-            const pair<mapIter, mapIter> keyRange = groupMap.equal_range(usBitStreamVersion);
+            const std::pair<mapIter, mapIter> keyRange = groupMap.equal_range(usBitStreamVersion);
             for (s_it = keyRange.first; s_it != keyRange.second; ++s_it)
             {
                 CSimPlayer* pPlayer = s_it->second;
@@ -499,7 +501,7 @@ void CSimPlayerManager::Broadcast(const CSimPacket& Packet, const std::multimap<
         else
         {
             // Skip
-            const pair<mapIter, mapIter> keyRange = groupMap.equal_range(usBitStreamVersion);
+            const std::pair<mapIter, mapIter> keyRange = groupMap.equal_range(usBitStreamVersion);
             for (s_it = keyRange.first; s_it != keyRange.second; ++s_it)
             {
             }

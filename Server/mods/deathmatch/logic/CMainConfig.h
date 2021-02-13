@@ -1,17 +1,17 @@
 /*****************************************************************************
  *
- *  PROJECT:     Multi Theft Auto v1.0
+ *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
- *  FILE:        mods/deathmatch/logic/CMainConfig.h
  *  PURPOSE:     XML-based main configuration file parser class
  *
- *  Multi Theft Auto is available from http://www.multitheftauto.com/
+ *  Multi Theft Auto is available from https://multitheftauto.com/
  *
  *****************************************************************************/
 
-class CMainConfig;
-
 #pragma once
+
+class CMainConfig;
+class CCommandLineParser;
 
 #include "CCommon.h"
 #include "CLogger.h"
@@ -20,7 +20,6 @@ class CMainConfig;
 #include <list>
 
 #define MAX_MAP_NAME_LENGTH 64
-class CMainConfig;
 
 typedef void (CMainConfig::*PFN_SettingChangeCallback)();
 

@@ -1,15 +1,15 @@
 /*****************************************************************************
  *
- *  PROJECT:     Multi Theft Auto v1.0
+ *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
- *  FILE:        mods/deathmatch/logic/packets/CKeysyncPacket.cpp
  *  PURPOSE:     Key controls synchronization packet class
  *
- *  Multi Theft Auto is available from http://www.multitheftauto.com/
+ *  Multi Theft Auto is available from https://multitheftauto.com/
  *
  *****************************************************************************/
 
 #include "StdInc.h"
+#include "CKeysyncPacket.h"
 #include "net/SyncStructures.h"
 
 CKeysyncPacket::CKeysyncPacket(CPlayer* pPlayer)
@@ -109,7 +109,7 @@ bool CKeysyncPacket::Read(NetBitStreamInterface& BitStream)
 
                     // Read out the driveby direction
                     eVehicleAimDirection ucDriveByDirection;
-                    if (!BitStream.Read(*reinterpret_cast<underlying_type_t<eVehicleAimDirection>*>(&ucDriveByDirection)))
+                    if (!BitStream.Read(*reinterpret_cast<std::underlying_type_t<eVehicleAimDirection>*>(&ucDriveByDirection)))
                         return false;
                     pSourcePlayer->SetDriveByDirection(ucDriveByDirection);
                 }
@@ -216,7 +216,7 @@ bool CKeysyncPacket::Write(NetBitStreamInterface& BitStream) const
                 BitStream.Write(&aim);
 
                 // Write the driveby aim directoin
-                BitStream.Write(static_cast<underlying_type_t<eVehicleAimDirection>>(pSourcePlayer->GetDriveByDirection()));
+                BitStream.Write(static_cast<std::underlying_type_t<eVehicleAimDirection>>(pSourcePlayer->GetDriveByDirection()));
             }
             else
             {

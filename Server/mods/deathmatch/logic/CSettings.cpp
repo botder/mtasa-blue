@@ -90,9 +90,9 @@ CXMLNode* CSettings::Get(CXMLNode* pSource, CXMLNode* pStorage, const char* szSo
     }
 
     // Extract attribute name if setting to be gotten has three parts i.e. resname.settingname.attributename
-    SString         strSetting = szSetting;
-    SString         strAttribute = "value";
-    vector<SString> Result;
+    SString              strSetting = szSetting;
+    SString              strAttribute = "value";
+    std::vector<SString> Result;
     strSetting.Split(".", Result);
     if (Result.size() == 3 && Result[2].length())
     {

@@ -16,7 +16,6 @@ class CLuaModuleManager;
 #pragma once
 
 #include "CLuaMain.h"
-#include "ILuaModuleManager.h"
 #include "CLuaManager.h"
 #include "../CLogger.h"
 #include "../CResource.h"

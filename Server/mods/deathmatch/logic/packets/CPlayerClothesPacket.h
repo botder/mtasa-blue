@@ -1,11 +1,10 @@
 /*****************************************************************************
  *
- *  PROJECT:     Multi Theft Auto v1.0
+ *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
- *  FILE:        mods/deathmatch/logic/packets/CPlayerClothesPacket.h
  *  PURPOSE:     Player clothes packet class
  *
- *  Multi Theft Auto is available from http://www.multitheftauto.com/
+ *  Multi Theft Auto is available from https://multitheftauto.com/
  *
  *****************************************************************************/
 
@@ -13,6 +12,7 @@
 
 #include "CPacket.h"
 #include "../CPlayerClothes.h"
+#include <vector>
 
 struct SPlayerClothes
 {
@@ -36,5 +36,5 @@ public:
     unsigned int Count() { return static_cast<unsigned int>(m_List.size()); }
 
 private:
-    vector<SPlayerClothes*> m_List;
+    std::vector<SPlayerClothes*> m_List;
 };

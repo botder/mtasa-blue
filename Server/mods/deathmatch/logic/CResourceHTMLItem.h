@@ -1,23 +1,19 @@
 /*****************************************************************************
  *
- *  PROJECT:     Multi Theft Auto v1.0
+ *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
- *  FILE:        mods/deathmatch/logic/CResourceHTMLItem.h
  *  PURPOSE:     Resource server-side HTML item class
  *
- *  Multi Theft Auto is available from http://www.multitheftauto.com/
+ *  Multi Theft Auto is available from https://multitheftauto.com/
  *
  *****************************************************************************/
 
 #pragma once
 
 #include "CResourceFile.h"
-#include "ehs/ehs.h"
 
-#ifndef MAX_PATH
-#define MAX_PATH        260
-#endif
-
+// This class represents a single HTML resource item.
+// This parses it and converts into into a script
 class CResourceHTMLItem : public CResourceFile
 {
 public:
@@ -27,6 +23,7 @@ public:
 
     bool         Start();
     bool         Stop();
+    /*
     ResponseCode Request(HttpRequest* ipoHttpRequest, HttpResponse* ipoHttpResponse, class CAccount* account);
     bool         AppendToPageBuffer(const char* szText, size_t length = 0);
 
@@ -34,6 +31,7 @@ public:
     void SetResponseCode(int responseCode);
     void SetResponseCookie(const char* szCookieName, const char* szCookieValue);
     void ClearPageBuffer();
+    */
 
     bool IsDefaultPage() { return m_bDefault; }
     void SetDefaultPage(bool bDefault) { m_bDefault = bDefault; }
@@ -53,6 +51,8 @@ private:
 
     bool m_bOOPEnabled;
 
+    /*
     ResponseCode  m_responseCode;
     HttpResponse* m_currentResponse;
+    */
 };

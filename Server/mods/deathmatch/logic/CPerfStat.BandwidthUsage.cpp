@@ -418,7 +418,8 @@ void CPerfStatBandwidthUsageImpl::RecordStats()
     long long llDeltaUDPByteResentCount = std::max<long long>(0LL, liveStats.llOutgoingUDPByteResentCount - m_PrevLiveStats.llOutgoingUDPByteResentCount);
     m_PrevLiveStats = liveStats;
 
-    long long llHttpTotalBytesSent = EHS::StaticGetTotalBytesSent();
+    long long llHttpTotalBytesSent = 0; // EHS::StaticGetTotalBytesSent();
+    // TODO: ^
     long long llDeltaHttpBytesSent = std::max(0LL, llHttpTotalBytesSent - m_llPrevHttpTotalBytesSent);
     m_llPrevHttpTotalBytesSent = llHttpTotalBytesSent;
 

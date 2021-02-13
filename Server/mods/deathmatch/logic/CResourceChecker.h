@@ -1,11 +1,10 @@
 /*****************************************************************************
  *
- *  PROJECT:     Multi Theft Auto v1.0
+ *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
- *  FILE:        mods/deathmatch/logic/CResourceChecker.cpp
  *  PURPOSE:     Resource file content checker/validator/upgrader
  *
- *  Multi Theft Auto is available from http://www.multitheftauto.com/
+ *  Multi Theft Auto is available from https://multitheftauto.com/
  *
  *****************************************************************************/
 
@@ -18,6 +17,7 @@
 #include <ioapi.h>
 #endif
 #include <zip.h>
+#include <vector>
 
 namespace ECheckerMode
 {
@@ -66,18 +66,18 @@ protected:
     void IssueLuaFunctionNameWarnings(const string& strFunctionName, const string& strFileName, const string& strResourceName, bool bClientScript,
                                       unsigned long ulLineNumber);
     ECheckerWhatType GetLuaFunctionNameUpgradeInfo(const string& strFunctionName, bool bClientScript, string& strOutHow, CMtaVersion& strOutVersion);
-    int              ReplaceFilesInZIP(const string& strOrigZip, const string& strTempZip, const vector<string>& pathInArchiveList,
-                                       const vector<string>& upgradedFullPathList);
+    int              ReplaceFilesInZIP(const string& strOrigZip, const string& strTempZip, const std::vector<string>& pathInArchiveList,
+                                       const std::vector<string>& upgradedFullPathList);
     bool             RenameBackupFile(const string& strOrigFilename, const string& strBakAppend);
     void             CheckVersionRequirements(const string& strIdentifierName, bool bClientScript);
 
-    bool           m_bUpgradeScripts;
-    unsigned long  m_ulDeprecatedWarningCount;
-    vector<string> m_upgradedFullPathList;
-    CMtaVersion    m_strMinClientFromMetaXml;
-    CMtaVersion    m_strMinServerFromMetaXml;
-    CMtaVersion    m_strReqClientVersion;
-    CMtaVersion    m_strReqServerVersion;
-    SString        m_strReqClientReason;
-    SString        m_strReqServerReason;
+    bool                m_bUpgradeScripts;
+    unsigned long       m_ulDeprecatedWarningCount;
+    std::vector<string> m_upgradedFullPathList;
+    CMtaVersion         m_strMinClientFromMetaXml;
+    CMtaVersion         m_strMinServerFromMetaXml;
+    CMtaVersion         m_strReqClientVersion;
+    CMtaVersion         m_strReqServerVersion;
+    SString             m_strReqClientReason;
+    SString             m_strReqServerReason;
 };

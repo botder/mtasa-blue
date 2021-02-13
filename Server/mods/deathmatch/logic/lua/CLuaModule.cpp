@@ -1,15 +1,15 @@
 /*****************************************************************************
  *
- *  PROJECT:     Multi Theft Auto v1.0
+ *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
- *  FILE:        mods/deathmatch/logic/lua/CLuaModule.cpp
- *  PURPOSE:     Lua module extension class
+ *  PURPOSE:     Lua dynamic modules
  *
- *  Multi Theft Auto is available from http://www.multitheftauto.com/
+ *  Multi Theft Auto is available from https://multitheftauto.com/
  *
  *****************************************************************************/
 
 #include "StdInc.h"
+#include "CLuaModule.h"
 
 extern CGame* g_pGame;
 
@@ -33,12 +33,12 @@ CLuaModule::~CLuaModule()
         if (m_bInitialised)
         {
             // Shutdown module
-            m_FunctionInfo.ShutdownModule();
+            m_moduleInfo.ShutdownModule();
 
             // Unregister Functions
             _UnregisterFunctions();
 
-            CLogger::LogPrintf("MODULE: Unloaded \"%s\" (%.2f) by \"%s\"\n", m_FunctionInfo.szModuleName, m_FunctionInfo.fVersion, m_FunctionInfo.szAuthor);
+            CLogger::LogPrintf("MODULE: Unloaded \"%s\" (%.2f) by \"%s\"\n", m_moduleInfo.szModuleName, m_moduleInfo.fVersion, m_moduleInfo.szAuthor);
         }
 
         // Unload Module
@@ -69,11 +69,12 @@ int CLuaModule::_LoadModule()
 #ifdef WIN32
     // Search the mod path for dependencies
     SString strSavedCurrentDirectory = GetSystemCurrentDirectory();
-    SetCurrentDirectory(PathJoin(g_pServerInterface->GetModManager()->GetServerPath(), SERVER_BIN_PATH_MOD));
-    m_hModule = LoadLibrary(m_szFileName);
+    SetCurrentDirectoryA(PathJoin(g_pServerInterface->GetModManager()->GetServerPath(), SERVER_BIN_PATH_MOD));
+    HMODULE library = LoadLibraryA(m_szFileName);
+    m_hModule = library;
     if (m_hModule == NULL)
         strError = SString("%d", GetLastError());
-    SetCurrentDirectory(strSavedCurrentDirectory);
+    SetCurrentDirectoryA(strSavedCurrentDirectory);
 #else
     m_hModule = dlopen(m_szFileName, RTLD_NOW);
     if (m_hModule == NULL)
@@ -111,7 +112,7 @@ int CLuaModule::_LoadModule()
 
     // Find the initialisation function
 #ifdef WIN32
-    pfnInitFunc = (InitModuleFunc)(GetProcAddress(m_hModule, "InitModule"));
+    pfnInitFunc = (InitModuleFunc)(GetProcAddress(library, "InitModule"));
     if (pfnInitFunc == NULL)
     {
         CLogger::LogPrintf("MODULE: Unable to initialize %s!\n", *PathJoin(SERVER_BIN_PATH_MOD, "modules", m_szShortFileName));
@@ -127,48 +128,48 @@ int CLuaModule::_LoadModule()
 #endif
 
     // Initialise
-    m_FunctionInfo.szFileName = m_szShortFileName;
+    m_moduleInfo.szFileName = m_szShortFileName;
 #ifdef WIN32
-    m_FunctionInfo.DoPulse = (DefaultModuleFunc)(GetProcAddress(m_hModule, "DoPulse"));
-    if (m_FunctionInfo.DoPulse == NULL)
+    m_moduleInfo.DoPulse = (DefaultModuleFunc)(GetProcAddress(library, "DoPulse"));
+    if (m_moduleInfo.DoPulse == NULL)
         return 3;
-    m_FunctionInfo.ShutdownModule = (DefaultModuleFunc)(GetProcAddress(m_hModule, "ShutdownModule"));
-    if (m_FunctionInfo.ShutdownModule == NULL)
+    m_moduleInfo.ShutdownModule = (DefaultModuleFunc)(GetProcAddress(library, "ShutdownModule"));
+    if (m_moduleInfo.ShutdownModule == NULL)
         return 4;
-    m_FunctionInfo.RegisterFunctions = (RegisterModuleFunc)(GetProcAddress(m_hModule, "RegisterFunctions"));
-    if (m_FunctionInfo.RegisterFunctions == NULL)
+    m_moduleInfo.RegisterFunctions = (RegisterModuleFunc)(GetProcAddress(library, "RegisterFunctions"));
+    if (m_moduleInfo.RegisterFunctions == NULL)
         return 5;
 
-    m_FunctionInfo.ResourceStopping = (RegisterModuleFunc)(GetProcAddress(m_hModule, "ResourceStopping"));
+    m_moduleInfo.ResourceStopping = (RegisterModuleFunc)(GetProcAddress(library, "ResourceStopping"));
     // No error for backward compatibility
-    // if ( m_FunctionInfo.ResourceStopping == NULL ) return 6;
-    m_FunctionInfo.ResourceStopped = (RegisterModuleFunc)(GetProcAddress(m_hModule, "ResourceStopped"));
-    // if ( m_FunctionInfo.ResourceStopped == NULL ) return 7;
+    // if ( m_moduleInfo.ResourceStopping == NULL ) return 6;
+    m_moduleInfo.ResourceStopped = (RegisterModuleFunc)(GetProcAddress(library, "ResourceStopped"));
+    // if ( m_moduleInfo.ResourceStopped == NULL ) return 7;
 #else
-    m_FunctionInfo.DoPulse = (DefaultModuleFunc)(dlsym(m_hModule, "DoPulse"));
-    if (m_FunctionInfo.DoPulse == NULL)
+    m_moduleInfo.DoPulse = (DefaultModuleFunc)(dlsym(m_hModule, "DoPulse"));
+    if (m_moduleInfo.DoPulse == NULL)
         return 3;
-    m_FunctionInfo.ShutdownModule = (DefaultModuleFunc)(dlsym(m_hModule, "ShutdownModule"));
-    if (m_FunctionInfo.ShutdownModule == NULL)
+    m_moduleInfo.ShutdownModule = (DefaultModuleFunc)(dlsym(m_hModule, "ShutdownModule"));
+    if (m_moduleInfo.ShutdownModule == NULL)
         return 4;
-    m_FunctionInfo.RegisterFunctions = (RegisterModuleFunc)(dlsym(m_hModule, "RegisterFunctions"));
-    if (m_FunctionInfo.RegisterFunctions == NULL)
+    m_moduleInfo.RegisterFunctions = (RegisterModuleFunc)(dlsym(m_hModule, "RegisterFunctions"));
+    if (m_moduleInfo.RegisterFunctions == NULL)
         return 5;
 
-    m_FunctionInfo.ResourceStopping = (RegisterModuleFunc)(dlsym(m_hModule, "ResourceStopping"));
-    // if ( m_FunctionInfo.ResourceStopping == NULL ) return 6;
-    m_FunctionInfo.ResourceStopped = (RegisterModuleFunc)(dlsym(m_hModule, "ResourceStopped"));
-    // if ( m_FunctionInfo.ResourceStopped == NULL ) return 7;
+    m_moduleInfo.ResourceStopping = (RegisterModuleFunc)(dlsym(m_hModule, "ResourceStopping"));
+    // if ( m_moduleInfo.ResourceStopping == NULL ) return 6;
+    m_moduleInfo.ResourceStopped = (RegisterModuleFunc)(dlsym(m_hModule, "ResourceStopped"));
+    // if ( m_moduleInfo.ResourceStopped == NULL ) return 7;
 #endif
     // Run initialisation function
-    if (!pfnInitFunc(this, &m_FunctionInfo.szModuleName[0], &m_FunctionInfo.szAuthor[0], &m_FunctionInfo.fVersion))
+    if (!pfnInitFunc(this, &m_moduleInfo.szModuleName[0], &m_moduleInfo.szAuthor[0], &m_moduleInfo.fVersion))
     {
         CLogger::LogPrintf("MODULE: Unable to initialize %s!\n", *PathJoin(SERVER_BIN_PATH_MOD, "modules", m_szShortFileName));
         return 2;
     }
     m_bInitialised = true;
 
-    CLogger::LogPrintf("MODULE: Loaded \"%s\" (%.2f) by \"%s\"\n", m_FunctionInfo.szModuleName, m_FunctionInfo.fVersion, m_FunctionInfo.szAuthor);
+    CLogger::LogPrintf("MODULE: Loaded \"%s\" (%.2f) by \"%s\"\n", m_moduleInfo.szModuleName, m_moduleInfo.fVersion, m_moduleInfo.szAuthor);
 
     return 0;
 }
@@ -177,7 +178,7 @@ void CLuaModule::_UnloadModule()
 {
     // Unload from memory
 #ifdef WIN32
-    FreeLibrary(m_hModule);
+    FreeLibrary(reinterpret_cast<HMODULE>(m_hModule));
 #else
     dlclose(m_hModule);
 #endif
@@ -185,64 +186,55 @@ void CLuaModule::_UnloadModule()
 
 void CLuaModule::_RegisterFunctions(lua_State* luaVM)
 {
-    m_FunctionInfo.RegisterFunctions(luaVM);
+    m_moduleInfo.RegisterFunctions(luaVM);
 }
 
 void CLuaModule::_UnregisterFunctions()
 {
     list<CLuaMain*>::const_iterator liter = m_pLuaModuleManager->GetLuaManager()->IterBegin();
+
     for (; liter != m_pLuaModuleManager->GetLuaManager()->IterEnd(); ++liter)
     {
-        lua_State*                luaVM = (*liter)->GetVM();
-        vector<SString>::iterator iter = m_Functions.begin();
-        for (; iter != m_Functions.end(); ++iter)
-        {
-            // points function to nill
-            lua_pushnil(luaVM);
-            lua_setglobal(luaVM, iter->c_str());
+        lua_State* luaVM = (*liter)->GetVM();
 
-            // Remove func from CLuaCFunctions
-            CLuaCFunctions::RemoveFunction(*iter);
+        for (const SString& functionName : m_Functions)
+        {
+            lua_pushnil(luaVM);
+            lua_setglobal(luaVM, functionName.c_str());
+
+            CLuaCFunctions::RemoveFunction(functionName);
         }
     }
 }
 
 void CLuaModule::_DoPulse()
 {
-    m_FunctionInfo.DoPulse();
+    m_moduleInfo.DoPulse();
 }
 
 void CLuaModule::_ResourceStopping(lua_State* luaVM)
 {
-    if (m_FunctionInfo.ResourceStopping)
-        m_FunctionInfo.ResourceStopping(luaVM);
+    if (m_moduleInfo.ResourceStopping)
+        m_moduleInfo.ResourceStopping(luaVM);
 }
 
 void CLuaModule::_ResourceStopped(lua_State* luaVM)
 {
-    if (m_FunctionInfo.ResourceStopped)
-        m_FunctionInfo.ResourceStopped(luaVM);
+    if (m_moduleInfo.ResourceStopped)
+        m_moduleInfo.ResourceStopped(luaVM);
 
-    vector<SString>::iterator iter = m_Functions.begin();
-    for (; iter != m_Functions.end(); ++iter)
+    for (const SString& functionName : m_Functions)
     {
-        // points function to nil
         lua_pushnil(luaVM);
-        lua_setglobal(luaVM, (iter)->c_str());
+        lua_setglobal(luaVM, functionName.c_str());
     }
 }
 
 bool CLuaModule::_DoesFunctionExist(const char* szFunctionName)
 {
-    vector<SString>::iterator iter = m_Functions.begin();
-    for (; iter != m_Functions.end(); ++iter)
-    {
-        if (strcmp((iter)->c_str(), szFunctionName) == 0)
-        {
-            return true;
-        }
-    }
-    return false;
+    auto predicate = [szFunctionName](const SString& name) -> bool { return !strcmp(name.c_str(), szFunctionName); };
+    auto iterator = std::find_if(m_Functions.cbegin(), m_Functions.cend(), std::move(predicate));
+    return iterator != m_Functions.cend();
 }
 
 // Module Functions

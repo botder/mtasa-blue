@@ -2,12 +2,12 @@
  *
  *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
- *  FILE:        mods/deathmatch/logic/CResource.h
  *  PURPOSE:     Resource handler class
  *
- *  Multi Theft Auto is available from http://www.multitheftauto.com/
+ *  Multi Theft Auto is available from https://multitheftauto.com/
  *
  *****************************************************************************/
+
 #pragma once
 
 #include "packets/CResourceStartPacket.h"
@@ -18,7 +18,6 @@
 #include <unzip.h>
 #include <list>
 #include <vector>
-#include <ehs/ehs.h>
 #include <time.h>
 
 #define MAX_AUTHOR_LENGTH           255
@@ -143,7 +142,7 @@ struct SResourceStartOptions
 // A resource is either a directory with files or a ZIP file which contains the content of such directory.
 // The directory or ZIP file must contain a meta.xml file, which describes the required content by the resource.
 // It's a process-like environment for scripts, maps, images and other files.
-class CResource : public EHS
+class CResource
 {
     using KeyValueMap = CFastHashMap<SString, SString>;
 
@@ -292,7 +291,9 @@ public:
     bool IsResourceZip() const noexcept { return m_bResourceIsZip; }
     bool UnzipResource();
 
+    /*
     ResponseCode HandleRequest(HttpRequest* ipoHttpRequest, HttpResponse* ipoHttpResponse);
+    */
 
     std::list<CResourceFile*>::iterator       IterBegin() { return m_ResourceFiles.begin(); }
     std::list<CResourceFile*>::const_iterator IterBegin() const noexcept { return m_ResourceFiles.begin(); }
@@ -357,9 +358,11 @@ private:
     bool DestroyVM();
     void TidyUp();
 
+    /*
     ResponseCode HandleRequestActive(HttpRequest* ipoHttpRequest, HttpResponse* ipoHttpResponse, CAccount* pAccount);
     ResponseCode HandleRequestCall(HttpRequest* ipoHttpRequest, HttpResponse* ipoHttpResponse, CAccount* pAccount);
     bool         IsHttpAccessAllowed(CAccount* pAccount);
+    */
 
 private:
     EResourceState m_eState = EResourceState::None;

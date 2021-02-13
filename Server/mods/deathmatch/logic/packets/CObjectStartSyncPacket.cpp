@@ -1,15 +1,15 @@
 /*****************************************************************************
  *
- *  PROJECT:     Multi Theft Auto v1.0
+ *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
- *  FILE:        mods/deathmatch/logic/packets/CObjectStartSyncPacket.cpp
- *  PURPOSE:     Object start sync packet class
+ *  PURPOSE:     Header for object start sync packet class
  *
- *  Multi Theft Auto is available from http://www.multitheftauto.com/
+ *  Multi Theft Auto is available from https://multitheftauto.com/
  *
  *****************************************************************************/
 
 #include "StdInc.h"
+#include "CObjectStartSyncPacket.h"
 
 bool CObjectStartSyncPacket::Write(NetBitStreamInterface& BitStream) const
 {

@@ -263,7 +263,6 @@ struct SAclRequest;
 #include "CResourceClientFileItem.h"
 #include "CResourceClientScriptItem.h"
 #include "CResourceConfigItem.h"
-#include "CResourceFile.h"
 #include "CResourceHTMLItem.h"
 #include "CResourceManager.h"
 #include "CResourceMapItem.h"

@@ -1,19 +1,15 @@
 /*****************************************************************************
  *
- *  PROJECT:     Multi Theft Auto v1.0
+ *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
- *  FILE:        mods/deathmatch/logic/CResourceFile.cpp
  *  PURPOSE:     Resource server-side file item class
  *
- *  Multi Theft Auto is available from http://www.multitheftauto.com/
+ *  Multi Theft Auto is available from https://multitheftauto.com/
  *
  *****************************************************************************/
 
-// This class controls a single resource file. This could be
-// any item contained within the resource, mainly being a
-// map or script.
-
 #include "StdInc.h"
+#include "CResourceFile.h"
 
 CResourceFile::CResourceFile(CResource* resource, const char* szShortName, const char* szResourceFileName, CXMLAttributes* xmlAttributes)
 {
@@ -51,6 +47,7 @@ CResourceFile::~CResourceFile()
 {
 }
 
+/*
 ResponseCode CResourceFile::Request(HttpRequest* ipoHttpRequest, HttpResponse* ipoHttpResponse)
 {
     // HACK - Use http-client-files if possible as the resources directory may have been changed since the resource was loaded.
@@ -87,6 +84,7 @@ ResponseCode CResourceFile::Request(HttpRequest* ipoHttpRequest, HttpResponse* i
         return HTTPRESPONSECODE_500_INTERNALSERVERERROR;
     }
 }
+*/
 
 SString CResourceFile::GetCachedPathFilename(bool bForceClientCachePath)
 {

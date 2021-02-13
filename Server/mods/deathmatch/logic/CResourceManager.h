@@ -1,27 +1,26 @@
 /*****************************************************************************
  *
- *  PROJECT:     Multi Theft Auto v1.0
+ *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
- *  FILE:        mods/deathmatch/logic/CResourceManager.h
  *  PURPOSE:     Resource manager class
  *
- *  Multi Theft Auto is available from http://www.multitheftauto.com/
+ *  Multi Theft Auto is available from https://multitheftauto.com/
  *
  *****************************************************************************/
 
-// This class controls all the resources that are loaded, and loads
-// new resources on demand
-
 #pragma once
+
+class CResource;
 
 #include "CResource.h"
 #include "CElement.h"
-#include "ehs/ehs.h"
 #include <list>
+#include <vector>
 
-class CResource;
 #define INVALID_RESOURCE_NET_ID     0xFFFF
 
+// This class controls all the resources that are loaded, and loads
+// new resources on demand
 class CResourceManager
 {
 public:
@@ -41,7 +40,7 @@ private:
         CResource*            pResource;
         eResourceQueue        eQueue;
         SResourceStartOptions StartOptions;
-        vector<SString>       dependents;
+        std::vector<SString>  dependents;
     };
 
 public:

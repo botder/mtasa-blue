@@ -1,15 +1,15 @@
 /*****************************************************************************
  *
- *  PROJECT:     Multi Theft Auto v1.0
+ *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
- *  FILE:        mods/deathmatch/logic/packets/CUnoccupiedVehicleSyncPacket.cpp
  *  PURPOSE:     Unoccupied vehicle synchronization packet class
  *
- *  Multi Theft Auto is available from http://www.multitheftauto.com/
+ *  Multi Theft Auto is available from https://multitheftauto.com/
  *
  *****************************************************************************/
 
 #include "StdInc.h"
+#include "CUnoccupiedVehicleSyncPacket.h"
 
 CUnoccupiedVehicleSyncPacket::~CUnoccupiedVehicleSyncPacket()
 {
@@ -50,8 +50,9 @@ bool CUnoccupiedVehicleSyncPacket::Read(NetBitStreamInterface& BitStream)
 bool CUnoccupiedVehicleSyncPacket::Write(NetBitStreamInterface& BitStream) const
 {
     // While we're not out of syncs to write
-    bool                             bSent = false;
-    vector<SyncData>::const_iterator iter = m_Syncs.begin();
+    bool                                  bSent = false;
+    std::vector<SyncData>::const_iterator iter = m_Syncs.begin();
+
     for (; iter != m_Syncs.end(); ++iter)
     {
         // If we're not supposed to ignore the packet

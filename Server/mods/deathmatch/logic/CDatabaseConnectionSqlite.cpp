@@ -1,11 +1,10 @@
 /*****************************************************************************
  *
- *  PROJECT:     Multi Theft Auto v1.0
+ *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
- *  FILE:        mods/deathmatch/logic/CDatabaseConnectionSqlite.cpp
- *  PURPOSE:     Sqlite connection handler
+ *  PURPOSE:     SQLite connection handler
  *
- *  Multi Theft Auto is available from http://www.multitheftauto.com/
+ *  Multi Theft Auto is available from https://multitheftauto.com/
  *
  *****************************************************************************/
 
@@ -240,8 +239,8 @@ bool CDatabaseConnectionSqlite::QueryInternal(const SString& strQuery, CRegistry
         int status;
         while ((status = sqlite3_step(pStmt)) == SQLITE_ROW)
         {
-            pResult->Data.push_back(vector<CRegistryResultCell>(pResult->nColumns));
-            vector<CRegistryResultCell>& row = pResult->Data.back();
+            pResult->Data.push_back(std::vector<CRegistryResultCell>(pResult->nColumns));
+            std::vector<CRegistryResultCell>& row = pResult->Data.back();
             for (int i = 0; i < pResult->nColumns; i++)
             {
                 CRegistryResultCell& cell = row[i];

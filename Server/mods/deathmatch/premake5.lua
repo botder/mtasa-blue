@@ -5,6 +5,7 @@ project "Deathmatch"
 	targetdir(buildpath("server/mods/deathmatch"))
 
 	includedirs {
+		"../../../Shared/sdk",
 		"../../sdk",
 		"../../../vendor/bochs",
 		"../../../vendor/pme",

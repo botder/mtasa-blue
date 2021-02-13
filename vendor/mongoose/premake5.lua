@@ -3,7 +3,7 @@ project "mongoose"
     kind "StaticLib"
 
     includedirs {
-        "../mbedtls/include",
+        "../mbedtls/2.25.0/include",
     }
 
     vpaths {

@@ -1,12 +1,14 @@
 /*****************************************************************************
  *
- *  PROJECT:     Multi Theft Auto v1.0
+ *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
- *  FILE:        mods/deathmatch/utils/COpenPortsTester.h
+ *  PURPOSE:
  *
- *  Multi Theft Auto is available from http://www.multitheftauto.com/
+ *  Multi Theft Auto is available from https://multitheftauto.com/
  *
  *****************************************************************************/
+
+#include "Webserver.h"
 
 class COpenPortsTester
 {
@@ -35,7 +37,9 @@ public:
             CLogger::LogPrintfNoStamp("ASE is not enabled, so port UDP port %u will not be tested\n", usServerPort + 123);
         }
 
-        if (g_pGame->GetHTTPD())
+        using namespace mtasa;
+
+        if (g_Webserver != nullptr && g_Webserver->IsRunning())
         {
             strURL += SString("&h=%u", usHTTPPort);
         }

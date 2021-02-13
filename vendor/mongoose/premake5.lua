@@ -1,7 +1,6 @@
 project "mongoose"
-    language "C++"
+    language "C"
     kind "StaticLib"
-    targetname "mongoose"
 
     includedirs {
         "../mbedtls/include",
@@ -23,11 +22,11 @@ project "mongoose"
         "MG_ENABLE_MBEDTLS",
     }
 
-    links {
-        "mbedtls",
-    }
-
     disablewarnings {
         "4005", -- because of _CRT_SECURE_NO_WARNINGS
         "4244", -- casting of 'time_t' to 'unsigned long'
+    }
+
+    links {
+        "mbedtls",
     }

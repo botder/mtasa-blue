@@ -10,11 +10,41 @@
 
 #pragma once
 
-class CHTTPD
-{
-public:
+#include <memory>
+#include <string>
+#include <thread>
 
-};
+namespace mtasa
+{
+    class Webserver
+    {
+    public:
+        static void Initialize();
+        static void Shutdown();
+
+    public:
+        bool IsRunning() const noexcept { return m_isRunning; }
+
+        void SetHostname(std::string hostname) noexcept { m_hostname = std::move(hostname); }
+        void SetPort(unsigned short port) noexcept { m_port = port; }
+
+        bool Start() noexcept;
+        void Stop() noexcept;
+
+    private:
+        void WorkerThread();
+
+    private:
+        bool           m_isRunning = false;
+        std::string    m_hostname;
+        unsigned short m_port;
+
+        void*       m_handle = nullptr;
+        std::thread m_worker;
+    };
+
+    extern std::unique_ptr<Webserver> g_Webserver;
+}            // namespace mtasa
 
 /*
 #include "ehs/ehs.h"

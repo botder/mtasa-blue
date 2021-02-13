@@ -9,7 +9,125 @@
  *****************************************************************************/
 
 #include "StdInc.h"
-#include "CHTTPD.h"
+#include "Webserver.h"
+#include <sstream>
+
+#ifdef _CRT_SECURE_NO_WARNINGS
+    #undef _CRT_SECURE_NO_WARNINGS // redefined in mongoose.h
+#endif
+
+extern "C"
+{
+    #include <mongoose.h>
+}
+
+namespace mtasa
+{
+    std::unique_ptr<Webserver> g_Webserver;
+
+    void Webserver::Initialize()
+    {
+        if (g_Webserver != nullptr)
+            return;
+
+        g_Webserver = std::make_unique<Webserver>();
+    }
+
+    void Webserver::Shutdown()
+    {
+        if (g_Webserver != nullptr)
+        {
+            g_Webserver->Stop();
+            g_Webserver.reset();
+        }
+    }
+
+    static void WebserverEventHandler(mg_connection* c, int event, void* data, void* userdata)
+    {
+        if (event != MG_EV_HTTP_MSG)
+            return;
+
+        auto request = reinterpret_cast<mg_http_message*>(data);
+
+        std::stringstream ss;
+
+        ss << std::string_view(request->proto.ptr, request->proto.len)
+            << " REQUEST: <"
+            << std::string_view(request->method.ptr, request->method.len)
+            << "> "
+            << std::string_view(request->uri.ptr, request->uri.len)
+            << " [query: "
+            << std::string_view(request->query.ptr, request->query.len)
+            << "]";
+
+        OutputDebugLine(ss.str().c_str());
+        OutputDebugLine("HEADERS:");
+
+        for (int i = 0; i < MG_MAX_HTTP_HEADERS; i++)
+        {
+            mg_http_header& header = request->headers[i];
+
+            if (header.name.ptr == nullptr)
+                break;
+
+            std::stringstream hss;
+            hss << "    " << std::string_view(header.name.ptr, header.name.len) << " := " << std::string_view(header.value.ptr, header.value.len);
+            OutputDebugLine(hss.str().c_str());
+        }
+
+        OutputDebugLine("BODY:");
+        std::string body(std::string_view(request->body.ptr, request->body.len));
+        OutputDebugLine(body.c_str());
+
+        // auto webserver = reinterpret_cast<Webserver*>(userdata);
+    }
+
+    bool Webserver::Start() noexcept
+    {
+        if (m_isRunning)
+            return false;
+
+        std::stringstream address;
+        address << "http://";
+        address << m_hostname
+                << ":"
+                << m_port;
+
+        auto manager = new mg_mgr;
+        mg_mgr_init(manager);
+        mg_connection* result = mg_http_listen(manager, address.str().c_str(), &WebserverEventHandler, this);
+
+        if (result == nullptr)
+            return false;
+
+        m_handle = manager;
+        m_worker = std::thread(&Webserver::WorkerThread, this);
+        m_isRunning = true;
+        return true;
+    }
+
+    void Webserver::Stop() noexcept
+    {
+        if (!m_isRunning)
+            return;
+
+        m_isRunning = false;
+
+        if (m_worker.joinable())
+            m_worker.join();
+
+        mg_mgr_free(reinterpret_cast<mg_mgr*>(m_handle));
+        m_handle = nullptr;
+    }
+
+    void Webserver::WorkerThread()
+    {
+        while (m_isRunning)
+        {
+            mg_mgr_poll(reinterpret_cast<mg_mgr*>(m_handle), 1000);
+        }
+    }
+}            // namespace mtasa
 
 /*
 #include <cryptopp/rsa.h>

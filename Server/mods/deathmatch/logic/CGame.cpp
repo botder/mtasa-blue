@@ -1,20 +1,21 @@
 /*****************************************************************************
  *
- *  PROJECT:     Multi Theft Auto v1.0
+ *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
- *  FILE:        mods/deathmatch/logic/CGame.cpp
  *  PURPOSE:     Server game class
  *
- *  Multi Theft Auto is available from http://www.multitheftauto.com/
+ *  Multi Theft Auto is available from https://multitheftauto.com/
  *
  *****************************************************************************/
 
 #include "StdInc.h"
+#include "CGame.h"
 #include "../utils/COpenPortsTester.h"
 #include "../utils/CMasterServerAnnouncer.h"
 #include "../utils/CHqComms.h"
 #include "../utils/CFunctionUseLogger.h"
 #include "net/SimHeaders.h"
+#include "Webserver.h"
 #include <signal.h>
 
 #define MAX_BULLETSYNC_DISTANCE 400.0f
@@ -30,6 +31,8 @@
 #define SPRINT_FIX_MIN_CLIENT_VERSION           "1.3.5-9.06277"
 #define DRIVEBY_HITBOX_FIX_MIN_CLIENT_VERSION   "1.4.0-5.06399"
 #define SHOTGUN_DAMAGE_FIX_MIN_CLIENT_VERSION   "1.5.1"
+
+using namespace mtasa;
 
 CGame* g_pGame = NULL;
 
@@ -126,7 +129,6 @@ CGame::CGame() : m_FloodProtect(4, 30000, 30000)            // Max of 4 connecti
     m_pPedManager = NULL;
     m_pResourceManager = NULL;
     m_pLatentTransferManager = NULL;
-    m_pHTTPD = NULL;
     m_pACLManager = NULL;
     m_pRegisteredCommands = NULL;
     m_pZoneNames = NULL;
@@ -250,9 +252,10 @@ CGame::~CGame()
     m_bBeingDeleted = true;
 
     // Stop the web server first to avoid threading issues
-    // if (m_pHTTPD)
-    //     m_pHTTPD->StopHTTPD();
-    // TODO: ^
+    if (g_Webserver)
+        g_Webserver->Stop();
+
+    Webserver::Shutdown();
 
     // Stop the performance stats modules
     if (CPerfStatManager::GetSingleton() != NULL)
@@ -313,7 +316,6 @@ CGame::~CGame()
     SAFE_DELETE(m_pPedManager);
     SAFE_DELETE(m_pLatentTransferManager);
     SAFE_DELETE(m_pDebugHookManager);
-    SAFE_DELETE(m_pHTTPD);
     SAFE_DELETE(m_pACLManager);
     SAFE_DELETE(m_pGroups);
     SAFE_DELETE(m_pZoneNames);
@@ -619,21 +621,35 @@ bool CGame::Start(int iArgumentCount, char* szArguments[])
     m_pRegistryManager = new CRegistryManager();
     m_pAccountManager = new CAccountManager(strBuffer);
 
-    // Create and start the HTTP server
-    m_pHTTPD = new CHTTPD;
     m_pLatentTransferManager = new CLatentTransferManager();
+
+    // Create and start the HTTP server
+    Webserver::Initialize();
 
     // Enable it if required
     if (m_pMainConfig->IsHTTPEnabled())
     {
-        // Slight hack for internal HTTPD: Listen on all IPs if multiple IPs declared
-        SString strUseIP = (strServerIP == strServerIPList) ? strServerIP : "";
-        // if (!m_pHTTPD->StartHTTPD(strUseIP, m_pMainConfig->GetHTTPPort()))
-        // {
-        //     CLogger::ErrorPrintf("Could not start HTTP server on interface '%s' and port '%u'!\n", strUseIP.c_str(), m_pMainConfig->GetHTTPPort());
-        //     return false;
-        // }
-        // TODO: ^
+        if (!g_Webserver)
+        {
+            CLogger::ErrorPrintf("Could not initialize HTTP server!\n");
+            return false;
+        }
+
+        std::string hostname = "0.0.0.0";
+
+        if (!strServerIP.empty() && strServerIP == strServerIPList)
+            hostname = strServerIP;
+
+        g_Webserver->SetHostname(hostname);
+
+        unsigned short port = m_pMainConfig->GetHTTPPort();
+        g_Webserver->SetPort(port);
+
+        if (!g_Webserver->Start())
+        {
+            CLogger::ErrorPrintf("Could not start HTTP server on interface '%s' and port '%u'!\n", hostname.c_str(), port);
+            return false;
+        }
     }
 
     m_pFunctionUseLogger = new CFunctionUseLogger(m_pMainConfig->GetLoadstringLogFilename());

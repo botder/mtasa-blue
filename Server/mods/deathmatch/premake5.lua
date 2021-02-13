@@ -4,42 +4,26 @@ project "Deathmatch"
 	targetname "deathmatch"
 	targetdir(buildpath("server/mods/deathmatch"))
 
-	pchheader "StdInc.h"
-	pchsource "StdInc.cpp"
-
-	filter "system:windows"
-		includedirs { "../../../vendor/sparsehash/src/windows" }
-
-	filter {}
-		includedirs {
-			"../../../Shared/sdk",
-			"../../sdk",
-			"../../../vendor/bochs",
-			"../../../vendor/pme",
-			"../../../vendor/zip",
-			"../../../vendor/zlib",
-			"../../../vendor/pcre",
-			"../../../vendor/json-c",
-			"../../../vendor/bob_withers",
-			"../../../vendor/lua/src",
-			"../../../vendor/mongoose/7.1",
-			"../../../Shared/gta",
-			"../../../Shared/mods/deathmatch/logic",
-			"../../../Shared/animation",
-			"../../../Shared/publicsdk/include",
-			"../../../vendor/sparsehash/src/",
-			"logic",
-			"utils",
-			"."
-		}
-
-	defines {
-		"SDK_WITH_BCRYPT",
-		"MG_ENABLE_MBEDTLS", -- from: mongoose
-	}
-
-	links {
-		"Lua_Server", "sqlite", "mongoose", "mbedtls", "cryptopp", "pme", "pcre", "json-c", "zip", "zlib", "blowfish_bcrypt",
+	includedirs {
+		"../../sdk",
+		"../../../vendor/bochs",
+		"../../../vendor/pme",
+		"../../../vendor/zip",
+		"../../../vendor/zlib",
+		"../../../vendor/pcre",
+		"../../../vendor/json-c",
+		"../../../vendor/bob_withers",
+		"../../../vendor/lua/src",
+		"../../../vendor/mongoose/7.1",
+		"../../../vendor/mbedtls/include", -- for: mongoose
+		"../../../Shared/gta",
+		"../../../Shared/mods/deathmatch/logic",
+		"../../../Shared/animation",
+		"../../../Shared/publicsdk/include",
+		"../../../vendor/sparsehash/src",
+		"logic",
+		"utils",
+		".",
 	}
 
 	vpaths {
@@ -60,8 +44,32 @@ project "Deathmatch"
 		"../../../vendor/bochs/bochs_internal/bochs_crc32.cpp",
 	}
 
+	pchheader "StdInc.h"
+	pchsource "StdInc.cpp"
+	
+	defines {
+		"SDK_WITH_BCRYPT",
+		"MG_ENABLE_MBEDTLS", -- for: mongoose
+	}
+
+	links {
+		"Lua_Server",
+		"sqlite",
+		"cryptopp",
+		"pme",
+		"pcre",
+		"json-c",
+		"zip",
+		"zlib",
+		"blowfish_bcrypt",
+		"mongoose",
+	}
+
 	filter "system:windows"
-		includedirs { "../../../vendor/pthreads/include" }
+		includedirs {
+			"../../../vendor/pthreads/include",
+			"../../../vendor/sparsehash/src/windows",
+		}
 		buildoptions { "-Zm130" }
 		links { "ws2_32", "pthread" }
 

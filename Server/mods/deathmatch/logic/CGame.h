@@ -1,11 +1,10 @@
 /*****************************************************************************
  *
- *  PROJECT:     Multi Theft Auto v1.0
+ *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
- *  FILE:        mods/deathmatch/logic/CGame.h
  *  PURPOSE:     Server game class
  *
- *  Multi Theft Auto is available from http://www.multitheftauto.com/
+ *  Multi Theft Auto is available from https://multitheftauto.com/
  *
  *****************************************************************************/
 
@@ -71,7 +70,6 @@ class CConsoleClient;
 class CElementDeleter;
 class CGroups;
 class CHandlingManager;
-class CHTTPD;
 class CMainConfig;
 class CMapManager;
 class CMarkerManager;
@@ -237,7 +235,6 @@ public:
     CGroups*                         GetGroups() { return m_pGroups; }
     CElementDeleter*                 GetElementDeleter() { return &m_ElementDeleter; }
     CConnectHistory*                 GetJoinFloodProtector() { return &m_FloodProtect; }
-    CHTTPD*                          GetHTTPD() { return m_pHTTPD; }
     CSettings*                       GetSettings() { return m_pSettings; }
     CAccessControlListManager*       GetACLManager() { return m_pACLManager; }
     CBanManager*                     GetBanManager() { return m_pBanManager; }
@@ -510,7 +507,6 @@ private:
 
     CEvents                 m_Events;
     CRemoteCalls*           m_pRemoteCalls;
-    CHTTPD*                 m_pHTTPD;
     CMainConfig*            m_pMainConfig;
     CBlipManager*           m_pBlipManager;
     CGroups*                m_pGroups;

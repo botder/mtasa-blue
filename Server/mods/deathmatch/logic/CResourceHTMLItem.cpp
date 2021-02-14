@@ -222,6 +222,16 @@ bool CResourceHTMLItem::ProcessRequest(HTTPRequest& request, HTTPResponse& respo
         response.headers["Content-Type"] = m_strMime;
 
         CLuaArguments formData;
+
+        for (const HTTPParameter& parameter : request.parameters)
+        {
+            if (parameter.name.empty())
+                break;
+
+            formData.PushString(std::string(parameter.name));
+            formData.PushString(httpDecode(parameter.value, true));
+        }
+
         // for (FormValueMap::iterator iter = ipoHttpRequest->oFormValueMap.begin(); iter != ipoHttpRequest->oFormValueMap.end(); iter++)
         // {
         //     formData.PushString((*iter).first.c_str());

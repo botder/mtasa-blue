@@ -15,6 +15,7 @@
 #include "StdInc.h"
 #include "HTTPServer.h"
 #include "net/SimHeaders.h"
+#include <charconv>
 #ifndef WIN32
 #include <utime.h>
 #endif
@@ -2293,325 +2294,7 @@ void CResource::RemoveDependent(CResource* pResource)
     CheckState();
 }
 
-// Called on another thread, but g_pGame->Lock() has been called, so everything is going to be OK
 /*
-ResponseCode CResource::HandleRequest(HttpRequest* ipoHttpRequest, HttpResponse* ipoHttpResponse)
-{
-    std::string strAccessType;
-    const char* szRequest = ipoHttpRequest->sOriginalUri.c_str();
-
-    if (*szRequest)
-    {
-        const char* szSlash1 = strchr(szRequest + 1, '/');
-
-        if (szSlash1)
-        {
-            const char* szSlash2 = strchr(szSlash1 + 1, '/');
-
-            if (szSlash2)
-                strAccessType.assign(szSlash1 + 1, szSlash2 - (szSlash1 + 1));
-        }
-    }
-
-    CAccount* pAccount = g_pGame->GetHTTPD()->CheckAuthentication(ipoHttpRequest);
-
-    if (pAccount)
-    {
-        ResponseCode responseCode;
-
-        if (strAccessType == "call")
-            responseCode = HandleRequestCall(ipoHttpRequest, ipoHttpResponse, pAccount);
-        else
-            responseCode = HandleRequestActive(ipoHttpRequest, ipoHttpResponse, pAccount);
-
-        return responseCode;
-    }
-
-    return HTTPRESPONSECODE_200_OK;
-}
-
-void Unescape(std::string& str)
-{
-    const char* pPercent = strchr(str.c_str(), '%');
-
-    while (pPercent)
-    {
-        if (pPercent[1] && pPercent[2])
-        {
-            int iCharCode = 0;
-            sscanf(&pPercent[1], "%02X", &iCharCode);
-            str.replace(pPercent - str.c_str(), 3, (char*)&iCharCode);
-            pPercent = strchr(pPercent + 3, '%');
-        }
-        else
-        {
-            break;
-        }
-    }
-}
-
-ResponseCode CResource::HandleRequestCall(HttpRequest* ipoHttpRequest, HttpResponse* ipoHttpResponse, CAccount* pAccount)
-{
-    if (!IsHttpAccessAllowed(pAccount))
-    {
-        return g_pGame->GetHTTPD()->RequestLogin(ipoHttpRequest, ipoHttpResponse);
-    }
-
-#define MAX_INPUT_VARIABLES 25
-
-    if (m_eState != EResourceState::Running)
-    {
-        const char* szError = "error: resource not running";
-        ipoHttpResponse->SetBody(szError, strlen(szError));
-        return HTTPRESPONSECODE_200_OK;
-    }
-
-    const char* szQueryString = ipoHttpRequest->sUri.c_str();
-
-    if (!*szQueryString)
-    {
-        const char* szError = "error: invalid function name";
-        ipoHttpResponse->SetBody(szError, strlen(szError));
-        return HTTPRESPONSECODE_200_OK;
-    }
-
-    std::string              strFuncName;
-    std::vector<std::string> vecArguments;
-    const char*              pQueryArg = strchr(szQueryString, '?');
-
-    if (!pQueryArg)
-    {
-        strFuncName = szQueryString;
-    }
-    else
-    {
-        strFuncName.assign(szQueryString, pQueryArg - szQueryString);
-        pQueryArg++;
-
-        const char* pEqual = nullptr;
-        const char* pAnd = nullptr;
-
-        while (*pQueryArg)
-        {
-            pAnd = strchr(pQueryArg, '&');
-
-            if (!pAnd)
-                pAnd = pQueryArg + strlen(pQueryArg);
-
-            pEqual = strchr(pQueryArg, '=');
-
-            if (pEqual && pEqual < pAnd)
-            {
-                std::string strKey(pQueryArg, pEqual - pQueryArg);
-                int         iKey = atoi(strKey.c_str());
-
-                if (iKey >= 0 && iKey < MAX_INPUT_VARIABLES)
-                {
-                    std::string strValue(pEqual + 1, pAnd - (pEqual + 1));
-                    Unescape(strValue);
-
-                    if (iKey + 1 > static_cast<int>(vecArguments.size()))
-                        vecArguments.resize(iKey + 1);
-
-                    vecArguments[iKey] = strValue;
-                }
-            }
-
-            if (*pAnd)
-                pQueryArg = pAnd + 1;
-            else
-                break;
-        }
-    }
-
-    Unescape(strFuncName);
-
-    for (CExportedFunction& Exported : m_ExportedFunctions)
-    {
-        if (strFuncName != Exported.GetFunctionName())
-            continue;
-
-        if (!Exported.IsHTTPAccessible())
-            return g_pGame->GetHTTPD()->RequestLogin(ipoHttpRequest, ipoHttpResponse);
-
-        SString strResourceFuncName("%s.function.%s", m_strResourceName.c_str(), strFuncName.c_str());
-
-        // @@@@@ Deal with this the new way
-        if (!g_pGame->GetACLManager()->CanObjectUseRight(pAccount->GetName().c_str(), CAccessControlListGroupObject::OBJECT_TYPE_USER,
-                                                         strResourceFuncName.c_str(), CAccessControlListRight::RIGHT_TYPE_RESOURCE, true))
-        {
-            return g_pGame->GetHTTPD()->RequestLogin(ipoHttpRequest, ipoHttpResponse);
-        }
-
-        CLuaArguments Arguments;
-
-        if (ipoHttpRequest->nRequestMethod == REQUESTMETHOD_GET)
-        {
-            for (const std::string& strArgument : vecArguments)
-            {
-                const char* szArg = strArgument.c_str();
-
-                if (strlen(szArg) > 3 && szArg[0] == '^' && szArg[2] == '^' && szArg[1] != '^')
-                {
-                    switch (szArg[1])
-                    {
-                        case 'E':            // element
-                        {
-                            int       id = atoi(szArg + 3);
-                            CElement* pElement = nullptr;
-
-                            if (id != INT_MAX && id != INT_MIN && id != 0)
-                                pElement = CElementIDs::GetElement(id);
-
-                            if (pElement)
-                            {
-                                Arguments.PushElement(pElement);
-                            }
-                            else
-                            {
-                                g_pGame->GetScriptDebugging()->LogError(nullptr, "HTTP Get - Invalid element specified.");
-                                Arguments.PushNil();
-                            }
-
-                            break;
-                        }
-                        case 'R':            // resource
-                        {
-                            CResource* pResource = g_pGame->GetResourceManager()->GetResource(szArg + 3);
-
-                            if (pResource)
-                            {
-                                Arguments.PushResource(pResource);
-                            }
-                            else
-                            {
-                                g_pGame->GetScriptDebugging()->LogError(nullptr, "HTTP Get - Invalid resource specified.");
-                                Arguments.PushNil();
-                            }
-
-                            break;
-                        }
-                    }
-                }
-                else
-                {
-                    Arguments.PushString(szArg);
-                }
-            }
-        }
-        else if (ipoHttpRequest->nRequestMethod == REQUESTMETHOD_POST)
-        {
-            const char* szRequestBody = ipoHttpRequest->sBody.c_str();
-            Arguments.ReadFromJSONString(szRequestBody);
-        }
-
-        CLuaArguments FormData;
-        for (const auto& pair : ipoHttpRequest->oFormValueMap)
-        {
-            FormData.PushString(pair.first.c_str());
-            FormData.PushString(pair.second.sBody.c_str());
-        }
-
-        CLuaArguments Cookies;
-        for (const auto& pair : ipoHttpRequest->oCookieMap)
-        {
-            Cookies.PushString(pair.first.c_str());
-            Cookies.PushString(pair.second.c_str());
-        }
-
-        CLuaArguments Headers;
-        for (const auto& pair : ipoHttpRequest->oRequestHeaders)
-        {
-            Headers.PushString(pair.first.c_str());
-            Headers.PushString(pair.second.c_str());
-        }
-
-        LUA_CHECKSTACK(m_pVM->GetVM(), 1);            // Ensure some room
-
-        // cache old data
-        lua_getglobal(m_pVM->GetVM(), "form");
-        CLuaArgument OldForm(m_pVM->GetVM(), -1);
-        lua_pop(m_pVM->GetVM(), 1);
-
-        lua_getglobal(m_pVM->GetVM(), "cookies");
-        CLuaArgument OldCookies(m_pVM->GetVM(), -1);
-        lua_pop(m_pVM->GetVM(), 1);
-
-        lua_getglobal(m_pVM->GetVM(), "requestHeaders");
-        CLuaArgument OldHeaders(m_pVM->GetVM(), -1);
-        lua_pop(m_pVM->GetVM(), 1);
-
-        lua_getglobal(m_pVM->GetVM(), "hostname");
-        CLuaArgument OldHostname(m_pVM->GetVM(), -1);
-        lua_pop(m_pVM->GetVM(), 1);
-
-        lua_getglobal(m_pVM->GetVM(), "url");
-        CLuaArgument OldURL(m_pVM->GetVM(), -1);
-        lua_pop(m_pVM->GetVM(), 1);
-
-        lua_getglobal(m_pVM->GetVM(), "user");
-        CLuaArgument OldUser(m_pVM->GetVM(), -1);
-        lua_pop(m_pVM->GetVM(), 1);
-
-        // push new data
-        FormData.PushAsTable(m_pVM->GetVM());
-        lua_setglobal(m_pVM->GetVM(), "form");
-
-        Cookies.PushAsTable(m_pVM->GetVM());
-        lua_setglobal(m_pVM->GetVM(), "cookies");
-
-        Headers.PushAsTable(m_pVM->GetVM());
-        lua_setglobal(m_pVM->GetVM(), "requestHeaders");
-
-        lua_pushstring(m_pVM->GetVM(), ipoHttpRequest->GetAddress().c_str());
-        lua_setglobal(m_pVM->GetVM(), "hostname");
-
-        lua_pushstring(m_pVM->GetVM(), ipoHttpRequest->sOriginalUri.c_str());
-        lua_setglobal(m_pVM->GetVM(), "url");
-
-        lua_pushaccount(m_pVM->GetVM(), pAccount);
-        lua_setglobal(m_pVM->GetVM(), "user");
-
-        CLuaArguments Returns;
-        Arguments.CallGlobal(m_pVM, strFuncName.c_str(), &Returns);
-        // g_pGame->Unlock(); // release the mutex
-
-        // restore old data
-        OldForm.Push(m_pVM->GetVM());
-        lua_setglobal(m_pVM->GetVM(), "form");
-
-        OldCookies.Push(m_pVM->GetVM());
-        lua_setglobal(m_pVM->GetVM(), "cookies");
-
-        OldHeaders.Push(m_pVM->GetVM());
-        lua_setglobal(m_pVM->GetVM(), "requestHeaders");
-
-        OldHostname.Push(m_pVM->GetVM());
-        lua_setglobal(m_pVM->GetVM(), "hostname");
-
-        OldURL.Push(m_pVM->GetVM());
-        lua_setglobal(m_pVM->GetVM(), "url");
-
-        OldUser.Push(m_pVM->GetVM());
-        lua_setglobal(m_pVM->GetVM(), "user");
-
-        // Set debug info in case error occurs in WriteToJSONString
-        g_pGame->GetScriptDebugging()->SaveLuaDebugInfo(SLuaDebugInfo(m_strResourceName, INVALID_LINE_NUMBER, SString("[HTTP:%s]", strFuncName.c_str())));
-
-        std::string strJSON;
-        Returns.WriteToJSONString(strJSON, true);
-
-        g_pGame->GetScriptDebugging()->SaveLuaDebugInfo(SLuaDebugInfo());
-
-        ipoHttpResponse->SetBody(strJSON.c_str(), strJSON.length());
-        return HTTPRESPONSECODE_200_OK;
-    }
-
-    const char* szError = "error: not found";
-    ipoHttpResponse->SetBody(szError, strlen(szError));
-    return HTTPRESPONSECODE_200_OK;
-}
-
 // Return true if http access allowed for the supplied account
 bool CResource::IsHttpAccessAllowed(CAccount* pAccount)
 {
@@ -2874,8 +2557,6 @@ bool CResource::ProcessRequest(mtasa::HTTPRequest& request, mtasa::HTTPResponse&
             {
                 return resourceFile->ProcessRequest(request, response);
             }
-
-            break;
         }
     }
     else
@@ -2901,68 +2582,235 @@ bool CResource::ProcessRequest(mtasa::HTTPRequest& request, mtasa::HTTPResponse&
     return false;
 }
 
-/*
-
-ResponseCode CResource::HandleRequestActive(HttpRequest* ipoHttpRequest, HttpResponse* ipoHttpResponse, CAccount* pAccount)
+bool CResource::ProcessCallRequest(mtasa::HTTPRequest& request, mtasa::HTTPResponse& response)
 {
-    for (CResourceFile* pResourceFile : m_ResourceFiles)
+    if (m_eState != EResourceState::Running)
     {
-        if (!strFile.empty())
+        response.statusCode = 200;
+        response.body = "error: resource not running";
+        return false;
+    }
+
+    // A function name over 256 characters is most likely invalid
+    // Using `MAX_FUNCTION_NAME_LENGTH` might break compatibility
+    if (request.uri.empty() || request.uri.size() > 256)
+    {
+        response.statusCode = 200;
+        response.body = "error: invalid function name";
+        return false;
+    }
+
+    // TODO: Don't create a copy. Also, the string view is not null-terminated.
+    std::string        functionName(request.uri);
+    CExportedFunction* function = nullptr;
+
+    for (CExportedFunction& exportedFunction : m_ExportedFunctions)
+    {
+        if (functionName == exportedFunction.GetFunctionName())
         {
-
-                    if (!IsHttpAccessAllowed(pAccount))
-                    {
-                        return g_pGame->GetHTTPD()->RequestLogin(ipoHttpRequest, ipoHttpResponse);
-                    }
-
-                    SString strResourceFileName("%s.file.%s", m_strResourceName.c_str(), pHtml->GetName());
-                    if (g_pGame->GetACLManager()->CanObjectUseRight(pAccount->GetName().c_str(), CAccessControlListGroupObject::OBJECT_TYPE_USER,
-                                                                    strResourceFileName.c_str(), CAccessControlListRight::RIGHT_TYPE_RESOURCE,
-                                                                    !pHtml->IsRestricted()))
-                    {
-                        return pHtml->Request(ipoHttpRequest, ipoHttpResponse, pAccount);
-                    }
-
-                    return g_pGame->GetHTTPD()->RequestLogin(ipoHttpRequest, ipoHttpResponse);
-
+            function = &exportedFunction;
+            break;
         }
-        else            // handle the default page
+    }
+
+    if (function == nullptr)
+    {
+        response.statusCode = 200;
+        response.body = "error: not found";
+        return false;
+    }
+
+    CLuaArguments arguments;
+
+    if (request.method == "GET")
+    {
+        std::array<std::string, 25> values;
+
+        for (const HTTPParameter& parameter : request.parameters)
         {
-            if (!IsHttpAccessAllowed(pAccount))
+            // Skip parameters, whose name doesn't represent a number in the range 0-24
+            if (parameter.name.size() > 2)
+                continue;
+
+            std::size_t            index = 0;
+            std::from_chars_result result = std::from_chars(parameter.name.data(), parameter.name.data() + parameter.name.size(), index);
+
+            if (result.ec == std::errc{} && index < values.size())
             {
-                return g_pGame->GetHTTPD()->RequestLogin(ipoHttpRequest, ipoHttpResponse);
+                values[index] = httpDecode(parameter.value, true);
             }
+        }
 
-            if (pResourceFile->GetType() == CResourceFile::RESOURCE_FILE_TYPE_HTML)
+        for (const std::string& value : values)
+        {
+            if (value.size() > 3 && value[0] == '^' && value[1] != '^' && value[2] == '^')
             {
-                CResourceHTMLItem* pHtml = (CResourceHTMLItem*)pResourceFile;
-
-                if (pHtml->IsDefaultPage())
+                switch (value[1])
                 {
-                    CAccessControlListManager* pACLManager = g_pGame->GetACLManager();
+                    case 'E':            // element
+                    {
+                        unsigned int           elementID = 0;
+                        std::from_chars_result result = std::from_chars(value.data() + 3, value.data() + value.size() - 3, elementID);
 
-                    SString strResourceFileName("%s.file.%s", m_strResourceName.c_str(), pResourceFile->GetName());
-                    if (pACLManager->CanObjectUseRight(pAccount->GetName().c_str(), CAccessControlListGroupObject::OBJECT_TYPE_USER, m_strResourceName.c_str(),
-                                                       CAccessControlListRight::RIGHT_TYPE_RESOURCE, true) &&
-                        pACLManager->CanObjectUseRight(pAccount->GetName().c_str(), CAccessControlListGroupObject::OBJECT_TYPE_USER,
-                                                       strResourceFileName.c_str(), CAccessControlListRight::RIGHT_TYPE_RESOURCE, !pHtml->IsRestricted()))
-                    {
-                        return pHtml->Request(ipoHttpRequest, ipoHttpResponse, pAccount);
+                        CElement* element = nullptr;
+
+                        if (result.ec == std::errc{} && elementID > 0)
+                        {
+                            element = CElementIDs::GetElement(elementID);
+                        }
+
+                        if (element != nullptr)
+                        {
+                            arguments.PushElement(element);
+                        }
+                        else
+                        {
+                            g_pGame->GetScriptDebugging()->LogError(nullptr, "HTTP Get - Invalid element specified.");
+                            arguments.PushNil();
+                        }
+
+                        break;
                     }
-                    else
+                    case 'R':            // resource
                     {
-                        return g_pGame->GetHTTPD()->RequestLogin(ipoHttpRequest, ipoHttpResponse);
+                        CResource* resource = nullptr;
+
+                        if (value.size() - 3 <= MAX_RESOURCE_NAME_LENGTH)
+                        {
+                            resource = g_pGame->GetResourceManager()->GetResource(value.data() + 3);
+                        }
+
+                        if (resource != nullptr)
+                        {
+                            arguments.PushResource(resource);
+                        }
+                        else
+                        {
+                            g_pGame->GetScriptDebugging()->LogError(nullptr, "HTTP Get - Invalid resource specified.");
+                            arguments.PushNil();
+                        }
+
+                        break;
                     }
                 }
             }
+            else
+            {
+                arguments.PushString(value);
+            }
         }
     }
-}
-*/
+    else if (request.method == "POST")
+    {
+        // TODO: Don't create a copy. Also, the string view is not null-terminated.
+        arguments.ReadFromJSONString(std::string(request.body).c_str());
+    }
 
-bool CResource::ProcessCallRequest(mtasa::HTTPRequest& request, mtasa::HTTPResponse& response)
-{
-    // HandleRequestCall(ipoHttpRequest, ipoHttpResponse, pAccount);
+    CLuaArguments FormData;
+    // TODO
+    // for (const auto& pair : ipoHttpRequest->oFormValueMap)
+    // {
+    //     FormData.PushString(pair.first.c_str());
+    //     FormData.PushString(pair.second.sBody.c_str());
+    // }
+
+    CLuaArguments Cookies;
+    // TODO
+    // for (const auto& pair : ipoHttpRequest->oCookieMap)
+    // {
+    //     Cookies.PushString(pair.first.c_str());
+    //     Cookies.PushString(pair.second.c_str());
+    // }
+
+    CLuaArguments headers;
+
+    for (const HTTPHeader& header : request.headers)
+    {
+        if (header.name.empty())
+            break;
+
+        headers.PushString(std::string(header.name));
+        headers.PushString(std::string(header.value));
+    }
+
+    LUA_CHECKSTACK(m_pVM->GetVM(), 1);            // Ensure some room
+
+    // cache old data
+    lua_getglobal(m_pVM->GetVM(), "form");
+    CLuaArgument OldForm(m_pVM->GetVM(), -1);
+    lua_pop(m_pVM->GetVM(), 1);
+
+    lua_getglobal(m_pVM->GetVM(), "cookies");
+    CLuaArgument OldCookies(m_pVM->GetVM(), -1);
+    lua_pop(m_pVM->GetVM(), 1);
+
+    lua_getglobal(m_pVM->GetVM(), "requestHeaders");
+    CLuaArgument OldHeaders(m_pVM->GetVM(), -1);
+    lua_pop(m_pVM->GetVM(), 1);
+
+    lua_getglobal(m_pVM->GetVM(), "hostname");
+    CLuaArgument OldHostname(m_pVM->GetVM(), -1);
+    lua_pop(m_pVM->GetVM(), 1);
+
+    lua_getglobal(m_pVM->GetVM(), "url");
+    CLuaArgument OldURL(m_pVM->GetVM(), -1);
+    lua_pop(m_pVM->GetVM(), 1);
+
+    lua_getglobal(m_pVM->GetVM(), "user");
+    CLuaArgument OldUser(m_pVM->GetVM(), -1);
+    lua_pop(m_pVM->GetVM(), 1);
+
+    // push new data
+    FormData.PushAsTable(m_pVM->GetVM());
+    lua_setglobal(m_pVM->GetVM(), "form");
+
+    Cookies.PushAsTable(m_pVM->GetVM());
+    lua_setglobal(m_pVM->GetVM(), "cookies");
+
+    headers.PushAsTable(m_pVM->GetVM());
+    lua_setglobal(m_pVM->GetVM(), "requestHeaders");
+
+    lua_pushstring(m_pVM->GetVM(), "TODO");
+    lua_setglobal(m_pVM->GetVM(), "hostname");
+
+    lua_pushstring(m_pVM->GetVM(), "TODO");
+    lua_setglobal(m_pVM->GetVM(), "url");
+
+    lua_pushaccount(m_pVM->GetVM(), request.auth.account);
+    lua_setglobal(m_pVM->GetVM(), "user");
+
+    CLuaArguments Returns;
+    arguments.CallGlobal(m_pVM, functionName.c_str(), &Returns);
+
+    // restore old data
+    OldForm.Push(m_pVM->GetVM());
+    lua_setglobal(m_pVM->GetVM(), "form");
+
+    OldCookies.Push(m_pVM->GetVM());
+    lua_setglobal(m_pVM->GetVM(), "cookies");
+
+    OldHeaders.Push(m_pVM->GetVM());
+    lua_setglobal(m_pVM->GetVM(), "requestHeaders");
+
+    OldHostname.Push(m_pVM->GetVM());
+    lua_setglobal(m_pVM->GetVM(), "hostname");
+
+    OldURL.Push(m_pVM->GetVM());
+    lua_setglobal(m_pVM->GetVM(), "url");
+
+    OldUser.Push(m_pVM->GetVM());
+    lua_setglobal(m_pVM->GetVM(), "user");
+
+    // Set debug info in case error occurs in WriteToJSONString
+    g_pGame->GetScriptDebugging()->SaveLuaDebugInfo(SLuaDebugInfo(m_strResourceName, INVALID_LINE_NUMBER, SString("[HTTP:%s]", functionName.c_str())));
+
+    std::string strJSON;
+    Returns.WriteToJSONString(strJSON, true);
+
+    g_pGame->GetScriptDebugging()->SaveLuaDebugInfo(SLuaDebugInfo());
+
+    response.statusCode = 200;
+    response.body = std::move(strJSON);
     return true;
 }
 

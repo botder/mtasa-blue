@@ -20,7 +20,16 @@ class CAccount;
 
 namespace mtasa
 {
+    std::string httpDecode(std::string_view input, bool isURLParameter);
+
     class HTTPHeader
+    {
+    public:
+        std::string_view name;
+        std::string_view value;
+    };
+
+    class HTTPParameter
     {
     public:
         std::string_view name;
@@ -47,6 +56,7 @@ namespace mtasa
     {
     public:
         static constexpr std::size_t MAX_HEADERS = 40;
+        static constexpr std::size_t MAX_PARAMETERS = 25;
 
     public:
         bool TryGetHeader(std::string_view headerName, HTTPHeader& out) const noexcept
@@ -77,7 +87,8 @@ namespace mtasa
         std::string_view body;
         std::string_view host;
 
-        std::array<HTTPHeader, MAX_HEADERS> headers;
+        std::array<HTTPParameter, MAX_PARAMETERS> parameters;
+        std::array<HTTPHeader, MAX_HEADERS>       headers;
     };
 
     class HTTPResponse

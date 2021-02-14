@@ -151,6 +151,32 @@ namespace mtasa
             return;
         }
 
+        if (!request.query.empty())
+        {
+            std::size_t i = 0;
+            std::size_t offset = 0;
+
+            while (i < HTTPRequest::MAX_PARAMETERS && offset != std::string_view::npos)
+            {
+                std::size_t      ampersand = request.query.find('&', offset);
+                std::string_view parameter = request.query.substr(0, ampersand);
+
+                if (!parameter.empty())
+                {
+                    std::size_t equals = parameter.find('=');
+
+                    if (equals > 0)
+                    {
+                        request.parameters[i].name = parameter.substr(0, equals);
+                        request.parameters[i].value = parameter.substr(equals + 1);
+                        i++;
+                    }
+                }
+
+                offset = (ampersand == std::string_view::npos) ? ampersand : (ampersand + 1);
+            }
+        }
+
         HTTPResponse response;
         server->ProcessRequest(request, response);
 

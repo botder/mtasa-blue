@@ -10,7 +10,9 @@
 
 #include "StdInc.h"
 #include "ServerFactory.h"
+#include "CLogger.h"
 #include <sstream>
+#include <stdio.h>
 
 #ifdef _CRT_SECURE_NO_WARNINGS
     #undef _CRT_SECURE_NO_WARNINGS // redefined in mongoose.h
@@ -88,47 +90,136 @@ namespace mtasa
 
     void MongooseHTTPServerCallback(mg_connection* connection, int event, void* eventdata, void* userdata)
     {
+        auto server = reinterpret_cast<HTTPServer*>(userdata);
+
         if (event == MG_EV_ERROR)
         {
-            auto        error = reinterpret_cast<const char*>(eventdata);
-            std::string message = "WEBSERVER ERROR: ";
-            message += error;
-            OutputDebugLine(message.c_str());
+            auto error = reinterpret_cast<const char*>(eventdata);
+            CLogger::LogPrintf("HTTP server error: %s", error);
             return;
         }
 
         if (event != MG_EV_HTTP_MSG)
             return;
 
-        // auto server = reinterpret_cast<Server*>(userdata);
+        auto message = reinterpret_cast<mg_http_message*>(eventdata);
 
-        auto request = reinterpret_cast<mg_http_message*>(eventdata);
+        HTTPRequest request;
+        request.protocol = std::string_view(message->proto.ptr, message->proto.len);
+        request.method = std::string_view(message->method.ptr, message->method.len);
+        request.uri = std::string_view(message->uri.ptr, message->uri.len);
+        request.query = std::string_view(message->query.ptr, message->query.len);
+        request.body = std::string_view(message->body.ptr, message->body.len);
 
-        std::stringstream ss;
-
-        ss << std::string_view(request->proto.ptr, request->proto.len) << " REQUEST: <" << std::string_view(request->method.ptr, request->method.len) << "> "
-           << std::string_view(request->uri.ptr, request->uri.len) << " [query: " << std::string_view(request->query.ptr, request->query.len) << "]";
-
-        OutputDebugLine(ss.str().c_str());
-        OutputDebugLine("HEADERS:");
-
-        for (int i = 0; i < MG_MAX_HTTP_HEADERS; i++)
+        for (std::size_t i = 0; i < std::min<std::size_t>(HTTPRequest::MAX_HEADERS, MG_MAX_HTTP_HEADERS); i++)
         {
-            mg_http_header& header = request->headers[i];
+            mg_http_header& header = message->headers[i];
 
             if (header.name.ptr == nullptr)
                 break;
 
-            std::stringstream hss;
-            hss << "    " << std::string_view(header.name.ptr, header.name.len) << " := " << std::string_view(header.value.ptr, header.value.len);
-            OutputDebugLine(hss.str().c_str());
+            request.headers[i] = HTTPHeader{std::string_view(header.name.ptr, header.name.len), std::string_view(header.value.ptr, header.value.len)};
         }
 
-        OutputDebugLine("BODY:");
-        std::string body(std::string_view(request->body.ptr, request->body.len));
-        OutputDebugLine(body.c_str());
+        HTTPResponse response;
 
-        mg_http_reply(connection, 200, nullptr, "Hello, world!");
+        const HTTPServer::RequestHandler& handler = server->GetRequestHandler();
+
+        if (handler)
+            handler(request, response);
+
+        if (!HTTPResponse::IsStandardStatusCode(response.statusCode))
+        {
+            mg_http_reply(connection, 500, nullptr, "Internal Server Error");
+            CLogger::LogPrintf("HTTP server error: non-standard response status code %d", response.statusCode);
+            return;
+        }
+
+        // Add 'Content-Length' header
+        response.headers.try_emplace("Content-Length", std::to_string(response.body.size()));
+
+        // Allocate or resize response buffer
+        std::vector<char>& buffer = server->GetResponseBuffer();
+        std::size_t maxHeaderSize = server->GetMaxHeaderSize();
+        std::size_t remainingBufferSize = buffer.capacity();
+        std::size_t bufferOffset = 0;
+
+        if (remainingBufferSize < (HTTPServer::RESPONSE_BUFFER_PROVISION + maxHeaderSize))
+        {
+            buffer.reserve(HTTPServer::RESPONSE_BUFFER_PROVISION + maxHeaderSize);
+            remainingBufferSize = buffer.capacity();
+        }
+
+        // Write initial response line
+        int offset = snprintf(buffer.data(), buffer.capacity(), "HTTP/1.1 %d OK\r\n", response.statusCode);
+        
+        if (offset < 0)
+        {
+            mg_http_reply(connection, 500, nullptr, "Internal Server Error");
+            CLogger::LogPrint("HTTP server error: failed to write initial response line");
+            return;
+        }
+
+        bufferOffset = offset;
+        remainingBufferSize -= bufferOffset;
+
+        // Write headers to buffer
+        std::size_t headerSize = 0;
+
+        for (const auto& [name, value] : response.headers)
+        {
+            if (name.empty() || value.empty())
+                continue;
+
+            std::size_t requiredBufferSize = name.size() + 2 + value.size() + 2;
+
+            if (requiredBufferSize > remainingBufferSize)
+            {
+                mg_http_reply(connection, 500, nullptr, "Internal Server Error");
+                CLogger::LogPrint("HTTP server error: response max header size reached");
+                return;
+            }
+
+            headerSize += requiredBufferSize;
+
+            strncat_s(buffer.data() + bufferOffset, remainingBufferSize, name.c_str(), name.size());
+            bufferOffset += name.size();
+            remainingBufferSize -= name.size();
+
+            strncat_s(buffer.data() + bufferOffset, remainingBufferSize, ": ", 2);
+            bufferOffset += 2;
+            remainingBufferSize -= 2;
+
+            strncat_s(buffer.data() + bufferOffset, remainingBufferSize, value.c_str(), value.size());
+            bufferOffset += value.size();
+            remainingBufferSize -= value.size();
+
+            strncat_s(buffer.data() + bufferOffset, remainingBufferSize, "\r\n", 2);
+            bufferOffset += 2;
+            remainingBufferSize -= 2;
+        }
+
+        if (headerSize > maxHeaderSize)
+        {
+            mg_http_reply(connection, 500, nullptr, "Internal Server Error");
+            CLogger::LogPrint("HTTP server error: response max header size reached");
+            return;
+        }
+
+        if (remainingBufferSize < 2)
+        {
+            mg_http_reply(connection, 500, nullptr, "Internal Server Error");
+            CLogger::LogPrint("HTTP server error: response header not terminated");
+            return;
+        }
+
+        strncat_s(buffer.data() + bufferOffset, remainingBufferSize, "\r\n", 2);
+        bufferOffset += 2;
+        remainingBufferSize -= 2;
+
+        // Send response
+        mg_send(connection, buffer.data(), bufferOffset);
+        mg_send(connection, response.body.c_str(), response.body.size());
     }
 }            // namespace mtasa
 
@@ -154,39 +245,6 @@ CHTTPD::CHTTPD()
 */
 
 /*
-bool CHTTPD::StartHTTPD(const char* szIP, unsigned int port)
-{
-    bool bResult = false;
-
-    // Server not already started?
-    if (!m_bStartedServer)
-    {
-        EHSServerParameters parameters;
-
-        parameters["port"] = std::to_string(port);
-
-        if (szIP && szIP[0])
-        {
-            // Convert the dotted ip to a long
-            long lIP = inet_addr(szIP);
-            parameters["bindip"] = lIP;
-        }
-        else
-        {
-            // Bind to default;
-            parameters["bindip"] = (long)INADDR_ANY;
-        }
-
-        parameters["mode"] = "threadpool";            // or "singlethreaded"/"threadpool"
-        parameters["threadcount"] = g_pGame->GetConfig()->GetHTTPThreadCount();
-
-        bResult = (StartServer(parameters) == STARTSERVER_SUCCESS);
-        m_bStartedServer = true;
-    }
-
-    return bResult;
-}
-
 // Called from worker thread. Careful now.
 // Do some stuff before allowing EHS to do the proper routing
 HttpResponse* CHTTPD::RouteRequest(HttpRequest* ipoHttpRequest)

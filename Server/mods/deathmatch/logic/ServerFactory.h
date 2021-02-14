@@ -12,18 +12,72 @@
 
 #include <thread>
 #include <atomic>
+#include <vector>
 #include <memory>
+#include <functional>
+#include <string_view>
+#include <array>
+#include <unordered_map>
 
 namespace mtasa
 {
+    class HTTPHeader
+    {
+    public:
+        std::string_view name;
+        std::string_view value;
+    };
+
+    class HTTPRequest
+    {
+    public:
+        static constexpr std::size_t MAX_HEADERS = 40;
+
+    public:
+        std::string_view protocol;
+        std::string_view method;
+        std::string_view uri;
+        std::string_view query;
+        std::string_view body;
+
+        std::array<HTTPHeader, MAX_HEADERS> headers;
+    };
+
+    class HTTPResponse
+    {
+    public:
+        static constexpr bool IsStandardStatusCode(int code) { return code >= 100 && code <= 599; }
+
+    public:
+        int                                          statusCode = 500;
+        std::unordered_map<std::string, std::string> headers;
+        std::string                                  body;
+    };
+
     class HTTPServer
     {
+    public:
+        static constexpr std::size_t RESPONSE_BUFFER_PROVISION = 128;
+
+        using RequestHandler = std::function<void(const HTTPRequest&, HTTPResponse&)>;
+
     public:
         void  SetHandle(void* handle) noexcept { m_handle = handle; }
         void* GetHandle() const noexcept { return m_handle; }
 
+        void                  SetRequestHandler(RequestHandler handler) noexcept { m_requestHandler = handler; }
+        const RequestHandler& GetRequestHandler() const noexcept { return m_requestHandler; }
+
+        void        SetMaxHeaderSize(std::size_t size) noexcept { m_maxHeaderSize = size; }
+        std::size_t GetMaxHeaderSize() const noexcept { return m_maxHeaderSize; }
+
+        std::vector<char>& GetResponseBuffer() noexcept { return m_responseBuffer; }
+
     private:
-        void* m_handle;
+        void*             m_handle = nullptr;
+        RequestHandler    m_requestHandler;
+        std::vector<char> m_responseBuffer;
+        std::size_t       m_maxHeaderSize = 8192;
     };
 
     class ServerFactory
@@ -33,54 +87,10 @@ namespace mtasa
         static void Shutdown();
 
         static std::unique_ptr<HTTPServer> CreateHTTPServer(const char* hostname, unsigned short port);
-        static void                    DestroyServer(std::unique_ptr<HTTPServer>& server);
+        static void                        DestroyServer(std::unique_ptr<HTTPServer>& server);
 
     private:
         static std::atomic_bool ms_isRunning;
         static std::thread      ms_worker;
     };
 }            // namespace mtasa
-
-/*
-#include "ehs/ehs.h"
-
-class CHTTPD : public EHS
-{
-public:
-    CHTTPD();            // start the initial server
-    ~CHTTPD();
-    // EHS interface
-    HttpResponse* RouteRequest(HttpRequest* ipoHttpRequest);
-    ResponseCode  HandleRequest(HttpRequest* ipoHttpRequest, HttpResponse* ipoHttpResponse);
-    void          HttpPulse();
-    bool          ShouldAllowConnection(const char* szAddress);
-
-    // CHTTPD methods
-    bool            StartHTTPD(const char* szIP, unsigned int port);
-    bool            StopHTTPD();
-    void            SetResource(CResource* resource) { m_resource = resource; }
-    CResource*      GetResource() { return m_resource; }
-    class CAccount* CheckAuthentication(HttpRequest* ipoHttpRequest);
-    void            SetDefaultResource(const char* szResourceName) { m_strDefaultResourceName = szResourceName ? szResourceName : ""; }
-    ResponseCode    RequestLogin(HttpRequest* ipoHttpRequest, HttpResponse* ipoHttpResponse);
-
-private:
-    CResource*  m_resource;
-    CHTTPD*     m_server;
-    std::string m_strDefaultResourceName;            // default resource name
-
-    EHSServerParameters m_Parameters;
-
-    bool m_bStartedServer;
-
-    class CAccount*        m_pGuestAccount;
-    map<string, long long> m_LoggedInMap;
-    CConnectHistory        m_BruteForceProtect;
-    CConnectHistory        m_HttpDosProtect;
-    std::set<SString>      m_HttpDosExcludeMap;
-    std::mutex             m_mutexHttpDosProtect;
-    std::mutex             m_mutexLoggedInMap;
-    SString                m_strWarnMessageForIp;
-    CElapsedTime           m_WarnMessageTimer;
-};
-*/

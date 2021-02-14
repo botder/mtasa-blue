@@ -267,18 +267,14 @@ bool CResourceHTMLItem::ProcessRequest(HTTPRequest& request, HTTPResponse& respo
     }
     else
     {
-        // its a raw page
         FILE* file = File::Fopen(m_strResourceFileName.c_str(), "rb");
+
         if (file)
         {
-            fseek(file, 0, SEEK_END);
-            long  lBufferLength = ftell(file);
-            std::string buffer(lBufferLength, '\0');
-            rewind(file);
-            fread(buffer.data(), 1, lBufferLength, file);
             fclose(file);
             response.headers["Content-Type"] = m_strMime;
-            response.body = std::move(buffer);
+            response.body = m_strResourceFileName;
+            response.serveFile = true;
         }
         else
         {

@@ -45,8 +45,7 @@ int CLuaHTTPDefs::httpWrite(lua_State* luaVM)
                 else
                     ulLength = strData.length();
 
-                // html->AppendToPageBuffer(strData, ulLength);
-                // TODO: ^
+                html->AppendToPageBuffer(strData, ulLength);
                 lua_pushboolean(luaVM, true);
                 return 1;
             }
@@ -82,8 +81,7 @@ int CLuaHTTPDefs::httpSetResponseHeader(lua_State* luaVM)
             if (file && file->GetType() == CResourceHTMLItem::RESOURCE_FILE_TYPE_HTML)
             {
                 CResourceHTMLItem* html = (CResourceHTMLItem*)file;
-                // html->SetResponseHeader(strHeaderName, strHeaderValue);
-                // TODO: ^
+                html->SetResponseHeader(strHeaderName, strHeaderValue);
                 lua_pushboolean(luaVM, true);
                 return 1;
             }
@@ -119,8 +117,7 @@ int CLuaHTTPDefs::httpSetResponseCookie(lua_State* luaVM)
             if (file && file->GetType() == CResourceHTMLItem::RESOURCE_FILE_TYPE_HTML)
             {
                 CResourceHTMLItem* html = (CResourceHTMLItem*)file;
-                // html->SetResponseCookie(strCookieName, strCookieValue);
-                // TODO: ^
+                html->SetResponseCookie(strCookieName, strCookieValue);
                 lua_pushboolean(luaVM, true);
                 return 1;
             }
@@ -154,8 +151,7 @@ int CLuaHTTPDefs::httpSetResponseCode(lua_State* luaVM)
             if (file && file->GetType() == CResourceHTMLItem::RESOURCE_FILE_TYPE_HTML)
             {
                 CResourceHTMLItem* html = (CResourceHTMLItem*)file;
-                // html->SetResponseCode(uiResponseCode);
-                // TODO: ^
+                html->SetResponseCode(uiResponseCode);
                 lua_pushboolean(luaVM, true);
                 return 1;
             }
@@ -183,8 +179,7 @@ int CLuaHTTPDefs::httpClear(lua_State* luaVM)
         if (file && file->GetType() == CResourceHTMLItem::RESOURCE_FILE_TYPE_HTML)
         {
             CResourceHTMLItem* html = (CResourceHTMLItem*)file;
-            // html->ClearPageBuffer();
-            // TODO: ^
+            html->ClearPageBuffer();
             lua_pushboolean(luaVM, true);
             return 1;
         }
@@ -210,9 +205,8 @@ int CLuaHTTPDefs::httpRequestLogin(lua_State* luaVM)
 
             char szName[255];
             sprintf(szName, "Basic realm=\"%s\"", m_pMainConfig->GetServerName().c_str());
-            // html->SetResponseHeader("WWW-Authenticate", szName);
-            // html->SetResponseCode(401);
-            // TODO: ^
+            html->SetResponseHeader("WWW-Authenticate", szName);
+            html->SetResponseCode(401);
             lua_pushboolean(luaVM, true);
             return 1;
         }

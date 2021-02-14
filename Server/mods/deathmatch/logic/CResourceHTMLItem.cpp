@@ -10,6 +10,9 @@
 
 #include "StdInc.h"
 #include "CResourceHTMLItem.h"
+#include "HTTPServer.h"
+
+using namespace mtasa;
 
 extern CServerInterface* g_pServerInterface;
 extern CGame*            g_pGame;
@@ -32,127 +35,6 @@ CResourceHTMLItem::~CResourceHTMLItem()
     Stop();
 }
 
-/*
-ResponseCode CResourceHTMLItem::Request(HttpRequest* ipoHttpRequest, HttpResponse* ipoHttpResponse, CAccount* account)
-{
-    if (!m_pVM)
-        Start();
-
-    if (m_bIsBeingRequested)
-    {
-        ipoHttpResponse->SetBody("Busy!", strlen("Busy!"));
-        return HTTPRESPONSECODE_500_INTERNALSERVERERROR;
-    }
-
-    m_bIsBeingRequested = true;
-
-    m_responseCode = HTTPRESPONSECODE_200_OK;
-
-    if (!m_bIsRaw)
-    {
-        ipoHttpResponse->oResponseHeaders["content-type"] = m_strMime;
-
-        CLuaArguments formData;
-        for (FormValueMap::iterator iter = ipoHttpRequest->oFormValueMap.begin(); iter != ipoHttpRequest->oFormValueMap.end(); iter++)
-        {
-            formData.PushString((*iter).first.c_str());
-            formData.PushString(((FormValue)(*iter).second).sBody.c_str());
-        }
-
-        CLuaArguments cookies;
-        for (CookieMap::iterator iter = ipoHttpRequest->oCookieMap.begin(); iter != ipoHttpRequest->oCookieMap.end(); iter++)
-        {
-            cookies.PushString((*iter).first.c_str());
-            cookies.PushString((*iter).second.c_str());
-        }
-
-        CLuaArguments headers;
-        for (StringMap::iterator iter = ipoHttpRequest->oRequestHeaders.begin(); iter != ipoHttpRequest->oRequestHeaders.end(); iter++)
-        {
-            headers.PushString((*iter).first.c_str());
-            headers.PushString((*iter).second.c_str());
-        }
-
-        const char* sMethod = "INVALID";
-        switch (ipoHttpRequest->nRequestMethod)
-        {
-            case REQUESTMETHOD_GET:
-                sMethod = "GET";
-                break;
-            case REQUESTMETHOD_OPTIONS:
-                sMethod = "OPTIONS";
-                break;
-            case REQUESTMETHOD_HEAD:
-                sMethod = "HEAD";
-                break;
-            case REQUESTMETHOD_POST:
-                sMethod = "POST";
-                break;
-            case REQUESTMETHOD_PUT:
-                sMethod = "PUT";
-                break;
-            case REQUESTMETHOD_DELETE:
-                sMethod = "DELETE";
-                break;
-            case REQUESTMETHOD_TRACE:
-                sMethod = "TRACE";
-                break;
-            case REQUESTMETHOD_CONNECT:
-                sMethod = "CONNECT";
-                break;
-            case REQUESTMETHOD_LAST:
-                sMethod = "LAST";
-                break;
-            case REQUESTMETHOD_UNKNOWN:
-                sMethod = "UNKNOWN";
-                break;
-        }
-
-        m_currentResponse = ipoHttpResponse;
-        CLuaArguments querystring(formData);
-        CLuaArguments args;
-        args.PushTable(&headers);                                         // requestHeaders
-        args.PushTable(&formData);                                        // form
-        args.PushTable(&cookies);                                         // cookies
-        args.PushString(ipoHttpRequest->GetAddress().c_str());            // hostname
-        args.PushString(ipoHttpRequest->sOriginalUri.c_str());            // url
-        args.PushTable(&querystring);                                     // querystring
-        args.PushAccount(account);
-        args.PushString(ipoHttpRequest->sBody);                           // requestBody
-        args.PushString(sMethod);                                         // method
-
-        // g_pGame->Lock(); // get the mutex (blocking)
-        args.CallGlobal(m_pVM, "renderPage");
-        // g_pGame->Unlock(); // release the mutex
-
-        ipoHttpResponse->SetBody(m_strPageBuffer.c_str(), m_strPageBuffer.size());
-        m_strPageBuffer.clear();
-    }
-    else
-    {
-        // its a raw page
-        FILE* file = File::Fopen(m_strResourceFileName.c_str(), "rb");
-        if (file)
-        {
-            fseek(file, 0, SEEK_END);
-            long  lBufferLength = ftell(file);
-            char* pBuffer = new char[lBufferLength];
-            rewind(file);
-            fread(pBuffer, 1, lBufferLength, file);
-            fclose(file);
-            ipoHttpResponse->oResponseHeaders["content-type"] = m_strMime;
-            ipoHttpResponse->SetBody(pBuffer, lBufferLength);
-            delete[] pBuffer;
-        }
-        else
-        {
-            ipoHttpResponse->SetBody("Can't read file!", strlen("Can't read file!"));
-        }
-    }
-    m_bIsBeingRequested = false;
-    return m_responseCode;
-}
-
 void CResourceHTMLItem::ClearPageBuffer()
 {
     m_strPageBuffer.clear();
@@ -160,21 +42,23 @@ void CResourceHTMLItem::ClearPageBuffer()
 
 void CResourceHTMLItem::SetResponseHeader(const char* szHeaderName, const char* szHeaderValue)
 {
-    m_currentResponse->oResponseHeaders[szHeaderName] = szHeaderValue;
+    if (m_httpResponse)
+        m_httpResponse->headers[szHeaderName] = szHeaderValue;
 }
 
 void CResourceHTMLItem::SetResponseCode(int responseCode)
 {
-    m_responseCode = (ResponseCode)responseCode;
+    if (m_httpResponse)
+        m_httpResponse->statusCode = responseCode;
 }
 
 void CResourceHTMLItem::SetResponseCookie(const char* szCookieName, const char* szCookieValue)
 {
-    CookieParameters params;
-    Datum            data;
-    data = szCookieValue;
-    params[szCookieName] = data;
-    m_currentResponse->SetCookie(params);
+    // CookieParameters params;
+    // Datum            data;
+    // data = szCookieValue;
+    // params[szCookieName] = data;
+    // m_currentResponse->SetCookie(params);
 }
 
 bool CResourceHTMLItem::AppendToPageBuffer(const char* szText, size_t length)
@@ -183,7 +67,6 @@ bool CResourceHTMLItem::AppendToPageBuffer(const char* szText, size_t length)
         m_strPageBuffer.append(szText, length);
     return true;
 }
-*/
 
 bool CResourceHTMLItem::Start()
 {
@@ -316,6 +199,96 @@ bool CResourceHTMLItem::Start()
         }
         return false;
     }
+}
+
+bool CResourceHTMLItem::ProcessRequest(HTTPRequest& request, HTTPResponse& response)
+{
+    if (!m_pVM)
+        Start();
+
+    if (m_bIsBeingRequested)
+    {
+        response.statusCode = 500;
+        response.body = "Busy!";
+        return false;
+    }
+
+    m_bIsBeingRequested = true;
+
+    response.statusCode = 200;
+
+    if (!m_bIsRaw)
+    {
+        response.headers["Content-Type"] = m_strMime;
+
+        CLuaArguments formData;
+        // for (FormValueMap::iterator iter = ipoHttpRequest->oFormValueMap.begin(); iter != ipoHttpRequest->oFormValueMap.end(); iter++)
+        // {
+        //     formData.PushString((*iter).first.c_str());
+        //     formData.PushString(((FormValue)(*iter).second).sBody.c_str());
+        // }
+
+        CLuaArguments cookies;
+        // for (CookieMap::iterator iter = ipoHttpRequest->oCookieMap.begin(); iter != ipoHttpRequest->oCookieMap.end(); iter++)
+        // {
+        //     cookies.PushString((*iter).first.c_str());
+        //     cookies.PushString((*iter).second.c_str());
+        // }
+
+        CLuaArguments headers;
+
+        for (const HTTPHeader& header : request.headers)
+        {
+            if (header.name.empty())
+                break;
+
+            headers.PushString(std::string(header.name));
+            headers.PushString(std::string(header.value));
+        }
+
+        CLuaArguments querystring(formData);
+        CLuaArguments args;
+        args.PushTable(&headers);                                         // requestHeaders
+        args.PushTable(&formData);                                        // form
+        args.PushTable(&cookies);                                         // cookies
+        args.PushString("TODO");            // hostname
+        args.PushString("TODO");            // url
+        args.PushTable(&querystring);                                     // querystring
+        args.PushAccount(request.auth.account);
+        args.PushString(std::string(request.body));            // requestBody
+        args.PushString(std::string(request.method));                          // method
+        // TODO: ^ to upper
+
+        m_httpResponse = &response;
+        args.CallGlobal(m_pVM, "renderPage");
+        m_httpResponse = nullptr;
+
+        response.body = std::move(m_strPageBuffer);
+    }
+    else
+    {
+        // its a raw page
+        FILE* file = File::Fopen(m_strResourceFileName.c_str(), "rb");
+        if (file)
+        {
+            fseek(file, 0, SEEK_END);
+            long  lBufferLength = ftell(file);
+            std::string buffer(lBufferLength, '\0');
+            rewind(file);
+            fread(buffer.data(), 1, lBufferLength, file);
+            fclose(file);
+            response.headers["Content-Type"] = m_strMime;
+            response.body = std::move(buffer);
+        }
+        else
+        {
+            response.statusCode = 500;
+            response.body = "Can't read file!";
+        }
+    }
+
+    m_bIsBeingRequested = false;
+    return response.statusCode == 200;
 }
 
 void CResourceHTMLItem::GetMimeType(const char* szFilename)

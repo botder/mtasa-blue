@@ -13,6 +13,7 @@
 //#define RESOURCE_DEBUG_MESSAGES
 
 #include "StdInc.h"
+#include "HTTPServer.h"
 #include "net/SimHeaders.h"
 #ifndef WIN32
 #include <utime.h>
@@ -21,6 +22,8 @@
 #ifndef MAX_PATH
 #define MAX_PATH 260
 #endif
+
+using namespace mtasa;
 
 int           do_extract_currentfile(unzFile uf, const int* popt_extract_without_path, int* popt_overwrite, const char* password, const char* szFilePath);
 unsigned long get_current_file_crc(unzFile uf);
@@ -90,13 +93,6 @@ bool CResource::Load()
     time(&m_timeLoaded);
     m_timeStarted = 0;
 
-    // Register us in the EHS stuff
-    /*
-    g_pGame->GetHTTPD()->RegisterEHS(this, m_strResourceName.c_str());
-    this->m_oEHSServerParameters["norouterequest"] = true;
-    this->RegisterEHS(this, "call");
-    */
-
     // Store the actual directory and zip paths for fast access
     m_strResourceDirectoryPath = PathJoin(m_strAbsPath, m_strResourceName, "/");
     m_strResourceCachePath = PathJoin(g_pServerInterface->GetServerModPath(), "resource-cache", "unzipped", m_strResourceName, "/");
@@ -106,9 +102,6 @@ bool CResource::Load()
     {
         if (!UnzipResource())
         {
-            // Unregister EHS stuff
-            // g_pGame->GetHTTPD()->UnregisterEHS(m_strResourceName.c_str());
-
             return false;
         }
     }
@@ -117,9 +110,6 @@ bool CResource::Load()
     string strMeta;
     if (!GetFilePath("meta.xml", strMeta))
     {
-        // Unregister the EHS stuff
-        // g_pGame->GetHTTPD()->UnregisterEHS(m_strResourceName.c_str());
-
         // Show error
         m_strFailureReason = SString("Couldn't find meta.xml file for resource '%s'\n", m_strResourceName.c_str());
         CLogger::ErrorPrintf(m_strFailureReason);
@@ -245,7 +235,6 @@ bool CResource::Load()
                 !ReadIncludedHTML(pRoot) || !ReadIncludedExports(pRoot) || !ReadIncludedConfigs(pRoot))
             {
                 delete pMetaFile;
-                // g_pGame->GetHTTPD()->UnregisterEHS(m_strResourceName.c_str());
                 return false;
             }
         }
@@ -269,7 +258,6 @@ bool CResource::Load()
         if (pMetaFile)
             delete pMetaFile;
 
-        // g_pGame->GetHTTPD()->UnregisterEHS(m_strResourceName.c_str());
         return false;
     }
 
@@ -374,9 +362,6 @@ void CResource::TidyUp()
     // Go through each of the dependent resources (those that include this one) and remove the reference to this
     for (CResource* pDependent : m_Dependents)
         pDependent->InvalidateIncludedResourceReference(this);
-
-    // this->UnregisterEHS("call");
-    // g_pGame->GetHTTPD()->UnregisterEHS(m_strResourceName.c_str());
 }
 
 bool CResource::GetInfoValue(const char* szKey, std::string& strValue) const
@@ -2627,111 +2612,6 @@ ResponseCode CResource::HandleRequestCall(HttpRequest* ipoHttpRequest, HttpRespo
     return HTTPRESPONSECODE_200_OK;
 }
 
-ResponseCode CResource::HandleRequestActive(HttpRequest* ipoHttpRequest, HttpResponse* ipoHttpResponse, CAccount* pAccount)
-{
-    const char* szUrl = ipoHttpRequest->sOriginalUri.c_str();
-    std::string strFile;
-
-    if (szUrl[0])
-    {
-        const char* pFileFrom = strchr(szUrl[0] == '/' ? &szUrl[1] : szUrl, '/');
-
-        if (pFileFrom)
-        {
-            pFileFrom++;
-            const char* pFileTo = strchr(pFileFrom, '?');
-
-            if (pFileTo)
-                strFile.assign(pFileFrom, pFileTo - pFileFrom);
-            else
-                strFile = pFileFrom;
-        }
-    }
-
-    Unescape(strFile);
-
-    for (CResourceFile* pResourceFile : m_ResourceFiles)
-    {
-        if (!strFile.empty())
-        {
-            if (strcmp(pResourceFile->GetName(), strFile.c_str()) != 0)
-                continue;
-
-            if (pResourceFile->GetType() == CResourceFile::RESOURCE_FILE_TYPE_HTML)
-            {
-                CResourceHTMLItem* pHtml = (CResourceHTMLItem*)pResourceFile;
-
-                // We need to be active if downloading a HTML file
-                if (m_eState == EResourceState::Running)
-                {
-                    if (!IsHttpAccessAllowed(pAccount))
-                    {
-                        return g_pGame->GetHTTPD()->RequestLogin(ipoHttpRequest, ipoHttpResponse);
-                    }
-
-                    SString strResourceFileName("%s.file.%s", m_strResourceName.c_str(), pHtml->GetName());
-                    if (g_pGame->GetACLManager()->CanObjectUseRight(pAccount->GetName().c_str(), CAccessControlListGroupObject::OBJECT_TYPE_USER,
-                                                                    strResourceFileName.c_str(), CAccessControlListRight::RIGHT_TYPE_RESOURCE,
-                                                                    !pHtml->IsRestricted()))
-                    {
-                        return pHtml->Request(ipoHttpRequest, ipoHttpResponse, pAccount);
-                    }
-
-                    return g_pGame->GetHTTPD()->RequestLogin(ipoHttpRequest, ipoHttpResponse);
-                }
-                else
-                {
-                    SString err("Resource %s is not running.", m_strResourceName.c_str());
-                    ipoHttpResponse->SetBody(err.c_str(), err.size());
-                    return HTTPRESPONSECODE_401_UNAUTHORIZED;
-                }
-            }
-            // Send back any clientfile. Otherwise keep looking for server files matching
-            // this filename. If none match, the file not found will be sent back.
-            else if (pResourceFile->GetType() == CResourceFile::RESOURCE_FILE_TYPE_CLIENT_CONFIG ||
-                     pResourceFile->GetType() == CResourceFile::RESOURCE_FILE_TYPE_CLIENT_SCRIPT ||
-                     pResourceFile->GetType() == CResourceFile::RESOURCE_FILE_TYPE_CLIENT_FILE)
-            {
-                return pResourceFile->Request(ipoHttpRequest, ipoHttpResponse);            // sends back any file in the resource
-            }
-        }
-        else            // handle the default page
-        {
-            if (!IsHttpAccessAllowed(pAccount))
-            {
-                return g_pGame->GetHTTPD()->RequestLogin(ipoHttpRequest, ipoHttpResponse);
-            }
-
-            if (pResourceFile->GetType() == CResourceFile::RESOURCE_FILE_TYPE_HTML)
-            {
-                CResourceHTMLItem* pHtml = (CResourceHTMLItem*)pResourceFile;
-
-                if (pHtml->IsDefaultPage())
-                {
-                    CAccessControlListManager* pACLManager = g_pGame->GetACLManager();
-
-                    SString strResourceFileName("%s.file.%s", m_strResourceName.c_str(), pResourceFile->GetName());
-                    if (pACLManager->CanObjectUseRight(pAccount->GetName().c_str(), CAccessControlListGroupObject::OBJECT_TYPE_USER, m_strResourceName.c_str(),
-                                                       CAccessControlListRight::RIGHT_TYPE_RESOURCE, true) &&
-                        pACLManager->CanObjectUseRight(pAccount->GetName().c_str(), CAccessControlListGroupObject::OBJECT_TYPE_USER,
-                                                       strResourceFileName.c_str(), CAccessControlListRight::RIGHT_TYPE_RESOURCE, !pHtml->IsRestricted()))
-                    {
-                        return pHtml->Request(ipoHttpRequest, ipoHttpResponse, pAccount);
-                    }
-                    else
-                    {
-                        return g_pGame->GetHTTPD()->RequestLogin(ipoHttpRequest, ipoHttpResponse);
-                    }
-                }
-            }
-        }
-    }
-
-    SString err("Cannot find a resource file named '%s' in the resource %s.", strFile.c_str(), m_strResourceName.c_str());
-    ipoHttpResponse->SetBody(err.c_str(), err.size());
-    return HTTPRESPONSECODE_404_NOTFOUND;
-}
-
 // Return true if http access allowed for the supplied account
 bool CResource::IsHttpAccessAllowed(CAccount* pAccount)
 {
@@ -2961,6 +2841,128 @@ bool CResource::UnzipResource()
 
     // Store the hash so we can figure out whether it has changed later
     m_zipHash = CChecksum::GenerateChecksumFromFileUnsafe(m_strResourceZip);
+    return true;
+}
+
+bool CResource::ProcessRequest(mtasa::HTTPRequest& request, mtasa::HTTPResponse& response)
+{
+    if (m_eState != EResourceState::Running)
+    {
+        response.statusCode = 401;
+        response.body = SString("Resource %s is not running.", m_strResourceName.c_str());
+        return false;
+    }
+
+    if (!request.uri.empty())
+    {
+        for (CResourceFile* resourceFile : m_ResourceFiles)
+        {
+            if (request.uri != resourceFile->GetName())
+                continue;
+
+            if (resourceFile->GetType() == CResourceFile::RESOURCE_FILE_TYPE_HTML)
+            {
+                auto html = reinterpret_cast<CResourceHTMLItem*>(resourceFile);
+                // TODO: Authorization
+                return html->ProcessRequest(request, response);
+            }
+            // Send back any clientfile. Otherwise keep looking for server files matching
+            // this filename. If none match, the file not found will be sent back.
+            else if (resourceFile->GetType() == CResourceFile::RESOURCE_FILE_TYPE_CLIENT_CONFIG ||
+                     resourceFile->GetType() == CResourceFile::RESOURCE_FILE_TYPE_CLIENT_SCRIPT ||
+                     resourceFile->GetType() == CResourceFile::RESOURCE_FILE_TYPE_CLIENT_FILE)
+            {
+                return resourceFile->ProcessRequest(request, response);
+            }
+
+            break;
+        }
+    }
+    else
+    {
+        for (CResourceFile* resourceFile : m_ResourceFiles)
+        {
+            if (resourceFile->GetType() != CResourceFile::RESOURCE_FILE_TYPE_HTML)
+                continue;
+
+            auto html = reinterpret_cast<CResourceHTMLItem*>(resourceFile);
+
+            if (!html->IsDefaultPage())
+                continue;
+
+            // TODO: Authorization
+
+            return html->ProcessRequest(request, response);
+        }
+    }
+
+    response.statusCode = 404;
+    response.body = SString("Cannot find a resource file named '%s' in the resource %s.", std::string(request.uri).c_str(), m_strResourceName.c_str());
+    return false;
+}
+
+/*
+
+ResponseCode CResource::HandleRequestActive(HttpRequest* ipoHttpRequest, HttpResponse* ipoHttpResponse, CAccount* pAccount)
+{
+    for (CResourceFile* pResourceFile : m_ResourceFiles)
+    {
+        if (!strFile.empty())
+        {
+
+                    if (!IsHttpAccessAllowed(pAccount))
+                    {
+                        return g_pGame->GetHTTPD()->RequestLogin(ipoHttpRequest, ipoHttpResponse);
+                    }
+
+                    SString strResourceFileName("%s.file.%s", m_strResourceName.c_str(), pHtml->GetName());
+                    if (g_pGame->GetACLManager()->CanObjectUseRight(pAccount->GetName().c_str(), CAccessControlListGroupObject::OBJECT_TYPE_USER,
+                                                                    strResourceFileName.c_str(), CAccessControlListRight::RIGHT_TYPE_RESOURCE,
+                                                                    !pHtml->IsRestricted()))
+                    {
+                        return pHtml->Request(ipoHttpRequest, ipoHttpResponse, pAccount);
+                    }
+
+                    return g_pGame->GetHTTPD()->RequestLogin(ipoHttpRequest, ipoHttpResponse);
+
+        }
+        else            // handle the default page
+        {
+            if (!IsHttpAccessAllowed(pAccount))
+            {
+                return g_pGame->GetHTTPD()->RequestLogin(ipoHttpRequest, ipoHttpResponse);
+            }
+
+            if (pResourceFile->GetType() == CResourceFile::RESOURCE_FILE_TYPE_HTML)
+            {
+                CResourceHTMLItem* pHtml = (CResourceHTMLItem*)pResourceFile;
+
+                if (pHtml->IsDefaultPage())
+                {
+                    CAccessControlListManager* pACLManager = g_pGame->GetACLManager();
+
+                    SString strResourceFileName("%s.file.%s", m_strResourceName.c_str(), pResourceFile->GetName());
+                    if (pACLManager->CanObjectUseRight(pAccount->GetName().c_str(), CAccessControlListGroupObject::OBJECT_TYPE_USER, m_strResourceName.c_str(),
+                                                       CAccessControlListRight::RIGHT_TYPE_RESOURCE, true) &&
+                        pACLManager->CanObjectUseRight(pAccount->GetName().c_str(), CAccessControlListGroupObject::OBJECT_TYPE_USER,
+                                                       strResourceFileName.c_str(), CAccessControlListRight::RIGHT_TYPE_RESOURCE, !pHtml->IsRestricted()))
+                    {
+                        return pHtml->Request(ipoHttpRequest, ipoHttpResponse, pAccount);
+                    }
+                    else
+                    {
+                        return g_pGame->GetHTTPD()->RequestLogin(ipoHttpRequest, ipoHttpResponse);
+                    }
+                }
+            }
+        }
+    }
+}
+*/
+
+bool CResource::ProcessCallRequest(mtasa::HTTPRequest& request, mtasa::HTTPResponse& response)
+{
+    // HandleRequestCall(ipoHttpRequest, ipoHttpResponse, pAccount);
     return true;
 }
 

@@ -23,15 +23,15 @@ public:
 
     bool         Start();
     bool         Stop();
-    /*
-    ResponseCode Request(HttpRequest* ipoHttpRequest, HttpResponse* ipoHttpResponse, class CAccount* account);
-    bool         AppendToPageBuffer(const char* szText, size_t length = 0);
+
+    bool ProcessRequest(mtasa::HTTPRequest& request, mtasa::HTTPResponse& response) override;
+
+    bool AppendToPageBuffer(const char* szText, size_t length = 0);
 
     void SetResponseHeader(const char* szHeaderName, const char* szHeaderValue);
     void SetResponseCode(int responseCode);
     void SetResponseCookie(const char* szCookieName, const char* szCookieValue);
     void ClearPageBuffer();
-    */
 
     bool IsDefaultPage() { return m_bDefault; }
     void SetDefaultPage(bool bDefault) { m_bDefault = bDefault; }
@@ -50,6 +50,8 @@ private:
     bool        m_bRestricted;
 
     bool m_bOOPEnabled;
+
+    mtasa::HTTPResponse* m_httpResponse;
 
     /*
     ResponseCode  m_responseCode;

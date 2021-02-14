@@ -2,7 +2,7 @@
  *
  *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
- *  PURPOSE:     Router to resources for HTTP requests
+ *  PURPOSE:     HTTP authentication with our account manager
  *
  *  Multi Theft Auto is available from https://multitheftauto.com/
  *
@@ -11,19 +11,22 @@
 #pragma once
 
 #include "HTTPServer.h"
-#include <string>
+
+class CAccount;
+class CAccountManager;
 
 namespace mtasa
 {
-    class HTTPResourceRouter : public HTTPMiddleware
+    class HTTPAccountAuth : public HTTPMiddleware
     {
+    public:
+        HTTPAccountAuth();
+
     public:
         bool PreProcessRequest(HTTPRequest& request, HTTPResponse& response) override;
 
-    public:
-        void SetDefaultResource(const char* resourceName) { m_defaultResourceName = std::string(resourceName); }
-
     private:
-        std::string m_defaultResourceName;
+        CAccountManager* m_accountManager = nullptr;
+        CAccount*        m_guestAccount = nullptr;
     };
-}
+}            // namespace mtasa

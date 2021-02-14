@@ -17,6 +17,6 @@ namespace mtasa
     class HTTPServerVerification : public HTTPMiddleware
     {
     public:
-        bool PreProcessRequest(const HTTPServer& server, const HTTPRequest& request, HTTPResponse& response) override;
+        bool PreProcessRequest(HTTPRequest& request, HTTPResponse& response) override;
     };
 }

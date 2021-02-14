@@ -16,7 +16,7 @@
 
 namespace mtasa
 {
-    bool HTTPServerVerification::PreProcessRequest(const HTTPServer& server, const HTTPRequest& request, HTTPResponse& response)
+    bool HTTPServerVerification::PreProcessRequest(HTTPRequest& request, HTTPResponse& response)
     {
         HTTPHeader challenge;
 

@@ -463,6 +463,8 @@ public:
 
     bool IsHTTPServerRunning() const noexcept { return m_httpServer != nullptr; }
 
+    mtasa::HTTPServerManager* GetHTTPServer() noexcept { return m_httpServer.get(); }
+
 private:
     void AddBuiltInEvents();
     void RelayPlayerPuresync(class CPacket& Packet);

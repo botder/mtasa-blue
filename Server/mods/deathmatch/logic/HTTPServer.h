@@ -14,6 +14,9 @@
 #include <array>
 #include <string_view>
 #include <unordered_map>
+#include <cstdint>
+
+class CAccount;
 
 namespace mtasa
 {
@@ -22,6 +25,22 @@ namespace mtasa
     public:
         std::string_view name;
         std::string_view value;
+    };
+
+    class HTTPConnection
+    {
+    public:
+        bool             isIPv6 = false;
+        std::string_view ip;
+        std::uint16_t    port = 0;
+    };
+
+    class HTTPAuthentication
+    {
+    public:
+        std::string_view username;
+        std::string_view password;
+        CAccount*        account = nullptr; // for convenience
     };
 
     class HTTPRequest
@@ -48,11 +67,15 @@ namespace mtasa
         }
 
     public:
+        HTTPConnection     connection;
+        HTTPAuthentication auth;
+
         std::string_view protocol;
         std::string_view method;
         std::string_view uri;
         std::string_view query;
         std::string_view body;
+        std::string_view host;
 
         std::array<HTTPHeader, MAX_HEADERS> headers;
     };
@@ -66,6 +89,7 @@ namespace mtasa
         int                                          statusCode = 500;
         std::unordered_map<std::string, std::string> headers;
         std::string                                  body;
+        bool                                         serveFile = false;
     };
 
     class HTTPServer;
@@ -74,8 +98,8 @@ namespace mtasa
     {
     public:
         virtual ~HTTPMiddleware() = default;
-        virtual bool PreProcessRequest(const HTTPServer& server, const HTTPRequest& request, HTTPResponse& response) { return true; }
-        virtual void PostProcessRequest(const HTTPServer& server, const HTTPRequest& request, HTTPResponse& response) {}
+        virtual bool PreProcessRequest(HTTPRequest& request, HTTPResponse& response) { return true; }
+        virtual void PostProcessRequest(HTTPRequest& request, HTTPResponse& response) {}
     };
 
     class HTTPServer
@@ -92,9 +116,6 @@ namespace mtasa
 
         std::vector<char>& GetResponseBuffer() noexcept { return m_responseBuffer; }
 
-        void               SetBaseAddress(std::string baseAddress) { m_baseAddress = std::move(baseAddress); }
-        const std::string& GetBaseAddress() const noexcept { return m_baseAddress; }
-
         void AppendMiddleware(HTTPMiddleware* middleware)
         {
             if (middleware != nullptr)
@@ -107,13 +128,13 @@ namespace mtasa
                 m_middlewares.erase(std::find(m_middlewares.begin(), m_middlewares.end(), middleware));
         }
 
-        void ProcessRequest(const HTTPRequest& request, HTTPResponse& response)
+        void ProcessRequest(HTTPRequest& request, HTTPResponse& response)
         {
             std::size_t i = 0;
 
             for (; i < m_middlewares.size(); i++)
             {
-                if (!m_middlewares[i]->PreProcessRequest(*this, request, response))
+                if (!m_middlewares[i]->PreProcessRequest(request, response))
                 {
                     break;
                 }
@@ -122,7 +143,7 @@ namespace mtasa
             // The middleware, which aborted the processing, won't be called here
             for (; i-- > 0;)
             {
-                m_middlewares[i]->PostProcessRequest(*this, request, response);
+                m_middlewares[i]->PostProcessRequest(request, response);
             }
         }
 

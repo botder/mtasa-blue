@@ -10,6 +10,7 @@
 
 #include "StdInc.h"
 #include "CMainConfig.h"
+#include "HTTPServerManager.h"
 
 #define MTA_SERVER_CONF_TEMPLATE "mtaserver.conf.template"
 
@@ -720,8 +721,10 @@ bool CMainConfig::LoadExtended()
                                 std::string strName = loadedResource->GetName();
                                 if (!strName.empty())
                                 {
-                                    // g_pGame->GetHTTPD()->SetDefaultResource(strName.c_str());
-                                    // TODO: ^
+                                    if (mtasa::HTTPServerManager* httpServer = g_pGame->GetHTTPServer(); httpServer != nullptr)
+                                    {
+                                        httpServer->SetDefaultResource(strName.c_str());
+                                    }
                                 }
 
                                 bFoundDefault = true;

@@ -12,6 +12,12 @@
 
 #include <map>
 
+namespace mtasa
+{
+    class HTTPRequest;
+    class HTTPResponse;
+}            // namespace mtasa
+
 // This class controls a single resource file. This could be
 // any item contained within the resource, mainly being a
 // map or script.
@@ -45,7 +51,7 @@ public:
     CResourceFile(class CResource* resource, const char* szShortName, const char* szResourceFileName, CXMLAttributes* xmlAttributes);
     virtual ~CResourceFile();
 
-    // virtual ResponseCode Request(HttpRequest* ipoHttpRequest, HttpResponse* ipoHttpResponse);
+    virtual bool ProcessRequest(mtasa::HTTPRequest& request, mtasa::HTTPResponse& response);
 
     virtual bool Start() = 0;
     virtual bool Stop() = 0;

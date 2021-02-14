@@ -32,6 +32,12 @@ class CAccount;
 class CLuaMain;
 class CResourceManager;
 
+namespace mtasa
+{
+    class HTTPRequest;
+    class HTTPResponse;
+}            // namespace mtasa
+
 struct SVersion
 {
     unsigned int m_uiMajor = 0;
@@ -291,9 +297,8 @@ public:
     bool IsResourceZip() const noexcept { return m_bResourceIsZip; }
     bool UnzipResource();
 
-    /*
-    ResponseCode HandleRequest(HttpRequest* ipoHttpRequest, HttpResponse* ipoHttpResponse);
-    */
+    bool ProcessRequest(mtasa::HTTPRequest& request, mtasa::HTTPResponse& response);
+    bool ProcessCallRequest(mtasa::HTTPRequest& request, mtasa::HTTPResponse& response);
 
     std::list<CResourceFile*>::iterator       IterBegin() { return m_ResourceFiles.begin(); }
     std::list<CResourceFile*>::const_iterator IterBegin() const noexcept { return m_ResourceFiles.begin(); }
@@ -357,12 +362,6 @@ private:
     bool CreateVM(bool bEnableOOP);
     bool DestroyVM();
     void TidyUp();
-
-    /*
-    ResponseCode HandleRequestActive(HttpRequest* ipoHttpRequest, HttpResponse* ipoHttpResponse, CAccount* pAccount);
-    ResponseCode HandleRequestCall(HttpRequest* ipoHttpRequest, HttpResponse* ipoHttpResponse, CAccount* pAccount);
-    bool         IsHttpAccessAllowed(CAccount* pAccount);
-    */
 
 private:
     EResourceState m_eState = EResourceState::None;

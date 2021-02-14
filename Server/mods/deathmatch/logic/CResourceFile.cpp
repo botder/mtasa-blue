@@ -10,6 +10,7 @@
 
 #include "StdInc.h"
 #include "CResourceFile.h"
+#include "HTTPServer.h"
 
 CResourceFile::CResourceFile(CResource* resource, const char* szShortName, const char* szResourceFileName, CXMLAttributes* xmlAttributes)
 {
@@ -47,44 +48,39 @@ CResourceFile::~CResourceFile()
 {
 }
 
-/*
-ResponseCode CResourceFile::Request(HttpRequest* ipoHttpRequest, HttpResponse* ipoHttpResponse)
+bool CResourceFile::ProcessRequest(mtasa::HTTPRequest& request, mtasa::HTTPResponse& response)
 {
-    // HACK - Use http-client-files if possible as the resources directory may have been changed since the resource was loaded.
     SString strDstFilePath = GetCachedPathFilename();
 
     FILE* file = File::Fopen(strDstFilePath.c_str(), "rb");
-    if (!file)
-        file = File::Fopen(m_strResourceFileName.c_str(), "rb");
 
-    // its a raw page
     if (file)
     {
-        // Grab the filesize. Don't use the above method because it doesn't account for a changing
-        // filesize incase of for example an included resource (causing bug #2676)
-        fseek(file, 0, SEEK_END);
-        long lBufferLength = ftell(file);
-        rewind(file);
-
-        // Allocate and read the entire file
-        // TODO: This is inefficient.
-        char* szBuffer = new char[lBufferLength + 1];
-        fread(szBuffer, 1, lBufferLength, file);
+        response.body = std::move(strDstFilePath);
         fclose(file);
-
-        //
-        ipoHttpResponse->oResponseHeaders["content-type"] = "application/octet-stream";            // not really the right mime-type
-        ipoHttpResponse->SetBody(szBuffer, lBufferLength);
-        delete[] szBuffer;
-        return HTTPRESPONSECODE_200_OK;
     }
     else
     {
-        ipoHttpResponse->SetBody("Can't read file!", strlen("Can't read file!"));
-        return HTTPRESPONSECODE_500_INTERNALSERVERERROR;
+        file = File::Fopen(m_strResourceFileName.c_str(), "rb");
+
+        if (file)
+        {
+            response.body = m_strResourceFileName;
+            fclose(file);
+        }
     }
+
+    if (response.body.empty())
+    {
+        response.statusCode = 500;
+        response.body = "Can't read file!";
+        return false;
+    }
+
+    response.statusCode = 200;
+    response.serveFile = true;
+    return true;
 }
-*/
 
 SString CResourceFile::GetCachedPathFilename(bool bForceClientCachePath)
 {

@@ -67,6 +67,7 @@ project "Deathmatch"
 		"zlib",
 		"blowfish_bcrypt",
 		"mongoose",
+		"mbedtls", -- for: mongoose
 	}
 
 	filter "system:windows"

@@ -2,7 +2,7 @@
  *
  *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
- *  PURPOSE:     Built-in HTTP webserver
+ *  PURPOSE:     General purpose server manager
  *
  *  Multi Theft Auto is available from https://multitheftauto.com/
  *
@@ -10,6 +10,7 @@
 
 #include "StdInc.h"
 #include "ServerFactory.h"
+#include "HTTPServer.h"
 #include "CLogger.h"
 #include <sstream>
 #include <stdio.h>
@@ -64,13 +65,16 @@ namespace mtasa
         if (!ms_isRunning.load())
             return nullptr;
 
-        std::stringstream address;
-        address << "http://" << hostname << ":" << port;
+        std::stringstream addressBuilder;
+        addressBuilder << "http://" << hostname << ":" << port;
+
+        std::string address = addressBuilder.str();
 
         auto server = std::make_unique<HTTPServer>();
-
-        mg_connection* connection = mg_http_listen(&mongooseManager, address.str().c_str(), &MongooseHTTPServerCallback, server.get());
+        
+        mg_connection* connection = mg_http_listen(&mongooseManager, address.c_str(), &MongooseHTTPServerCallback, server.get());
         server->SetHandle(connection);
+        server->SetBaseAddress(std::move(address));
 
         return std::move(server);
     }
@@ -122,11 +126,7 @@ namespace mtasa
         }
 
         HTTPResponse response;
-
-        const HTTPServer::RequestHandler& handler = server->GetRequestHandler();
-
-        if (handler)
-            handler(request, response);
+        server->ProcessRequest(request, response);
 
         if (!HTTPResponse::IsStandardStatusCode(response.statusCode))
         {
@@ -245,74 +245,11 @@ CHTTPD::CHTTPD()
 */
 
 /*
-// Called from worker thread. Careful now.
-// Do some stuff before allowing EHS to do the proper routing
-HttpResponse* CHTTPD::RouteRequest(HttpRequest* ipoHttpRequest)
-{
-    if (!g_pGame->IsServerFullyUp())
-    {
-        // create an HttpRespose object for the message
-        HttpResponse* poHttpResponse = new HttpResponse(ipoHttpRequest->m_nRequestId, ipoHttpRequest->m_poSourceEHSConnection);
-        SStringX      strWait("The server is not ready. Please try again in a minute.");
-        poHttpResponse->SetBody(strWait.c_str(), strWait.size());
-        poHttpResponse->m_nResponseCode = HTTPRESPONSECODE_200_OK;
-        return poHttpResponse;
-    }
-
-    // Sync with main thread before routing (to a resource)
-    g_pGame->Lock();
-    HttpResponse* poHttpResponse = EHS::RouteRequest(ipoHttpRequest);
-    g_pGame->Unlock();
-
-    return poHttpResponse;
-}
-
 // Called from worker thread. g_pGame->Lock() has already been called.
 // creates a page based on user input -- either displays data from
 //   form or presents a form for users to submit data.
 ResponseCode CHTTPD::HandleRequest(HttpRequest* ipoHttpRequest, HttpResponse* ipoHttpResponse)
 {
-    // Check if server verification was requested
-    auto challenge = ipoHttpRequest->oRequestHeaders["crypto_challenge"];
-    if (ipoHttpRequest->sUri == "/get_verification_key_code" && challenge != "")
-    {
-        auto    path = g_pServerInterface->GetModManager()->GetAbsolutePath("verify.key");
-        SString encodedPublicKey;
-        SharedUtil::FileLoad(path, encodedPublicKey, 392);
-
-        using namespace CryptoPP;
-
-        try
-        {
-            // Load public RSA key from disk
-            RSA::PublicKey publicKey;
-            std::string    base64Data = SharedUtil::Base64decode(encodedPublicKey);
-            StringSource   stringSource(base64Data, true);
-            publicKey.Load(stringSource);
-
-            // Launch encryptor and encrypt
-            RSAES_OAEP_SHA_Encryptor encryptor(publicKey);
-            SecByteBlock             cipherText(encryptor.CiphertextLength(challenge.size()));
-            AutoSeededRandomPool     rng;
-            encryptor.Encrypt(rng, (const CryptoPP::byte*)challenge.data(), challenge.size(), cipherText.begin());
-
-            if (!cipherText.empty())
-            {
-                ipoHttpResponse->SetBody((const char*)cipherText.BytePtr(), cipherText.SizeInBytes());
-                return HTTPRESPONSECODE_200_OK;
-            }
-            else
-                CLogger::LogPrintf(LOGLEVEL_MEDIUM, "ERROR: Empty crypto challenge was passed during verification\n");
-        }
-        catch (const std::exception&)
-        {
-            CLogger::LogPrintf(LOGLEVEL_MEDIUM, "ERROR: Invalid verify.key keyfile\n");
-        }
-
-        ipoHttpResponse->SetBody("", 0);
-        return HTTPRESPONSECODE_401_UNAUTHORIZED;
-    }
-
     CAccount* account = CheckAuthentication(ipoHttpRequest);
 
     if (account)

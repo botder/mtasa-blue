@@ -109,7 +109,7 @@ class CFunctionUseLogger;
 
 namespace mtasa
 {
-    class HTTPServer;
+    class HTTPServerManager;
 }
 
 // Packet forward declarations
@@ -556,7 +556,7 @@ private:
     CLanBroadcast*             m_pLanBroadcast;
     CWaterManager*             m_pWaterManager;
 
-    std::unique_ptr<mtasa::HTTPServer> m_httpServer;
+    std::unique_ptr<mtasa::HTTPServerManager> m_httpServer;
 
     CWeaponStatManager*      m_pWeaponStatsManager;
     CBuildingRemovalManager* m_pBuildingRemovalManager;

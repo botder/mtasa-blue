@@ -15,6 +15,7 @@
 #include "../utils/CHqComms.h"
 #include "../utils/CFunctionUseLogger.h"
 #include "net/SimHeaders.h"
+#include "HTTPServerManager.h"
 #include "ServerFactory.h"
 #include <signal.h>
 
@@ -254,7 +255,10 @@ CGame::~CGame()
     m_bBeingDeleted = true;
 
     if (m_httpServer)
-        ServerFactory::DestroyServer(m_httpServer);
+    {
+        m_httpServer->Stop();
+        m_httpServer.reset();
+    }
 
     ServerFactory::Shutdown();
 
@@ -635,9 +639,9 @@ bool CGame::Start(int iArgumentCount, char* szArguments[])
 
         unsigned short port = m_pMainConfig->GetHTTPPort();
 
-        m_httpServer = ServerFactory::CreateHTTPServer(hostname.c_str(), port);
+        m_httpServer = std::make_unique<HTTPServerManager>();
 
-        if (!m_httpServer)
+        if (!m_httpServer->Start(hostname.c_str(), port))
         {
             CLogger::ErrorPrintf("Could not start HTTP server on interface '%s' and port '%u'!\n", hostname.c_str(), port);
             return false;

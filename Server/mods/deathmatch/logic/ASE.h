@@ -1,11 +1,10 @@
 /*****************************************************************************
  *
- *  PROJECT:     Multi Theft Auto v1.0
+ *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
- *  FILE:        mods/deathmatch/logic/ASE.h
  *  PURPOSE:     All-Seeing Eye server query protocol handler class
  *
- *  Multi Theft Auto is available from http://www.multitheftauto.com/
+ *  Multi Theft Auto is available from https://multitheftauto.com/
  *
  *****************************************************************************/
 
@@ -22,6 +21,7 @@ class ASE;
     #include <netinet/in.h>
     #include <arpa/inet.h>
     #define sockclose close
+    #define INVALID_SOCKET (-1)
 typedef int SOCKET;
 #endif
 

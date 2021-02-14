@@ -116,6 +116,10 @@ struct SAclRequest;
 // has to be included early to prevent "unknown type name 'CRemoteCall'" in CLuaFunctionParser.h
 #include "CRemoteCalls.h"
 
+// included early to avoid: invalid use of incomplete type ‘class CGame’
+#include "CGame.h"
+extern CGame* g_pGame;
+
 // Lua function definitions
 #include "luadefs/CLuaElementDefs.h"
 #include "luadefs/CLuaAccountDefs.h"
@@ -218,7 +222,6 @@ struct SAclRequest;
 #include "CElementIDs.h"
 #include "CElementRefManager.h"
 #include "CEvents.h"
-#include "CGame.h"
 #include "CGroups.h"
 #include "CHandlingEntry.h"
 #include "CHandlingManager.h"
@@ -310,4 +313,3 @@ struct SAclRequest;
 #include "version.h"
 
 extern CNetServer* g_pRealNetServer;
-extern CGame*      g_pGame;

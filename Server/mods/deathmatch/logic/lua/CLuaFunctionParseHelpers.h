@@ -1,13 +1,14 @@
 /*****************************************************************************
  *
- *  PROJECT:     Multi Theft Auto v1.0
- *               (Shared logic for modifications)
+ *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
- *  FILE:        MTA10_Server/mods/deathmatch/logic/lua/CLuaFunctionParseHelpers.h
  *  PURPOSE:
+ *
+ *  Multi Theft Auto is available from https://multitheftauto.com/
  *
  *****************************************************************************/
 #pragma once
+
 #include "CElementIDs.h"
 #include "CConsoleClient.h"
 

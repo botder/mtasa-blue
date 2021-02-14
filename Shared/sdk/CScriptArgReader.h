@@ -19,11 +19,6 @@
     #include "CScriptDebugging.h"
 #endif
 
-#ifndef MTA_CLIENT
-    #include "CGame.h"
-    extern CGame* g_pGame;
-#endif
-
 /////////////////////////////////////////////////////////////////////////
 //
 // CScriptArgReader

@@ -245,19 +245,19 @@ namespace mtasa
 
             headerSize += requiredBufferSize;
 
-            strncat_s(buffer.data() + bufferOffset, remainingBufferSize, name.c_str(), name.size());
+            strncat(buffer.data() + bufferOffset, name.c_str(), name.size());
             bufferOffset += name.size();
             remainingBufferSize -= name.size();
 
-            strncat_s(buffer.data() + bufferOffset, remainingBufferSize, ": ", 2);
+            strcat(buffer.data() + bufferOffset, ": ");
             bufferOffset += 2;
             remainingBufferSize -= 2;
 
-            strncat_s(buffer.data() + bufferOffset, remainingBufferSize, value.c_str(), value.size());
+            strncat(buffer.data() + bufferOffset, value.c_str(), value.size());
             bufferOffset += value.size();
             remainingBufferSize -= value.size();
 
-            strncat_s(buffer.data() + bufferOffset, remainingBufferSize, "\r\n", 2);
+            strcat(buffer.data() + bufferOffset, "\r\n");
             bufferOffset += 2;
             remainingBufferSize -= 2;
         }
@@ -276,7 +276,7 @@ namespace mtasa
             return;
         }
 
-        strncat_s(buffer.data() + bufferOffset, remainingBufferSize, "\r\n", 2);
+        strcat(buffer.data() + bufferOffset, "\r\n");
         bufferOffset += 2;
         remainingBufferSize -= 2;
 

@@ -10,6 +10,8 @@ project "Client Deathmatch"
 	defines {
 		"LUA_USE_APICHECK",
 		"SDK_WITH_BCRYPT",
+		"CRYPTOPP_DISABLE_SSSE3",
+		"CRYPTOPP_DISABLE_SSE4",
 	}
 	
 	links {

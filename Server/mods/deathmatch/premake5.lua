@@ -35,6 +35,8 @@ project "Deathmatch"
 
 	defines {
 		"SDK_WITH_BCRYPT",
+		"CRYPTOPP_DISABLE_SSSE3",
+		"CRYPTOPP_DISABLE_SSE4",
 	}
 
 	links {

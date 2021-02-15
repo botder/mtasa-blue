@@ -367,6 +367,8 @@ project "cryptopp"
 
 	defines {
 		"USE_PRECOMPILED_HEADERS",
+		"CRYPTOPP_DISABLE_SSSE3",
+		"CRYPTOPP_DISABLE_SSE4",
 	}
 
 	filter "files:8.4.0/iterhash.cpp or files:8.4.0/dll.cpp"

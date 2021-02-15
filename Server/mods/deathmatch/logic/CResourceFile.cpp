@@ -10,7 +10,9 @@
 
 #include "StdInc.h"
 #include "CResourceFile.h"
-#include "HTTPServer.h"
+#include "web/Response.h"
+
+using namespace std::string_view_literals;
 
 CResourceFile::CResourceFile(CResource* resource, const char* szShortName, const char* szResourceFileName, CXMLAttributes* xmlAttributes)
 {
@@ -44,11 +46,7 @@ CResourceFile::CResourceFile(CResource* resource, const char* szShortName, const
             m_attributeMap[(*iter)->GetName()] = (*iter)->GetValue();
 }
 
-CResourceFile::~CResourceFile()
-{
-}
-
-bool CResourceFile::ProcessRequest(mtasa::HTTPRequest& request, mtasa::HTTPResponse& response)
+bool CResourceFile::ProcessRequest(const Request& request, Response& response, mtasa::AuxiliaryMiddlewarePayload& payload)
 {
     SString strDstFilePath = GetCachedPathFilename();
 
@@ -56,7 +54,7 @@ bool CResourceFile::ProcessRequest(mtasa::HTTPRequest& request, mtasa::HTTPRespo
 
     if (file)
     {
-        response.body = std::move(strDstFilePath);
+        response.SetBody(std::move(strDstFilePath), true);
         fclose(file);
     }
     else
@@ -65,20 +63,19 @@ bool CResourceFile::ProcessRequest(mtasa::HTTPRequest& request, mtasa::HTTPRespo
 
         if (file)
         {
-            response.body = m_strResourceFileName;
+            response.SetBody(m_strResourceFileName, true);
             fclose(file);
         }
     }
 
-    if (response.body.empty())
+    if (response.GetBody().empty())
     {
-        response.statusCode = 500;
-        response.body = "Can't read file!";
+        response.SetStatusCode(500);
+        response.SetBody("Can't read file!"sv);
         return false;
     }
 
-    response.statusCode = 200;
-    response.serveFile = true;
+    response.SetStatusCode(200);
     return true;
 }
 

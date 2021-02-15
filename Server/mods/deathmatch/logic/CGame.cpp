@@ -15,8 +15,8 @@
 #include "../utils/CHqComms.h"
 #include "../utils/CFunctionUseLogger.h"
 #include "net/SimHeaders.h"
-#include "HTTPServerManager.h"
-#include "ServerFactory.h"
+#include "HTTPD.h"
+#include "web/Server.h"
 #include <signal.h>
 
 #define MAX_BULLETSYNC_DISTANCE 400.0f
@@ -207,10 +207,10 @@ CGame::CGame() : m_FloodProtect(4, 30000, 30000)            // Max of 4 connecti
 
     memset(&m_bGarageStates[0], 0, sizeof(m_bGarageStates));
 
-    ServerFactory::Initialize();
-
     // init our mutex
     pthread_mutex_init(&mutexhttp, NULL);
+
+    web::Server::Initialize();
 }
 
 void CGame::ResetMapInfo()
@@ -254,13 +254,13 @@ CGame::~CGame()
 {
     m_bBeingDeleted = true;
 
-    if (m_httpServer)
+    if (m_httpServer != nullptr)
     {
         m_httpServer->Stop();
         m_httpServer.reset();
     }
 
-    ServerFactory::Shutdown();
+    web::Server::Shutdown();
 
     // Stop the performance stats modules
     if (CPerfStatManager::GetSingleton() != NULL)
@@ -639,9 +639,9 @@ bool CGame::Start(int iArgumentCount, char* szArguments[])
 
         unsigned short port = m_pMainConfig->GetHTTPPort();
 
-        m_httpServer = std::make_unique<HTTPServerManager>();
+        m_httpServer = std::make_unique<mtasa::HTTPD>();
 
-        if (!m_httpServer->Start(hostname.c_str(), port))
+        if (!m_httpServer->Start(std::string_view(hostname), port))
         {
             CLogger::ErrorPrintf("Could not start HTTP server on interface '%s' and port '%u'!\n", hostname.c_str(), port);
             return false;
@@ -1477,6 +1477,11 @@ void CGame::QuitPlayer(CPlayer& Player, CClient::eQuitReasons Reason, bool bSayI
 
     // Unregister them from the lightweight sync manager
     m_lightsyncManager.UnregisterPlayer(&Player);
+}
+
+bool CGame::IsHTTPServerRunning() const
+{
+    return m_httpServer != nullptr && m_httpServer->IsRunning();
 }
 
 void CGame::AddBuiltInEvents()

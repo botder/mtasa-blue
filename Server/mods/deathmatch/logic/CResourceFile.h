@@ -14,15 +14,24 @@
 
 namespace mtasa
 {
-    class HTTPRequest;
-    class HTTPResponse;
-}            // namespace mtasa
+    namespace web
+    {
+        class Request;
+        class Response;
+    }
+
+    class AuxiliaryMiddlewarePayload;
+}
 
 // This class controls a single resource file. This could be
 // any item contained within the resource, mainly being a
 // map or script.
 class CResourceFile
 {
+protected:
+    using Request = mtasa::web::Request;
+    using Response = mtasa::web::Response;
+
 public:
     enum eResourceType
     {
@@ -49,9 +58,9 @@ protected:
 
 public:
     CResourceFile(class CResource* resource, const char* szShortName, const char* szResourceFileName, CXMLAttributes* xmlAttributes);
-    virtual ~CResourceFile();
+    virtual ~CResourceFile() = default;
 
-    virtual bool ProcessRequest(mtasa::HTTPRequest& request, mtasa::HTTPResponse& response);
+    virtual bool ProcessRequest(const Request& request, Response& response, mtasa::AuxiliaryMiddlewarePayload& payload);
 
     virtual bool Start() = 0;
     virtual bool Stop() = 0;

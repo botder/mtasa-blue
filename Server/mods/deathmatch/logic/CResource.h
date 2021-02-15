@@ -34,9 +34,14 @@ class CResourceManager;
 
 namespace mtasa
 {
-    class HTTPRequest;
-    class HTTPResponse;
-}            // namespace mtasa
+    namespace web
+    {
+        class Request;
+        class Response;
+    }
+
+    class AuxiliaryMiddlewarePayload;
+}
 
 struct SVersion
 {
@@ -150,6 +155,8 @@ struct SResourceStartOptions
 // It's a process-like environment for scripts, maps, images and other files.
 class CResource
 {
+    using Request = mtasa::web::Request;
+    using Response = mtasa::web::Response;
     using KeyValueMap = CFastHashMap<SString, SString>;
 
 public:
@@ -297,8 +304,8 @@ public:
     bool IsResourceZip() const noexcept { return m_bResourceIsZip; }
     bool UnzipResource();
 
-    bool ProcessRequest(mtasa::HTTPRequest& request, mtasa::HTTPResponse& response);
-    bool ProcessCallRequest(mtasa::HTTPRequest& request, mtasa::HTTPResponse& response);
+    bool ProcessRequest(const Request& request, Response& response, mtasa::AuxiliaryMiddlewarePayload& payload);
+    bool ProcessCallRequest(const Request& request, Response& response, mtasa::AuxiliaryMiddlewarePayload& payload);
 
     std::list<CResourceFile*>::iterator       IterBegin() { return m_ResourceFiles.begin(); }
     std::list<CResourceFile*>::const_iterator IterBegin() const noexcept { return m_ResourceFiles.begin(); }

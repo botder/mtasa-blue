@@ -24,7 +24,7 @@ public:
     bool         Start();
     bool         Stop();
 
-    bool ProcessRequest(mtasa::HTTPRequest& request, mtasa::HTTPResponse& response) override;
+    bool ProcessRequest(const Request& request, Response& response, mtasa::AuxiliaryMiddlewarePayload& payload) override;
 
     bool AppendToPageBuffer(const char* szText, size_t length = 0);
 
@@ -51,10 +51,5 @@ private:
 
     bool m_bOOPEnabled;
 
-    mtasa::HTTPResponse* m_httpResponse;
-
-    /*
-    ResponseCode  m_responseCode;
-    HttpResponse* m_currentResponse;
-    */
+    Response* m_httpResponse;
 };

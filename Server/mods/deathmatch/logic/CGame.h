@@ -107,11 +107,6 @@ class CMasterServerAnnouncer;
 class CHqComms;
 class CFunctionUseLogger;
 
-namespace mtasa
-{
-    class HTTPServerManager;
-}
-
 // Packet forward declarations
 class CCommandPacket;
 class CCustomDataPacket;
@@ -133,6 +128,11 @@ class CVoiceDataPacket;
 class CWeaponDamageCheckPacket;
 
 typedef SFixedArray<bool, MAX_GARAGES> SGarageStates;
+
+namespace mtasa
+{
+    class HTTPD;
+}
 
 // CSendList - Can be used like a std::list of players for sending packets.
 //             Used to construct an optimized list of players for CGame::Broadcast
@@ -461,9 +461,9 @@ public:
     bool IsClientTransferBoxVisible() const { return m_showClientTransferBox; }
     void SetClientTransferBoxVisible(bool visible) { m_showClientTransferBox = visible; }
 
-    bool IsHTTPServerRunning() const noexcept { return m_httpServer != nullptr; }
+    bool IsHTTPServerRunning() const;
 
-    mtasa::HTTPServerManager* GetHTTPServer() noexcept { return m_httpServer.get(); }
+    mtasa::HTTPD* GetHTTPServer() noexcept { return m_httpServer.get(); }
 
 private:
     void AddBuiltInEvents();
@@ -558,7 +558,7 @@ private:
     CLanBroadcast*             m_pLanBroadcast;
     CWaterManager*             m_pWaterManager;
 
-    std::unique_ptr<mtasa::HTTPServerManager> m_httpServer;
+    std::unique_ptr<mtasa::HTTPD> m_httpServer;
 
     CWeaponStatManager*      m_pWeaponStatsManager;
     CBuildingRemovalManager* m_pBuildingRemovalManager;

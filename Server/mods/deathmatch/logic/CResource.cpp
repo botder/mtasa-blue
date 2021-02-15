@@ -13,7 +13,10 @@
 //#define RESOURCE_DEBUG_MESSAGES
 
 #include "StdInc.h"
-#include "HTTPServer.h"
+#include "middleware/Middleware.h"
+#include "web/Server.h"
+#include "web/Request.h"
+#include "web/Response.h"
 #include "net/SimHeaders.h"
 #include <charconv>
 #ifndef WIN32
@@ -24,7 +27,7 @@
 #define MAX_PATH 260
 #endif
 
-using namespace mtasa;
+using namespace std::string_view_literals;
 
 int           do_extract_currentfile(unzFile uf, const int* popt_extract_without_path, int* popt_overwrite, const char* password, const char* szFilePath);
 unsigned long get_current_file_crc(unzFile uf);
@@ -2527,27 +2530,27 @@ bool CResource::UnzipResource()
     return true;
 }
 
-bool CResource::ProcessRequest(mtasa::HTTPRequest& request, mtasa::HTTPResponse& response)
+bool CResource::ProcessRequest(const Request& request, Response& response, mtasa::AuxiliaryMiddlewarePayload& payload)
 {
     if (m_eState != EResourceState::Running)
     {
-        response.statusCode = 401;
-        response.body = SString("Resource %s is not running.", m_strResourceName.c_str());
+        response.SetStatusCode(401);
+        response.SetBody(SString("Resource %s is not running.", m_strResourceName.c_str()));
         return false;
     }
 
-    if (!request.uri.empty())
+    if (!payload.relativeResourcePath.empty())
     {
         for (CResourceFile* resourceFile : m_ResourceFiles)
         {
-            if (request.uri != resourceFile->GetName())
+            if (payload.relativeResourcePath != resourceFile->GetName())
                 continue;
 
             if (resourceFile->GetType() == CResourceFile::RESOURCE_FILE_TYPE_HTML)
             {
                 auto html = reinterpret_cast<CResourceHTMLItem*>(resourceFile);
                 // TODO: Authorization
-                return html->ProcessRequest(request, response);
+                return html->ProcessRequest(request, response, payload);
             }
             // Send back any clientfile. Otherwise keep looking for server files matching
             // this filename. If none match, the file not found will be sent back.
@@ -2555,7 +2558,7 @@ bool CResource::ProcessRequest(mtasa::HTTPRequest& request, mtasa::HTTPResponse&
                      resourceFile->GetType() == CResourceFile::RESOURCE_FILE_TYPE_CLIENT_SCRIPT ||
                      resourceFile->GetType() == CResourceFile::RESOURCE_FILE_TYPE_CLIENT_FILE)
             {
-                return resourceFile->ProcessRequest(request, response);
+                return resourceFile->ProcessRequest(request, response, payload);
             }
         }
     }
@@ -2573,35 +2576,42 @@ bool CResource::ProcessRequest(mtasa::HTTPRequest& request, mtasa::HTTPResponse&
 
             // TODO: Authorization
 
-            return html->ProcessRequest(request, response);
+            return html->ProcessRequest(request, response, payload);
         }
     }
 
-    response.statusCode = 404;
-    response.body = SString("Cannot find a resource file named '%s' in the resource %s.", std::string(request.uri).c_str(), m_strResourceName.c_str());
+    response.SetStatusCode(404);
+    response.SetBody(SString("Cannot find a resource file named '%s' in the resource %s.", std::string(payload.relativeResourcePath).c_str(), m_strResourceName.c_str()));
     return false;
 }
 
-bool CResource::ProcessCallRequest(mtasa::HTTPRequest& request, mtasa::HTTPResponse& response)
+bool CResource::ProcessCallRequest(const Request& request, Response& response, mtasa::AuxiliaryMiddlewarePayload& payload)
 {
+    using namespace mtasa::web;
+
     if (m_eState != EResourceState::Running)
     {
-        response.statusCode = 200;
-        response.body = "error: resource not running";
+        response.SetStatusCode(200);
+        response.SetBody("error: resource not running"sv);
         return false;
     }
 
     // A function name over 256 characters is most likely invalid
     // Using `MAX_FUNCTION_NAME_LENGTH` might break compatibility
-    if (request.uri.empty() || request.uri.size() > 256)
+    if (payload.relativeResourcePath.empty() || payload.relativeResourcePath.size() > 256)
     {
-        response.statusCode = 200;
-        response.body = "error: invalid function name";
+        response.SetStatusCode(200);
+        response.SetBody("error: invalid function name"sv);
         return false;
     }
 
+    const URI* uri = request.GetURI();
+
+    if (uri == nullptr)
+        return false;
+
     // TODO: Don't create a copy. Also, the string view is not null-terminated.
-    std::string        functionName(request.uri);
+    std::string        functionName(payload.relativeResourcePath);
     CExportedFunction* function = nullptr;
 
     for (CExportedFunction& exportedFunction : m_ExportedFunctions)
@@ -2615,18 +2625,20 @@ bool CResource::ProcessCallRequest(mtasa::HTTPRequest& request, mtasa::HTTPRespo
 
     if (function == nullptr)
     {
-        response.statusCode = 200;
-        response.body = "error: not found";
+        response.SetStatusCode(200);
+        response.SetBody("error: not found"sv);
         return false;
     }
 
     CLuaArguments arguments;
 
-    if (request.method == "GET")
+    if (request.GetMethod() == "GET")
     {
         std::array<std::string, 25> values;
 
-        for (const HTTPParameter& parameter : request.parameters)
+        std::vector<Parameter> parameters = ParseQuery(uri->query);
+
+        for (const Parameter& parameter : parameters)
         {
             // Skip parameters, whose name doesn't represent a number in the range 0-24
             if (parameter.name.size() > 2)
@@ -2637,7 +2649,7 @@ bool CResource::ProcessCallRequest(mtasa::HTTPRequest& request, mtasa::HTTPRespo
 
             if (result.ec == std::errc{} && index < values.size())
             {
-                values[index] = httpDecode(parameter.value, true);
+                values[index] = Server::Decode(parameter.value, true);
             }
         }
 
@@ -2700,10 +2712,10 @@ bool CResource::ProcessCallRequest(mtasa::HTTPRequest& request, mtasa::HTTPRespo
             }
         }
     }
-    else if (request.method == "POST")
+    else if (request.GetMethod() == "POST")
     {
         // TODO: Don't create a copy. Also, the string view is not null-terminated.
-        arguments.ReadFromJSONString(std::string(request.body).c_str());
+        arguments.ReadFromJSONString(std::string(request.GetBody()).c_str());
     }
 
     CLuaArguments FormData;
@@ -2724,13 +2736,16 @@ bool CResource::ProcessCallRequest(mtasa::HTTPRequest& request, mtasa::HTTPRespo
 
     CLuaArguments headers;
 
-    for (const HTTPHeader& header : request.headers)
+    if (const std::vector<Header>* headerList = request.GetHeaders(); headerList != nullptr)
     {
-        if (header.name.empty())
-            break;
+        for (const Header& header : *headerList)
+        {
+            if (header.name.empty())
+                continue;
 
-        headers.PushString(std::string(header.name));
-        headers.PushString(std::string(header.value));
+            headers.PushString(std::string(header.name));
+            headers.PushString(std::string(header.value));
+        }
     }
 
     LUA_CHECKSTACK(m_pVM->GetVM(), 1);            // Ensure some room
@@ -2776,7 +2791,7 @@ bool CResource::ProcessCallRequest(mtasa::HTTPRequest& request, mtasa::HTTPRespo
     lua_pushstring(m_pVM->GetVM(), "TODO");
     lua_setglobal(m_pVM->GetVM(), "url");
 
-    lua_pushaccount(m_pVM->GetVM(), request.auth.account);
+    lua_pushaccount(m_pVM->GetVM(), payload.account);
     lua_setglobal(m_pVM->GetVM(), "user");
 
     CLuaArguments Returns;
@@ -2809,8 +2824,8 @@ bool CResource::ProcessCallRequest(mtasa::HTTPRequest& request, mtasa::HTTPRespo
 
     g_pGame->GetScriptDebugging()->SaveLuaDebugInfo(SLuaDebugInfo());
 
-    response.statusCode = 200;
-    response.body = std::move(strJSON);
+    response.SetStatusCode(200);
+    response.SetBody(std::move(strJSON));
     return true;
 }
 

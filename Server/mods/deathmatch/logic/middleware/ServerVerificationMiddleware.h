@@ -2,7 +2,7 @@
  *
  *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
- *  PURPOSE:     HTTP server authentication middleware
+ *  PURPOSE:     Middleware for MTA server verification
  *
  *  Multi Theft Auto is available from https://multitheftauto.com/
  *
@@ -10,13 +10,13 @@
 
 #pragma once
 
-#include "HTTPServer.h"
+#include "Middleware.h"
 
 namespace mtasa
 {
-    class HTTPServerVerification : public HTTPMiddleware
+    class ServerVerificationMiddleware : public Middleware
     {
     public:
-        bool PreProcessRequest(HTTPRequest& request, HTTPResponse& response) override;
+        bool PreProcessRequest(const web::Request& request, web::Response& response, AuxiliaryMiddlewarePayload& payload) override;
     };
 }

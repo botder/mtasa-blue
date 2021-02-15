@@ -2,7 +2,7 @@
  *
  *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
- *  PURPOSE:     Router to resources for HTTP requests
+ *  PURPOSE:     Middleware for resource routing
  *
  *  Multi Theft Auto is available from https://multitheftauto.com/
  *
@@ -10,18 +10,17 @@
 
 #pragma once
 
-#include "HTTPServer.h"
-#include <string>
+#include "Middleware.h"
 
 namespace mtasa
 {
-    class HTTPResourceRouter : public HTTPMiddleware
+    class ResourceRouterMiddleware : public Middleware
     {
     public:
-        bool PreProcessRequest(HTTPRequest& request, HTTPResponse& response) override;
+        bool PreProcessRequest(const web::Request& request, web::Response& response, AuxiliaryMiddlewarePayload& payload) override;
 
     public:
-        void SetDefaultResource(const char* resourceName) { m_defaultResourceName = std::string(resourceName); }
+        void SetDefaultResource(std::string_view resourceName) { m_defaultResourceName = std::string(resourceName); }
 
     private:
         std::string m_defaultResourceName;

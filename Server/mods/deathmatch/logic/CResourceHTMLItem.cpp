@@ -10,9 +10,12 @@
 
 #include "StdInc.h"
 #include "CResourceHTMLItem.h"
-#include "HTTPServer.h"
+#include "middleware/Middleware.h"
+#include "web/Server.h"
+#include "web/Request.h"
+#include "web/Response.h"
 
-using namespace mtasa;
+using namespace std::string_view_literals;
 
 extern CServerInterface* g_pServerInterface;
 extern CGame*            g_pGame;
@@ -43,13 +46,17 @@ void CResourceHTMLItem::ClearPageBuffer()
 void CResourceHTMLItem::SetResponseHeader(const char* szHeaderName, const char* szHeaderValue)
 {
     if (m_httpResponse)
-        m_httpResponse->headers[szHeaderName] = szHeaderValue;
+    {
+        m_httpResponse->SetHeader(std::string_view(szHeaderName), std::string_view(szHeaderValue));
+    }
 }
 
 void CResourceHTMLItem::SetResponseCode(int responseCode)
 {
     if (m_httpResponse)
-        m_httpResponse->statusCode = responseCode;
+    {
+        m_httpResponse->SetStatusCode(responseCode);
+    }
 }
 
 void CResourceHTMLItem::SetResponseCookie(const char* szCookieName, const char* szCookieValue)
@@ -201,35 +208,44 @@ bool CResourceHTMLItem::Start()
     }
 }
 
-bool CResourceHTMLItem::ProcessRequest(HTTPRequest& request, HTTPResponse& response)
+bool CResourceHTMLItem::ProcessRequest(const Request& request, Response& response, mtasa::AuxiliaryMiddlewarePayload& payload)
 {
+    using namespace mtasa::web;
+
+    const URI* uri = request.GetURI();
+
+    if (uri == nullptr)
+        return false;
+
     if (!m_pVM)
         Start();
 
     if (m_bIsBeingRequested)
     {
-        response.statusCode = 500;
-        response.body = "Busy!";
+        response.SetStatusCode(500);
+        response.SetBody("Busy"sv);
         return false;
     }
 
     m_bIsBeingRequested = true;
 
-    response.statusCode = 200;
-
+    int statusCode = 200;
+    
     if (!m_bIsRaw)
     {
-        response.headers["Content-Type"] = m_strMime;
+        response.SetMime(m_strMime);
 
         CLuaArguments formData;
 
-        for (const HTTPParameter& parameter : request.parameters)
+        std::vector<Parameter> parameters = ParseQuery(uri->query);
+
+        for (const Parameter& parameter : parameters)
         {
             if (parameter.name.empty())
                 break;
 
             formData.PushString(std::string(parameter.name));
-            formData.PushString(httpDecode(parameter.value, true));
+            formData.PushString(Server::Decode(parameter.value, true));
         }
 
         // for (FormValueMap::iterator iter = ipoHttpRequest->oFormValueMap.begin(); iter != ipoHttpRequest->oFormValueMap.end(); iter++)
@@ -247,13 +263,26 @@ bool CResourceHTMLItem::ProcessRequest(HTTPRequest& request, HTTPResponse& respo
 
         CLuaArguments headers;
 
-        for (const HTTPHeader& header : request.headers)
+        if (const std::vector<Header>* headerList = request.GetHeaders(); headerList != nullptr)
         {
-            if (header.name.empty())
-                break;
+            for (const Header& header : *headerList)
+            {
+                if (header.name.empty())
+                    continue;
 
-            headers.PushString(std::string(header.name));
-            headers.PushString(std::string(header.value));
+                headers.PushString(std::string(header.name));
+                headers.PushString(std::string(header.value));
+            }
+        }
+
+        std::stringstream hostname;
+
+        if (!uri->hostname.empty())
+        {
+            hostname << uri->hostname;
+
+            if (!uri->port.empty())
+                hostname << ":" << uri->port;
         }
 
         CLuaArguments querystring(formData);
@@ -261,19 +290,18 @@ bool CResourceHTMLItem::ProcessRequest(HTTPRequest& request, HTTPResponse& respo
         args.PushTable(&headers);                                         // requestHeaders
         args.PushTable(&formData);                                        // form
         args.PushTable(&cookies);                                         // cookies
-        args.PushString("TODO");            // hostname
-        args.PushString("TODO");            // url
+        args.PushString(hostname.str());            // hostname
+        args.PushString(std::string(uri->path));            // url
         args.PushTable(&querystring);                                     // querystring
-        args.PushAccount(request.auth.account);
-        args.PushString(std::string(request.body));            // requestBody
-        args.PushString(std::string(request.method));                          // method
-        // TODO: ^ to upper
+        args.PushAccount(payload.account);
+        args.PushString(std::string(request.GetBody()));            // requestBody
+        args.PushString(std::string(request.GetMethod()));          // method
 
         m_httpResponse = &response;
         args.CallGlobal(m_pVM, "renderPage");
         m_httpResponse = nullptr;
 
-        response.body = std::move(m_strPageBuffer);
+        response.SetBody(std::move(m_strPageBuffer));
     }
     else
     {
@@ -282,19 +310,19 @@ bool CResourceHTMLItem::ProcessRequest(HTTPRequest& request, HTTPResponse& respo
         if (file)
         {
             fclose(file);
-            response.headers["Content-Type"] = m_strMime;
-            response.body = m_strResourceFileName;
-            response.serveFile = true;
+            response.SetMime(m_strMime);
+            response.SetBody(m_strResourceFileName, true);
         }
         else
         {
-            response.statusCode = 500;
-            response.body = "Can't read file!";
+            statusCode = 500;
+            response.SetBody("Can't read file!"sv);
         }
     }
 
     m_bIsBeingRequested = false;
-    return response.statusCode == 200;
+    response.SetStatusCode(statusCode);
+    return statusCode == 200;
 }
 
 void CResourceHTMLItem::GetMimeType(const char* szFilename)

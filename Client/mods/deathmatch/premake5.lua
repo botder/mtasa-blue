@@ -10,7 +10,6 @@ project "Client Deathmatch"
 	defines {
 		"LUA_USE_APICHECK",
 		"SDK_WITH_BCRYPT",
-		"CRYPTOPP_DISABLE_ASM",
 	}
 	
 	links {

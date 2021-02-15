@@ -20,6 +20,8 @@ project "cryptopp"
 		"8.4.0/cryptlib.cpp",
 		"8.4.0/cpu.cpp",
 		"8.4.0/integer.cpp",
+		"8.4.0/pch.cpp",
+		"8.4.0/simple.cpp",
 		"8.4.0/3way.cpp",
 		"8.4.0/adler32.cpp",
 		"8.4.0/algebra.cpp",
@@ -115,7 +117,6 @@ project "cryptopp"
 		"8.4.0/osrng.cpp",
 		"8.4.0/padlkrng.cpp",
 		"8.4.0/panama.cpp",
-		"8.4.0/pch.cpp",
 		"8.4.0/pkcspad.cpp",
 		"8.4.0/poly1305.cpp",
 		"8.4.0/polynomi.cpp",
@@ -153,7 +154,6 @@ project "cryptopp"
 		"8.4.0/simeck.cpp",
 		"8.4.0/simon.cpp",
 		"8.4.0/simon128_simd.cpp",
-		"8.4.0/simple.cpp",
 		"8.4.0/skipjack.cpp",
 		"8.4.0/sm3.cpp",
 		"8.4.0/sm4.cpp",
@@ -367,7 +367,6 @@ project "cryptopp"
 
 	defines {
 		"USE_PRECOMPILED_HEADERS",
-		"CRYPTOPP_DISABLE_ASM",
 	}
 
 	filter "files:8.4.0/iterhash.cpp or files:8.4.0/dll.cpp"
@@ -384,3 +383,31 @@ project "cryptopp"
 			"4355",
 			"4505",
 		}
+
+		files {
+			"8.4.0/rdrand.asm",
+			"8.4.0/rdseed.asm",
+		}
+
+	filter { "system:windows", "architecture:x64" }
+		files {
+			"8.4.0/x64dll.asm",
+			"8.4.0/x64masm.asm",
+		}
+
+	filter { "system:windows", "platforms:x86", "files:8.4.0/rdrand.asm" }
+		buildcommands { 'ml.exe /c /nologo /D_M_X86 /W3 /Cx /Zi /safeseh /Fo"$(IntDir)rdrand-x86.obj" "%(FullPath)"' }
+		buildoutputs { "$(IntDir)rdrand-x86.obj" }
+
+	filter { "system:windows", "platforms:x64", "files:8.4.0/rdrand.asm" }
+		buildcommands { 'ml64.exe /c /nologo /D_M_X64 /W3 /Cx /Zi /Fo"$(IntDir)rdrand-x64.obj" "%(FullPath)"' }
+		buildoutputs { "$(IntDir)rdrand-x64.obj" }
+
+	filter { "platforms:x86", "files:8.4.0/rdseed.asm" }
+		defines { "_M_X86" }
+	
+	filter { "platforms:x64", "files:8.4.0/rdseed.asm or 8.4.0/x64dll.asm or 8.4.0/x64masm.asm" }
+		defines { "_M_X64" }
+
+	filter "system:macosx"
+		defines { "CRYPTOPP_DISABLE_MIXED_ASM" }

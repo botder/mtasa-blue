@@ -35,7 +35,6 @@ project "Deathmatch"
 
 	defines {
 		"SDK_WITH_BCRYPT",
-		"CRYPTOPP_DISABLE_ASM",
 	}
 
 	links {
@@ -72,6 +71,9 @@ project "Deathmatch"
 
 	filter "system:linux"
 		links { "rt" }
+
+	filter "system:macosx"
+		defines { "CRYPTOPP_DISABLE_MIXED_ASM" }
 
 	filter "platforms:x64"
 		targetdir(buildpath("server/x64"))

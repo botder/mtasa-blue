@@ -313,10 +313,13 @@ namespace mtasa::web
                 memcpy(m_buffer, "\r\n", 2);
                 m_buffer += 2;
 
-                // Send response
+                // Send header
                 mg_send(connection, m_responseBuffer.data(), m_buffer - m_responseBuffer.data());
 
-                if (!body.empty())
+                // Send body (if required)
+                bool headerOnly = iequals("HEAD"sv, std::string_view(message->method.ptr, message->method.len));
+
+                if (!body.empty() && !headerOnly)
                 {
                     mg_send(connection, body.c_str(), body.size());
                 }
@@ -407,7 +410,7 @@ namespace mtasa::web
             // Fill request credentials
             static char username[256];
             static char password[256];
-            mg_http_creds(message, username, std::size(username), password, std::size(password));
+            mg_http_creds(message, username, static_cast<int>(std::size(username)), password, static_cast<int>(std::size(password)));
             request.credentials.username = std::string_view(username);
             request.credentials.password = std::string_view(password);
 

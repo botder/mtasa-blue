@@ -87,8 +87,6 @@ namespace mtasa
             return false;
         }
 
-        response.SetHeader("MTA-Resource"sv, resourceName);
-
         if (path.substr(0, 6) == "/call/")
         {
             payload.relativeResourcePath = path.substr(6);

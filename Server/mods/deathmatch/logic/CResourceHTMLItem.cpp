@@ -245,7 +245,7 @@ bool CResourceHTMLItem::ProcessRequest(const Request& request, Response& respons
                 break;
 
             formData.PushString(std::string(parameter.name));
-            formData.PushString(Server::Decode(parameter.value, true));
+            formData.PushString(std::string(parameter.value));
         }
 
         // for (FormValueMap::iterator iter = ipoHttpRequest->oFormValueMap.begin(); iter != ipoHttpRequest->oFormValueMap.end(); iter++)
@@ -270,29 +270,32 @@ bool CResourceHTMLItem::ProcessRequest(const Request& request, Response& respons
                 if (header.name.empty())
                     continue;
 
-                headers.PushString(std::string(header.name));
+                std::string name(header.name);
+
+                // NOTE(botder): Header names must be in lower-case to preserve backwards compatibility
+                std::for_each(name.data(), name.data() + name.size(), [](char c) { return tolower(c); });
+
+                headers.PushString(std::move(name));
                 headers.PushString(std::string(header.value));
             }
         }
 
-        std::stringstream hostname;
+        std::stringstream url;
 
-        if (!uri->hostname.empty())
-        {
-            hostname << uri->hostname;
+        if (!uri->path.empty())
+            url << uri->path;
 
-            if (!uri->port.empty())
-                hostname << ":" << uri->port;
-        }
+        if (!uri->query.empty())
+            url << "?" << uri->query;
 
         CLuaArguments querystring(formData);
         CLuaArguments args;
-        args.PushTable(&headers);                                         // requestHeaders
-        args.PushTable(&formData);                                        // form
-        args.PushTable(&cookies);                                         // cookies
-        args.PushString(hostname.str());            // hostname
-        args.PushString(std::string(uri->path));            // url
-        args.PushTable(&querystring);                                     // querystring
+        args.PushTable(&headers);                                   // requestHeaders
+        args.PushTable(&formData);                                  // form
+        args.PushTable(&cookies);                                   // cookies
+        args.PushString(std::string(uri->hostname));                // hostname
+        args.PushString(url.str());                                 // url
+        args.PushTable(&querystring);                               // querystring
         args.PushAccount(payload.account);
         args.PushString(std::string(request.GetBody()));            // requestBody
         args.PushString(std::string(request.GetMethod()));          // method

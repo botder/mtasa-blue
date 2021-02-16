@@ -59,7 +59,7 @@ namespace mtasa::web
         while (offset != std::string_view::npos)
         {
             std::size_t      ampersand = query.find('&', offset);
-            std::string_view parameter = query.substr(0, ampersand);
+            std::string_view parameter = query.substr(offset, ampersand);
 
             if (!parameter.empty())
             {

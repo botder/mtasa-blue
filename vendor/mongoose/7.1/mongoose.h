@@ -16,7 +16,7 @@
 // license, as set out in <https://www.cesanta.com/license>.
 
 #pragma once
-#define MG_VERSION "7.1"
+#define MG_VERSION "7.2"
 
 
 #define MG_ARCH_CUSTOM 0
@@ -120,7 +120,12 @@
 
 #include <dirent.h>
 #include <netdb.h>
+#include <sys/stat.h>
 #define MG_DIRSEP '/'
+#define MG_INT64_FMT "%lld"
+#ifndef MG_PATH_MAX
+#define MG_PATH_MAX 128
+#endif
 
 #endif
 
@@ -133,6 +138,7 @@
 #include <stdbool.h>
 #include <sys/time.h>
 #define MG_DIRSEP '/'
+#define MG_INT64_FMT "%lld"
 
 #endif
 
@@ -146,6 +152,7 @@
 #include <FreeRTOS_Sockets.h>
 #include <stdbool.h>
 
+#define MG_INT64_FMT "%lld"
 #define MG_DIRSEP '/'
 #define IPPROTO_TCP FREERTOS_IPPROTO_TCP
 #define IPPROTO_UDP FREERTOS_IPPROTO_UDP
@@ -206,6 +213,7 @@ static inline int ff_vfprintf(FF_FILE *fp, const char *fmt, va_list ap) {
 
 #include <arpa/inet.h>
 #include <dirent.h>
+#include <inttypes.h>
 #include <netdb.h>
 #include <netinet/tcp.h>
 #include <signal.h>
@@ -217,6 +225,7 @@ static inline int ff_vfprintf(FF_FILE *fp, const char *fmt, va_list ap) {
 #include <unistd.h>
 #define MG_DIRSEP '/'
 #define MG_ENABLE_POSIX 1
+#define MG_INT64_FMT "%" PRId64
 
 #endif
 
@@ -261,7 +270,7 @@ typedef int socklen_t;
 #ifndef EWOULDBLOCK
 #define EWOULDBLOCK WSAEWOULDBLOCK
 #endif
-#define realpath(a, b) _fullpath((b), (a), 512)
+#define realpath(a, b) _fullpath((b), (a), MG_PATH_MAX)
 #ifndef va_copy
 #ifdef __va_copy
 #define va_copy __va_copy
@@ -272,6 +281,8 @@ typedef int socklen_t;
 #ifndef S_ISDIR
 #define S_ISDIR(x) (((x) &_S_IFMT) == _S_IFDIR)
 #endif
+
+#define MG_INT64_FMT "%I64d"
 
 #endif
 
@@ -344,6 +355,10 @@ typedef int socklen_t;
 #define MG_MAX_HTTP_HEADERS 40
 #endif
 
+#ifndef MG_PATH_MAX
+#define MG_PATH_MAX PATH_MAX
+#endif
+
 
 #include <ctype.h>
 #include <string.h>
@@ -392,29 +407,30 @@ void mg_log_set_callback(void (*fn)(const void *, int, void *), void *param);
 
 
 struct mg_timer {
-  int period_ms;            // Timer period in milliseconds
-  int flags;                // Possible flags values below
-#define MG_TIMER_REPEAT 1   // Call function periodically, otherwise run once
-#define MG_TIMER_RUN_NOW 2  // Call immediately when timer is set
-  void (*fn)(void *);       // Function to call
-  void *arg;                // Function agrument
-  unsigned long expire;     // Expiration timestamp in milliseconds
-  struct mg_timer *next;    // Linkage in g_timers list
+  int period_ms;             // Timer period in milliseconds
+  int flags;                 // Possible flags values below
+#define MG_TIMER_REPEAT 1    // Call function periodically, otherwise run once
+#define MG_TIMER_RUN_NOW 2   // Call immediately when timer is set
+  void (*fn)(void *);        // Function to call
+  void *arg;                 // Function agrument
+  unsigned long long expire; // Expiration timestamp in milliseconds
+  struct mg_timer *next;     // Linkage in g_timers list
 };
 
 extern struct mg_timer *g_timers;  // Global list of timers
 
 void mg_timer_init(struct mg_timer *, int ms, int, void (*fn)(void *), void *);
 void mg_timer_free(struct mg_timer *);
-void mg_timer_poll(unsigned long uptime_ms);
+void mg_timer_poll(unsigned long long uptime_ms);
 
 
 
 
 
 char *mg_file_read(const char *path);
-size_t mg_file_size(const char *path);
-int mg_file_write(const char *path, const char *fmt, ...);
+int64_t mg_file_size(const char *path);
+bool mg_file_write(const char *path, const void *buf, size_t len);
+bool mg_file_printf(const char *path, const char *fmt, ...);
 void mg_random(void *buf, size_t len);
 bool mg_globmatch(const char *pattern, int plen, const char *s, int n);
 bool mg_next_comma_entry(struct mg_str *s, struct mg_str *k, struct mg_str *v);
@@ -428,8 +444,18 @@ int mg_asprintf(char **buf, size_t size, const char *fmt, ...);
 int mg_vasprintf(char **buf, size_t size, const char *fmt, va_list ap);
 int64_t mg_to64(struct mg_str str);
 double mg_time(void);
-unsigned long mg_millis(void);
+unsigned long long mg_millis(void);
 void mg_usleep(unsigned long usecs);
+
+#if MG_ENABLE_FS
+#ifdef _WIN32
+typedef struct _stati64 mg_stat_t;
+#else
+typedef struct stat mg_stat_t;
+#endif
+int mg_stat(const char *path, mg_stat_t *);
+FILE *mg_fopen(const char *fp, const char *mode);
+#endif
 
 #define mg_htons(x) mg_ntohs(x)
 #define mg_htonl(x) mg_ntohl(x)
@@ -498,8 +524,8 @@ struct mg_iobuf {
   size_t size, len;
 };
 
-void mg_iobuf_init(struct mg_iobuf *, size_t);
-void mg_iobuf_resize(struct mg_iobuf *, size_t);
+int mg_iobuf_init(struct mg_iobuf *, size_t);
+int mg_iobuf_resize(struct mg_iobuf *, size_t);
 void mg_iobuf_free(struct mg_iobuf *);
 size_t mg_iobuf_append(struct mg_iobuf *, const void *, size_t, size_t);
 size_t mg_iobuf_delete(struct mg_iobuf *, size_t);
@@ -542,17 +568,6 @@ void mg_hmac_sha1(const unsigned char *key, size_t key_len,
 struct mg_connection;
 typedef void (*mg_event_handler_t)(struct mg_connection *, int ev,
                                    void *ev_data, void *fn_data);
-#if 0
-struct mg_fn {
-  struct mg_fn *next;
-  mg_event_handler_t fn;
-  void *fn_data;
-};
-
-void mg_fn_add(struct mg_connection *c, mg_event_handler_t fn, void *fn_data);
-void mg_fn_del(struct mg_connection *c, mg_event_handler_t fn);
-#endif
-
 void mg_call(struct mg_connection *c, int ev, void *ev_data);
 void mg_error(struct mg_connection *c, const char *fmt, ...);
 
@@ -617,7 +632,7 @@ struct mg_connection {
   void *fn_data;               // User-speficied function parameter
   mg_event_handler_t pfn;      // Protocol-specific handler function
   void *pfn_data;              // Protocol-specific function parameter
-  char label[32];              // Arbitrary label
+  char label[50];              // Arbitrary label
   void *tls;                   // TLS specific data
   unsigned is_listening : 1;   // Listening connection
   unsigned is_client : 1;      // Outbound (client) connection
@@ -668,7 +683,8 @@ struct mg_http_message {
   struct mg_str method, uri, query, proto;             // Request/response line
   struct mg_http_header headers[MG_MAX_HTTP_HEADERS];  // Headers
   struct mg_str body;                                  // Body
-  struct mg_str message;  // Request line + headers + body
+  struct mg_str head;                                  // Request + headers
+  struct mg_str message;  // Request + headers + body
 };
 
 // Parameter for mg_http_serve_dir()
@@ -695,6 +711,7 @@ struct mg_str *mg_http_get_header(struct mg_http_message *, const char *name);
 void mg_http_event_handler(struct mg_connection *c, int ev);
 int mg_http_get_var(const struct mg_str *, const char *name, char *, int);
 int mg_url_decode(const char *s, size_t n, char *to, size_t to_len, int form);
+int mg_url_encode(const char *s, size_t n, char *buf, size_t len);
 void mg_http_creds(struct mg_http_message *, char *user, int, char *pass, int);
 bool mg_http_match_uri(const struct mg_http_message *, const char *glob);
 int mg_http_upload(struct mg_connection *, struct mg_http_message *hm,
@@ -708,11 +725,11 @@ void mg_http_serve_ssi(struct mg_connection *c, const char *root,
 
 
 struct mg_tls_opts {
-  const char *ca;        // CA certificate file. For both listeners and clients
-  const char *cert;      // Certificate
-  const char *certkey;   // Certificate key
-  const char *ciphers;   // Cipher list
-  const char *srvname;   // If not NULL, enables server name verification
+  const char *ca;         // CA certificate file. For both listeners and clients
+  const char *cert;       // Certificate
+  const char *certkey;    // Certificate key
+  const char *ciphers;    // Cipher list
+  struct mg_str srvname;  // If not empty, enables server name verification
 };
 
 int mg_tls_init(struct mg_connection *, struct mg_tls_opts *);

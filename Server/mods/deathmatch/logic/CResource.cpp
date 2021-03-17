@@ -90,11 +90,6 @@ bool CResource::Load()
     time(&m_timeLoaded);
     m_timeStarted = 0;
 
-    // Register us in the EHS stuff
-    g_pGame->GetHTTPD()->RegisterEHS(this, m_strResourceName.c_str());
-    this->m_oEHSServerParameters["norouterequest"] = true;
-    this->RegisterEHS(this, "call");
-
     // Store the actual directory and zip paths for fast access
     m_strResourceDirectoryPath = PathJoin(m_strAbsPath, m_strResourceName, "/");
     m_strResourceCachePath = PathJoin(g_pServerInterface->GetServerModPath(), "resource-cache", "unzipped", m_strResourceName, "/");
@@ -104,9 +99,6 @@ bool CResource::Load()
     {
         if (!UnzipResource())
         {
-            // Unregister EHS stuff
-            g_pGame->GetHTTPD()->UnregisterEHS(m_strResourceName.c_str());
-
             return false;
         }
     }
@@ -115,9 +107,6 @@ bool CResource::Load()
     string strMeta;
     if (!GetFilePath("meta.xml", strMeta))
     {
-        // Unregister the EHS stuff
-        g_pGame->GetHTTPD()->UnregisterEHS(m_strResourceName.c_str());
-
         // Show error
         m_strFailureReason = SString("Couldn't find meta.xml file for resource '%s'\n", m_strResourceName.c_str());
         CLogger::ErrorPrintf(m_strFailureReason);
@@ -243,7 +232,6 @@ bool CResource::Load()
                 !ReadIncludedHTML(pRoot) || !ReadIncludedExports(pRoot) || !ReadIncludedConfigs(pRoot))
             {
                 delete pMetaFile;
-                g_pGame->GetHTTPD()->UnregisterEHS(m_strResourceName.c_str());
                 return false;
             }
         }
@@ -267,13 +255,17 @@ bool CResource::Load()
         if (pMetaFile)
             delete pMetaFile;
 
-        g_pGame->GetHTTPD()->UnregisterEHS(m_strResourceName.c_str());
         return false;
     }
 
     // Generate a CRC for this resource
     if (!GenerateChecksums())
         return false;
+
+    // Register this resource name in the embedded http server
+    g_pGame->GetHTTPD()->RegisterEHS(this, m_strResourceName.c_str());
+    this->m_oEHSServerParameters["norouterequest"] = true;
+    this->RegisterEHS(this, "call");
 
     m_eState = EResourceState::Loaded;
     m_bDoneUpgradeWarnings = false;

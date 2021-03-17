@@ -13,6 +13,7 @@
 //#define RESOURCE_DEBUG_MESSAGES
 
 #include "StdInc.h"
+#include "ResourceMetaParser.h"
 #include "net/SimHeaders.h"
 #ifndef WIN32
 #include <utime.h>
@@ -104,13 +105,23 @@ bool CResource::Load()
     }
 
     // Load the meta.xml file
-    string strMeta;
+    std::string strMeta;
     if (!GetFilePath("meta.xml", strMeta))
     {
         // Show error
         m_strFailureReason = SString("Couldn't find meta.xml file for resource '%s'\n", m_strResourceName.c_str());
         CLogger::ErrorPrintf(m_strFailureReason);
         return false;
+    }
+
+    mtasa::ResourceMetaParser metaParser{m_strResourceName};
+    std::optional<std::string> parserErrorMessage = metaParser.Parse(strMeta);
+
+    if (parserErrorMessage.has_value())
+    {
+        m_strFailureReason = SString("XXX Couldn't parse meta file for resource '%s' [%s]\n", m_strResourceName.c_str(), parserErrorMessage.value().c_str());
+        CLogger::ErrorPrintf(m_strFailureReason.c_str());
+        // return false;
     }
 
     // Load the XML file and parse it

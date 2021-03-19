@@ -13,7 +13,7 @@
 //#define RESOURCE_DEBUG_MESSAGES
 
 #include "StdInc.h"
-#include "ResourceMetaParser.h"
+#include "MetaFileParser.h"
 #include "net/SimHeaders.h"
 #ifndef WIN32
 #include <utime.h>
@@ -114,12 +114,12 @@ bool CResource::Load()
         return false;
     }
 
-    mtasa::ResourceMetaParser metaParser{m_strResourceName};
-    std::optional<std::string> parserErrorMessage = metaParser.Parse(strMeta);
+    mtasa::MetaFileParser metaParser{m_strResourceName};
+    std::string           parserError = metaParser.Parse(strMeta);
 
-    if (parserErrorMessage.has_value())
+    if (!parserError.empty())
     {
-        m_strFailureReason = SString("XXX Couldn't parse meta file for resource '%s' [%s]\n", m_strResourceName.c_str(), parserErrorMessage.value().c_str());
+        m_strFailureReason = SString("Couldn't parse meta file for resource '%s' [%s]\n", m_strResourceName.c_str(), parserError.c_str());
         CLogger::ErrorPrintf(m_strFailureReason.c_str());
         // return false;
     }

@@ -111,11 +111,11 @@ bool CResource::Load()
             return false;
         }
 
-        m_staticRootDirectory = fs::path{m_strResourceCachePath, fs::path::generic_format};
+        m_staticRootDirectory = fs::path{m_strResourceCachePath, fs::path::format::generic_format};
     }
     else
     {
-        m_staticRootDirectory = m_strResourceDirectoryPath;
+        m_staticRootDirectory = fs::path{m_strResourceDirectoryPath, fs::path::format::generic_format};
     }
 
     // Load the meta.xml file

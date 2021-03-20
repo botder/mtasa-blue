@@ -106,7 +106,7 @@ namespace mtasa
                 if (!hasSourceFile)
                 {
                     hasSourceFile = true;
-                    item.sourceFile = fs::path{value, fs::path::generic_format}.lexically_normal();
+                    item.sourceFile = fs::path{value, fs::path::format::generic_format}.lexically_normal();
 
                     if (item.sourceFile.empty())
                     {
@@ -158,7 +158,7 @@ namespace mtasa
                 if (!hasSourceFile)
                 {
                     hasSourceFile = true;
-                    item.sourceFile = fs::path{value, fs::path::generic_format}.lexically_normal();
+                    item.sourceFile = fs::path{value, fs::path::format::generic_format}.lexically_normal();
 
                     if (item.sourceFile.empty())
                     {
@@ -221,7 +221,7 @@ namespace mtasa
                 if (!hasSourceFile)
                 {
                     hasSourceFile = true;
-                    item.sourceFile = fs::path{value, fs::path::generic_format}.lexically_normal();
+                    item.sourceFile = fs::path{value, fs::path::format::generic_format}.lexically_normal();
 
                     if (item.sourceFile.empty())
                     {
@@ -299,7 +299,7 @@ namespace mtasa
                 if (!hasSourceFile)
                 {
                     hasSourceFile = true;
-                    item.sourceFile = fs::path{value, fs::path::generic_format}.lexically_normal();
+                    item.sourceFile = fs::path{value, fs::path::format::generic_format}.lexically_normal();
 
                     if (item.sourceFile.empty())
                     {
@@ -358,7 +358,7 @@ namespace mtasa
                 if (!hasSourceFile)
                 {
                     hasSourceFile = true;
-                    item.sourceFile = fs::path{value, fs::path::generic_format}.lexically_normal();
+                    item.sourceFile = fs::path{value, fs::path::format::generic_format}.lexically_normal();
 
                     if (item.sourceFile.empty())
                     {

@@ -22,6 +22,7 @@ public:
     bool Start();
     bool Stop();
 
+    void           SetNoClientCache(bool noClientCache) { m_bIsNoClientCache = noClientCache; }
     bool           IsNoClientCache() const { return m_bIsNoClientCache; }
     const SString& GetSourceCode() const { return m_sourceCode; }
 

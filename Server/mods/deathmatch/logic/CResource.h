@@ -20,6 +20,8 @@
 #include <vector>
 #include <ehs/ehs.h>
 #include <time.h>
+#include <filesystem>
+#include <optional>
 
 #define MAX_AUTHOR_LENGTH           255
 #define MAX_RESOURCE_NAME_LENGTH    255
@@ -346,13 +348,6 @@ protected:
 
 private:
     bool CheckState();            // if the resource has no Dependents, stop it, if it has, start it. returns true if the resource is started.
-    bool ReadIncludedResources(CXMLNode* pRoot);
-    bool ReadIncludedMaps(CXMLNode* pRoot);
-    bool ReadIncludedScripts(CXMLNode* pRoot);
-    bool ReadIncludedConfigs(CXMLNode* pRoot);
-    bool ReadIncludedHTML(CXMLNode* pRoot);
-    bool ReadIncludedExports(CXMLNode* pRoot);
-    bool ReadIncludedFiles(CXMLNode* pRoot);
     bool CreateVM(bool bEnableOOP);
     bool DestroyVM();
     void TidyUp();
@@ -399,6 +394,23 @@ private:
     std::list<CResource*>          m_Dependents;                   // resources that have "included" or loaded this one
     std::list<CExportedFunction>   m_ExportedFunctions;
     std::list<CResource*>          m_TemporaryIncludes;            // started by startResource script command
+
+    std::filesystem::path m_staticRootDirectory;
+
+    std::vector<std::filesystem::path> m_serverFiles;
+    std::vector<std::filesystem::path> m_clientFiles;
+
+    bool IsDuplicateServerFile(const std::filesystem::path& relativeFilePath);
+    bool IsDuplicateClientFile(const std::filesystem::path& relativeFilePath);
+
+    struct ResourceFilePath
+    {
+        std::filesystem::path absolute;
+        std::filesystem::path relative;
+        bool                  isWindowsCompatible = true;
+    };
+
+    std::optional<ResourceFilePath> ProduceResourceFilePath(const std::filesystem::path& relativePath, bool windowsPlatformCheck);
 
     std::string m_strCircularInclude;
     SString     m_strFailureReason;

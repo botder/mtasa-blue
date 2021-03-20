@@ -61,8 +61,9 @@ namespace mtasa
             {"download_priority_group"s, {&MetaFileParser::ProcessDownloadPriorityGroupNode, true}},
             {"aclrequest"s, {&MetaFileParser::ProcessACLRequestNode, true}},
             {"sync_map_element_data"s, {&MetaFileParser::ProcessSyncMapElementDataNode, true}},
+            {"min_mta_version"s, {&MetaFileParser::ProcessMinMTAVersionNode, true}},
         };
-
+        
         m_isExportAlwaysACLRestricted = (m_resourceName == "webadmin"s || m_resourceName == "runcode"s);
 
         for (auto nodeIter = root->ChildrenBegin(); nodeIter != root->ChildrenEnd(); ++nodeIter)
@@ -87,7 +88,8 @@ namespace mtasa
     {
         MetaFileItem item;
         item.type = MetaFileItemType::FILE;
-        item.scope = MetaItemScope::ONLY_CLIENT;
+        item.isForClient = true;
+        item.isForServer = false;
 
         CXMLAttributes& attributes = node->GetAttributes();
         bool            hasSourceFile = false;
@@ -104,7 +106,7 @@ namespace mtasa
                 if (!hasSourceFile)
                 {
                     hasSourceFile = true;
-                    item.sourceFile = fs::path{value, fs::path::format::generic_format}.lexically_normal();
+                    item.sourceFile = fs::path{value, fs::path::generic_format}.lexically_normal();
 
                     if (item.sourceFile.empty())
                     {
@@ -156,7 +158,7 @@ namespace mtasa
                 if (!hasSourceFile)
                 {
                     hasSourceFile = true;
-                    item.sourceFile = fs::path{value, fs::path::format::generic_format}.lexically_normal();
+                    item.sourceFile = fs::path{value, fs::path::generic_format}.lexically_normal();
 
                     if (item.sourceFile.empty())
                     {
@@ -174,11 +176,12 @@ namespace mtasa
 
                     if (!stricmp(value.c_str(), "shared"))
                     {
-                        item.scope = MetaItemScope::SERVER_AND_CLIENT;
+                        item.isForClient = true;
                     }
                     else if (!stricmp(value.c_str(), "client"))
                     {
-                        item.scope = MetaItemScope::ONLY_CLIENT;
+                        item.isForServer = false;
+                        item.isForClient = true;
                     }
                     else if (stricmp(value.c_str(), "server") != 0)
                     {
@@ -218,7 +221,7 @@ namespace mtasa
                 if (!hasSourceFile)
                 {
                     hasSourceFile = true;
-                    item.sourceFile = fs::path{value, fs::path::format::generic_format}.lexically_normal();
+                    item.sourceFile = fs::path{value, fs::path::generic_format}.lexically_normal();
 
                     if (item.sourceFile.empty())
                     {
@@ -236,11 +239,12 @@ namespace mtasa
 
                     if (!stricmp(value.c_str(), "shared"))
                     {
-                        item.scope = MetaItemScope::SERVER_AND_CLIENT;
+                        item.isForClient = true;
                     }
                     else if (!stricmp(value.c_str(), "client"))
                     {
-                        item.scope = MetaItemScope::ONLY_CLIENT;
+                        item.isForServer = false;
+                        item.isForClient = true;
                     }
                     else if (stricmp(value.c_str(), "server") != 0)
                     {
@@ -295,7 +299,7 @@ namespace mtasa
                 if (!hasSourceFile)
                 {
                     hasSourceFile = true;
-                    item.sourceFile = fs::path{value, fs::path::format::generic_format}.lexically_normal();
+                    item.sourceFile = fs::path{value, fs::path::generic_format}.lexically_normal();
 
                     if (item.sourceFile.empty())
                     {
@@ -354,7 +358,7 @@ namespace mtasa
                 if (!hasSourceFile)
                 {
                     hasSourceFile = true;
-                    item.sourceFile = fs::path{value, fs::path::format::generic_format}.lexically_normal();
+                    item.sourceFile = fs::path{value, fs::path::generic_format}.lexically_normal();
 
                     if (item.sourceFile.empty())
                     {
@@ -570,11 +574,12 @@ namespace mtasa
 
                     if (!stricmp(value.c_str(), "shared"))
                     {
-                        item.scope = MetaItemScope::SERVER_AND_CLIENT;
+                        item.isForClient = true;
                     }
                     else if (!stricmp(value.c_str(), "client"))
                     {
-                        item.scope = MetaItemScope::ONLY_CLIENT;
+                        item.isForServer = false;
+                        item.isForClient = true;
                     }
                     else if (stricmp(value.c_str(), "server") != 0)
                     {
@@ -652,5 +657,29 @@ namespace mtasa
     {
         const std::string& value = node->GetTagContent();
         syncMapElementData = (value == "true" || value == "1" || value == "yes");
+        syncMapElementDataDefined = true;
+    }
+
+    void MetaFileParser::ProcessMinMTAVersionNode(CXMLNode* node)
+    {
+        CXMLAttributes& attributes = node->GetAttributes();
+
+        if (CXMLAttribute* attribute = attributes.Find("both"); attribute != nullptr)
+        {
+            minClientVersion = attribute->GetValue();
+            minServerVersion = attribute->GetValue();
+        }
+        else
+        {
+            if (attribute = attributes.Find("server"); attribute != nullptr)
+            {
+                minServerVersion = attribute->GetValue();
+            }
+
+            if (attribute = attributes.Find("client"); attribute != nullptr)
+            {
+                minClientVersion = attribute->GetValue();
+            }
+        }
     }
 }

@@ -18,13 +18,6 @@
 
 namespace mtasa
 {
-    enum class MetaItemScope
-    {
-        ONLY_SERVER,
-        ONLY_CLIENT,
-        SERVER_AND_CLIENT,
-    };
-
     enum class MetaFileItemType
     {
         UNKNOWN,
@@ -47,16 +40,26 @@ namespace mtasa
     {
     public:
         MetaFileItemType      type = MetaFileItemType::UNKNOWN;
-        MetaItemScope         scope = MetaItemScope::ONLY_SERVER;
         std::filesystem::path sourceFile;
         std::uint16_t         dimension = 0;
+        std::uint8_t          isForClient : 1;
+        std::uint8_t          isForServer : 1;
         std::uint8_t          isClientOptional : 1;
         std::uint8_t          isClientCacheable : 1;
         std::uint8_t          isHttpDefault : 1;
         std::uint8_t          isHttpRestricted : 1;
         std::uint8_t          isHttpRaw : 1;
 
-        MetaFileItem() : isClientOptional{false}, isClientCacheable{true}, isHttpDefault{false}, isHttpRestricted{false}, isHttpRaw{false} {}
+        MetaFileItem()
+            : isForClient{false},
+              isForServer{true},
+              isClientOptional{false},
+              isClientCacheable{true},
+              isHttpDefault{false},
+              isHttpRestricted{false},
+              isHttpRaw{false}
+        {
+        }
     };
 
     class MetaDependencyItem final
@@ -71,17 +74,20 @@ namespace mtasa
     {
     public:
         std::string   functionName;
-        MetaItemScope scope = MetaItemScope::ONLY_SERVER;
+        std::uint8_t  isForClient : 1;
+        std::uint8_t  isForServer : 1;
         std::uint8_t  isHttpAccessible : 1;
         std::uint8_t  isACLRestricted : 1;
 
-        MetaExportItem() : isHttpAccessible(false), isACLRestricted(false) {}
+        MetaExportItem() : isForClient{false}, isForServer{true}, isHttpAccessible(false), isACLRestricted(false) {}
     };
 
     class MetaFileParser final
     {
     public:
-        MetaFileParser(std::string_view resourceName) : m_resourceName{resourceName}, useOOP{false}, syncMapElementData{true} {}
+        MetaFileParser(std::string_view resourceName) : m_resourceName{resourceName}, useOOP{false}, syncMapElementData{true}, syncMapElementDataDefined{false}
+        {
+        }
 
         std::string Parse(const std::filesystem::path& filePath);
 
@@ -99,6 +105,7 @@ namespace mtasa
         void ProcessDownloadPriorityGroupNode(CXMLNode* node);
         void ProcessACLRequestNode(CXMLNode* node);
         void ProcessSyncMapElementDataNode(CXMLNode* node);
+        void ProcessMinMTAVersionNode(CXMLNode* node);
 
     private:
         std::string m_resourceName;
@@ -106,11 +113,16 @@ namespace mtasa
 
     public:
         std::unordered_map<std::string, std::string> info;
-        MetaFileVersion                              version;
-        std::uint8_t                                 versionStage = 2;
+
+        std::string minClientVersion;
+        std::string minServerVersion;
+
+        MetaFileVersion version;
+        std::uint8_t    versionStage = 2;
 
         std::uint8_t useOOP : 1;
         std::uint8_t syncMapElementData : 1;
+        std::uint8_t syncMapElementDataDefined : 1;
 
         int downloadPriorityGroup = 0;
 

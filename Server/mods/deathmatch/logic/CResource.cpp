@@ -35,6 +35,8 @@ extern CGame*            g_pGame;
 extern int errno;
 #endif
 
+namespace fs = std::filesystem;
+
 //
 // Helper function to avoid fopen in Window builds
 //
@@ -48,6 +50,12 @@ static unzFile unzOpenUtf8(const char* path)
 #else
     return unzOpen(path);
 #endif
+}
+
+static bool IsRegularFile(const fs::path& filePath)
+{
+    std::error_code ec;
+    return fs::is_regular_file(filePath, ec) && !ec;
 }
 
 CResource::CResource(CResourceManager* pResourceManager, bool bIsZipped, const char* szAbsPath, const char* szResourceName)
@@ -102,171 +110,344 @@ bool CResource::Load()
         {
             return false;
         }
+
+        m_staticRootDirectory = fs::path{m_strResourceCachePath, fs::path::generic_format};
+    }
+    else
+    {
+        m_staticRootDirectory = m_strResourceDirectoryPath;
     }
 
     // Load the meta.xml file
-    std::string strMeta;
-    if (!GetFilePath("meta.xml", strMeta))
+    fs::path metaFilePath = m_staticRootDirectory / "meta.xml";
+
+    if (!IsRegularFile(metaFilePath))
     {
-        // Show error
-        m_strFailureReason = SString("Couldn't find meta.xml file for resource '%s'\n", m_strResourceName.c_str());
-        CLogger::ErrorPrintf(m_strFailureReason);
+        m_strFailureReason = "Couldn't find meta.xml file for resource '"s + m_strResourceName + "'\n"s;
+        CLogger::ErrorPrintf(m_strFailureReason.c_str());
         return false;
     }
 
     mtasa::MetaFileParser metaParser{m_strResourceName};
-    std::string           parserError = metaParser.Parse(strMeta);
+    std::string           parserError = metaParser.Parse(metaFilePath);
 
     if (!parserError.empty())
     {
         m_strFailureReason = SString("Couldn't parse meta file for resource '%s' [%s]\n", m_strResourceName.c_str(), parserError.c_str());
         CLogger::ErrorPrintf(m_strFailureReason.c_str());
-        // return false;
+        return false;
     }
 
-    // Load the XML file and parse it
-    CXMLFile* pMetaFile = g_pServerInterface->GetXML()->CreateXML(strMeta.c_str());
-    bool      bParsedSuccessfully = pMetaFile ? pMetaFile->Parse() : false;
+    // Process resource meta information from parser
+    m_Info.clear();
 
-    if (bParsedSuccessfully)
+    for (const auto& [key, value] : metaParser.info)
     {
-        CXMLNode* pRoot = pMetaFile->GetRootNode();
+        m_Info[key] = value;
+    }
 
-        if (pRoot)
-        {
-            // Find the settings node and copy it (meta xml is deleted at the end of this function, to preserve memory)
-            CXMLNode* pNodeSettings = pRoot->FindSubNode("settings", 0);
+    m_strMinServerFromMetaXml = metaParser.minServerVersion;
+    m_strMinServerRequirement = metaParser.minServerVersion;
 
-            if (pNodeSettings)
-                m_pNodeSettings = pNodeSettings->CopyNode(nullptr);
+    m_strMinClientFromMetaXml = metaParser.minClientVersion;
+    m_strMinClientRequirement = metaParser.minClientVersion;
 
-            // Find the client and server version requirements
-            m_strMinClientFromMetaXml = "";
-            m_strMinServerFromMetaXml = "";
-            CXMLNode* pNodeMinMtaVersion = pRoot->FindSubNode("min_mta_version", 0);
+    m_uiVersionMajor = metaParser.version.major;
+    m_uiVersionMinor = metaParser.version.minor;
+    m_uiVersionRevision = metaParser.version.revision;
+    m_uiVersionState = metaParser.versionStage;
 
-            if (pNodeMinMtaVersion)
-            {
-                if (CXMLAttribute* pAttr = pNodeMinMtaVersion->GetAttributes().Find("server"))
-                    m_strMinServerFromMetaXml = pAttr->GetValue();
-                if (CXMLAttribute* pAttr = pNodeMinMtaVersion->GetAttributes().Find("client"))
-                    m_strMinClientFromMetaXml = pAttr->GetValue();
-                if (CXMLAttribute* pAttr = pNodeMinMtaVersion->GetAttributes().Find("both"))
-                    m_strMinServerFromMetaXml = m_strMinClientFromMetaXml = pAttr->GetValue();
-            }
-            m_strMinServerRequirement = m_strMinServerFromMetaXml;
-            m_strMinClientRequirement = m_strMinClientFromMetaXml;
+    m_bOOPEnabledInMetaXml = metaParser.useOOP;
 
-            // Find the acl requets
-            CXMLNode* pNodeAclRequest = pRoot->FindSubNode("aclrequest", 0);
+    m_iDownloadPriorityGroup = metaParser.downloadPriorityGroup;
 
-            if (pNodeAclRequest)
-                RefreshAutoPermissions(pNodeAclRequest);
-            else
-                RemoveAutoPermissions();
+    m_pNodeSettings = metaParser.settingsNode;
 
-            // Find any map sync option
-            m_bSyncMapElementData = true;
-            m_bSyncMapElementDataDefined = false;
-            CXMLNode* pNodeSyncMapElementData = pRoot->FindSubNode("sync_map_element_data", 0);
-
-            if (pNodeSyncMapElementData)
-            {
-                m_bSyncMapElementData = StringToBool(pNodeSyncMapElementData->GetTagContent().c_str());
-                m_bSyncMapElementDataDefined = true;
-            }
-
-            m_bOOPEnabledInMetaXml = false;
-            CXMLNode* pNodeClientOOP = pRoot->FindSubNode("oop", 0);
-
-            if (pNodeClientOOP)
-            {
-                m_bOOPEnabledInMetaXml = StringToBool(pNodeClientOOP->GetTagContent().c_str());
-            }
-
-            m_iDownloadPriorityGroup = 0;
-            CXMLNode* pNodeDownloadPriorityGroup = pRoot->FindSubNode("download_priority_group", 0);
-
-            if (pNodeDownloadPriorityGroup)
-            {
-                m_iDownloadPriorityGroup = atoi(pNodeDownloadPriorityGroup->GetTagContent().c_str());
-            }
-
-            CXMLNode* pInfo = pRoot->FindSubNode("info", 0);
-
-            if (pInfo)
-            {
-                CXMLAttributes& Attributes = pInfo->GetAttributes();
-
-                m_Info.clear();
-
-                for (unsigned int i = 0; i < Attributes.Count(); i++)
-                {
-                    CXMLAttribute* pAttribute = Attributes.Get(i);
-                    MapSet(m_Info, pAttribute->GetName(), pAttribute->GetValue());
-                }
-
-                CXMLAttribute* pVersion = Attributes.Find("major");
-                if (pVersion)
-                {
-                    m_uiVersionMajor = atoi(pVersion->GetValue().c_str());
-                }
-
-                pVersion = Attributes.Find("minor");
-                if (pVersion)
-                {
-                    m_uiVersionMinor = atoi(pVersion->GetValue().c_str());
-                }
-
-                pVersion = Attributes.Find("revision");
-                if (pVersion)
-                {
-                    m_uiVersionRevision = atoi(pVersion->GetValue().c_str());
-                }
-
-                pVersion = Attributes.Find("state");
-                if (pVersion)
-                {
-                    const char* szVersion = pVersion->GetValue().c_str();
-
-                    if (!stricmp(szVersion, "alpha"))
-                        m_uiVersionState = 0;
-                    else if (!stricmp(szVersion, "beta"))
-                        m_uiVersionState = 1;
-                    else
-                        m_uiVersionState = 2;
-                }
-            }
-
-            // Read everything that's included. If one of these fail, delete the XML we created and return
-            if (!ReadIncludedResources(pRoot) || !ReadIncludedMaps(pRoot) || !ReadIncludedFiles(pRoot) || !ReadIncludedScripts(pRoot) ||
-                !ReadIncludedHTML(pRoot) || !ReadIncludedExports(pRoot) || !ReadIncludedConfigs(pRoot))
-            {
-                delete pMetaFile;
-                return false;
-            }
-        }
-
-        // Delete the XML we created to save memory
-        delete pMetaFile;
+    if (metaParser.syncMapElementDataDefined)
+    {
+        m_bSyncMapElementData = metaParser.syncMapElementData;
+        m_bSyncMapElementDataDefined = true;
     }
     else
     {
-        SString strError;
-        pMetaFile->GetLastError(strError);
+        m_bSyncMapElementData = true;
+        m_bSyncMapElementDataDefined = false;
+    }
 
-        if (strError.empty())
-            m_strFailureReason = SString("Couldn't parse meta file for resource '%s'\n", m_strResourceName.c_str());
-        else
-            m_strFailureReason = SString("Couldn't parse meta file for resource '%s' [%s]\n", m_strResourceName.c_str(), strError.c_str());
+    // TODO:
+    /*
+    // Find the acl requets
+    CXMLNode* pNodeAclRequest = pRoot->FindSubNode("aclrequest", 0);
 
-        CLogger::ErrorPrintf(m_strFailureReason.c_str());
+    if (pNodeAclRequest)
+        RefreshAutoPermissions(pNodeAclRequest);
+    else
+        RemoveAutoPermissions();
+    */
 
-        // Delete the XML file if we somehow got to load it halfway
-        if (pMetaFile)
-            delete pMetaFile;
+    for (const mtasa::MetaDependencyItem& item : metaParser.dependencies)
+    {
+        SVersion minVersion{item.minVersion.major, item.minVersion.minor, item.minVersion.revision};
+        SVersion maxVersion{item.maxVersion.major, item.maxVersion.minor, item.maxVersion.revision};
+        m_IncludedResources.push_back(new CIncludedResources{m_pResourceManager, item.resourceName, minVersion, maxVersion, this});
+    }
 
-        return false;
+    for (const mtasa::MetaFileItem& item : metaParser.maps)
+    {
+        std::optional<ResourceFilePath> resourceFilePath = ProduceResourceFilePath(item.sourceFile, false);
+
+        if (!resourceFilePath.has_value() || !IsRegularFile(resourceFilePath->absolute))
+        {
+            std::string filePath = item.sourceFile.string();
+
+            m_strFailureReason =
+                SString("Couldn't find map %.*s for resource %.*s\n", filePath.size(), filePath.data(), m_strResourceName.size(), m_strResourceName.c_str());
+
+            CLogger::ErrorPrintf(m_strFailureReason);
+            return false;
+        }
+
+        std::string filePath = resourceFilePath->relative.string();
+
+        if (IsDuplicateServerFile(resourceFilePath->relative))
+        {
+            CLogger::LogPrintf("WARNING: Duplicate map file in resource '%.*s': '%.*s'\n", m_strResourceName.size(), m_strResourceName.c_str(), filePath.size(),
+                               filePath.data());
+        }
+
+        m_ResourceFiles.push_back(new CResourceMapItem{this, filePath.c_str(), resourceFilePath->absolute.string().c_str(), nullptr, item.dimension});
+
+        m_serverFiles.push_back(std::move(resourceFilePath->relative));
+    }
+
+    for (const mtasa::MetaFileItem& item : metaParser.files)
+    {
+        std::optional<ResourceFilePath> resourceFilePath = ProduceResourceFilePath(item.sourceFile, true);
+
+        if (!resourceFilePath.has_value() || !IsRegularFile(resourceFilePath->absolute))
+        {
+            std::string filePath = item.sourceFile.string();
+
+            m_strFailureReason =
+                SString("Couldn't find file %.*s for resource %.*s\n", filePath.size(), filePath.data(), m_strResourceName.size(), m_strResourceName.c_str());
+
+            CLogger::ErrorPrintf(m_strFailureReason);
+            return false;
+        }
+
+        std::string filePath = resourceFilePath->relative.string();
+
+        if (!resourceFilePath->isWindowsCompatible)
+        {
+            m_strFailureReason = SString("Client file path %.*s for resource %.*s is not supported on Windows\n", filePath.size(), filePath.data(),
+                                         m_strResourceName.size(), m_strResourceName.c_str());
+            CLogger::ErrorPrintf(m_strFailureReason);
+            return false;
+        }
+
+        if (IsDuplicateClientFile(resourceFilePath->relative))
+        {
+            CLogger::LogPrintf("WARNING: Ignoring duplicate client file in resource '%.*s': '%.*s'\n", m_strResourceName.size(), m_strResourceName.c_str(),
+                               filePath.size(), filePath.data());
+            continue;
+        }
+
+        m_ResourceFiles.push_back(
+            new CResourceClientFileItem{this, filePath.c_str(), resourceFilePath->absolute.string().c_str(), nullptr, !item.isClientOptional});
+
+        m_clientFiles.push_back(std::move(resourceFilePath->relative));
+    }
+
+    for (const mtasa::MetaFileItem& item : metaParser.scripts)
+    {
+        std::optional<ResourceFilePath> resourceFilePath = ProduceResourceFilePath(item.sourceFile, item.isForClient);
+
+        if (!resourceFilePath.has_value() || !IsRegularFile(resourceFilePath->absolute))
+        {
+            std::string filePath = item.sourceFile.string();
+
+            m_strFailureReason =
+                SString("Couldn't find script %.*s for resource %.*s\n", filePath.size(), filePath.data(), m_strResourceName.size(), m_strResourceName.c_str());
+
+            CLogger::ErrorPrintf(m_strFailureReason);
+            return false;
+        }
+
+        std::string filePath = resourceFilePath->relative.string();
+
+        if (item.isForClient && !resourceFilePath->isWindowsCompatible)
+        {
+            m_strFailureReason = SString("Client script path %.*s for resource %.*s is not supported on Windows\n", filePath.size(), filePath.data(),
+                                         m_strResourceName.size(), m_strResourceName.c_str());
+            CLogger::ErrorPrintf(m_strFailureReason);
+            return false;
+        }
+
+        if (item.isForServer && IsDuplicateServerFile(resourceFilePath->relative))
+        {
+            CLogger::LogPrintf("WARNING: Duplicate script file in resource '%.*s': '%.*s'\n", m_strResourceName.size(), m_strResourceName.c_str(), filePath.size(),
+                               filePath.data());
+        }
+
+        bool createForClient = item.isForClient;
+
+        if (item.isForClient && IsDuplicateClientFile(resourceFilePath->relative))
+        {
+            createForClient = false;
+
+            CLogger::LogPrintf("WARNING: Ignoring duplicate client script file in resource '%.*s': '%.*s'\n", m_strResourceName.size(), m_strResourceName.c_str(),
+                               filePath.size(), filePath.data());
+        }
+
+        if (item.isForServer)
+        {
+            m_ResourceFiles.push_back(new CResourceScriptItem{this, filePath.c_str(), resourceFilePath->absolute.string().c_str(), nullptr});
+
+            m_serverFiles.push_back(resourceFilePath->relative);
+        }
+
+        if (createForClient)
+        {
+            auto resourceFile = new CResourceClientScriptItem{this, filePath.c_str(), resourceFilePath->absolute.string().c_str(), nullptr};
+            resourceFile->SetNoClientCache(!item.isClientCacheable);
+            m_ResourceFiles.push_back(resourceFile);
+
+            m_clientFiles.push_back(resourceFilePath->relative);
+        }
+    }
+
+    CResourceHTMLItem* firstHtmlFile = nullptr;
+    bool               hasDefaultHtmlPage = false;
+
+    for (const mtasa::MetaFileItem& item : metaParser.htmls)
+    {
+        std::optional<ResourceFilePath> resourceFilePath = ProduceResourceFilePath(item.sourceFile, false);
+
+        if (!resourceFilePath.has_value() || !IsRegularFile(resourceFilePath->absolute))
+        {
+            std::string filePath = item.sourceFile.string();
+
+            m_strFailureReason =
+                SString("Couldn't find html %.*s for resource %.*s\n", filePath.size(), filePath.data(), m_strResourceName.size(), m_strResourceName.c_str());
+
+            CLogger::ErrorPrintf(m_strFailureReason);
+            return false;
+        }
+
+        std::string filePath = resourceFilePath->relative.string();
+
+        if (IsDuplicateServerFile(resourceFilePath->relative))
+        {
+            CLogger::LogPrintf("WARNING: Duplicate html file in resource '%.*s': '%.*s'\n", m_strResourceName.size(), m_strResourceName.c_str(), filePath.size(),
+                               filePath.data());
+        }
+
+        bool isDefault = item.isHttpDefault;
+
+        if (isDefault)
+        {
+            if (hasDefaultHtmlPage)
+            {
+                isDefault = false;
+
+                CLogger::LogPrintf("Only one html item can be default per resource, ignoring %.*s in %.*s\n", filePath.size(), filePath.data(),
+                                   m_strResourceName.size(), m_strResourceName.c_str());
+            }
+            else
+            {
+                hasDefaultHtmlPage = true;
+            }
+        }
+
+        auto resourceFile = new CResourceHTMLItem{this,
+                                                  filePath.c_str(),
+                                                  resourceFilePath->absolute.string().c_str(),
+                                                  nullptr,
+                                                  isDefault,
+                                                  !!item.isHttpRaw,
+                                                  !!item.isHttpRestricted,
+                                                  m_bOOPEnabledInMetaXml};
+
+        m_ResourceFiles.push_back(resourceFile);
+
+        if (firstHtmlFile == nullptr)
+            firstHtmlFile = resourceFile;
+
+        m_serverFiles.push_back(std::move(resourceFilePath->relative));
+    }
+
+    if (firstHtmlFile != nullptr && !hasDefaultHtmlPage)
+        firstHtmlFile->SetDefaultPage(true);
+
+    for (const mtasa::MetaExportItem& item : metaParser.exports)
+    {
+        if (item.isForServer)
+        {
+            m_ExportedFunctions.push_back(
+                CExportedFunction{item.functionName, !!item.isHttpAccessible, CExportedFunction::EXPORTED_FUNCTION_TYPE_SERVER, !!item.isACLRestricted});
+        }
+
+        if (item.isForClient)
+        {
+            m_ExportedFunctions.push_back(
+                CExportedFunction{item.functionName, !!item.isHttpAccessible, CExportedFunction::EXPORTED_FUNCTION_TYPE_CLIENT, !!item.isACLRestricted});
+        }
+    }
+
+    for (const mtasa::MetaFileItem& item : metaParser.configs)
+    {
+        std::optional<ResourceFilePath> resourceFilePath = ProduceResourceFilePath(item.sourceFile, item.isForClient);
+
+        if (!resourceFilePath.has_value() || !IsRegularFile(resourceFilePath->absolute))
+        {
+            std::string filePath = item.sourceFile.string();
+
+            m_strFailureReason =
+                SString("Couldn't find config %.*s for resource %.*s\n", filePath.size(), filePath.data(), m_strResourceName.size(), m_strResourceName.c_str());
+
+            CLogger::ErrorPrintf(m_strFailureReason);
+            return false;
+        }
+
+        std::string filePath = resourceFilePath->relative.string();
+
+        if (item.isForClient && !resourceFilePath->isWindowsCompatible)
+        {
+            m_strFailureReason = SString("Client config path %.*s for resource %.*s is not supported on Windows\n", filePath.size(), filePath.data(),
+                                         m_strResourceName.size(), m_strResourceName.c_str());
+            CLogger::ErrorPrintf(m_strFailureReason);
+            return false;
+        }
+
+        if (item.isForServer && IsDuplicateServerFile(resourceFilePath->relative))
+        {
+            CLogger::LogPrintf("WARNING: Duplicate config file in resource '%.*s': '%.*s'\n", m_strResourceName.size(), m_strResourceName.c_str(),
+                               filePath.size(), filePath.data());
+        }
+
+        bool createForClient = item.isForClient;
+
+        if (item.isForClient && IsDuplicateClientFile(resourceFilePath->relative))
+        {
+            createForClient = false;
+
+            CLogger::LogPrintf("WARNING: Ignoring duplicate client config file in resource '%.*s': '%.*s'\n", m_strResourceName.size(),
+                               m_strResourceName.c_str(), filePath.size(), filePath.data());
+        }
+
+        if (item.isForServer)
+        {
+            m_ResourceFiles.push_back(new CResourceConfigItem{this, filePath.c_str(), resourceFilePath->absolute.string().c_str(), nullptr});
+
+            m_serverFiles.push_back(resourceFilePath->relative);
+        }
+
+        if (createForClient)
+        {
+            m_ResourceFiles.push_back(new CResourceClientConfigItem{this, filePath.c_str(), resourceFilePath->absolute.string().c_str(), nullptr});
+
+            m_clientFiles.push_back(resourceFilePath->relative);
+        }
     }
 
     // Generate a CRC for this resource
@@ -378,6 +559,9 @@ void CResource::TidyUp()
 
     this->UnregisterEHS("call");
     g_pGame->GetHTTPD()->UnregisterEHS(m_strResourceName.c_str());
+
+    std::exchange(m_serverFiles, {});
+    std::exchange(m_clientFiles, {});
 }
 
 bool CResource::GetInfoValue(const char* szKey, std::string& strValue) const
@@ -1297,518 +1481,6 @@ bool CResource::IsFilenameUsed(const SString& strFilename, bool bClient)
     return false;
 }
 
-bool CResource::ReadIncludedHTML(CXMLNode* pRoot)
-{
-    int                i = 0;
-    bool               bFoundDefault = false;
-    CResourceHTMLItem* pFirstHTML = nullptr;
-
-    // Go trough each html subnode of the root
-    for (CXMLNode* pHTML = pRoot->FindSubNode("html", i); pHTML != nullptr; pHTML = pRoot->FindSubNode("html", ++i))
-    {
-        // Get the attributelist
-        CXMLAttributes& Attributes = pHTML->GetAttributes();
-
-        // See if this is the default page (default attribute)
-        bool           bIsDefault = false;
-        CXMLAttribute* pDefaultfile = Attributes.Find("default");
-
-        if (pDefaultfile)
-        {
-            const char* szDefault = pDefaultfile->GetValue().c_str();
-
-            if (!stricmp(szDefault, "yes") || !stricmp(szDefault, "true"))
-                bIsDefault = true;
-            else
-                bIsDefault = false;
-        }
-
-        // See if this is a raw file (like an image)
-        bool           bIsRaw = false;
-        CXMLAttribute* pRaw = Attributes.Find("raw");
-
-        if (pRaw)
-        {
-            const char* szRaw = pRaw->GetValue().c_str();
-
-            if (!stricmp(szRaw, "yes") || !stricmp(szRaw, "true"))
-                bIsRaw = true;
-            else
-                bIsRaw = false;
-        }
-
-        // See if this is a restricted file
-        bool           bIsRestricted = false;
-        CXMLAttribute* pRestricted = Attributes.Find("restricted");
-
-        if (pRestricted)
-        {
-            const char* szRestricted = pRestricted->GetValue().c_str();
-
-            if (!stricmp(szRestricted, "yes") || !stricmp(szRestricted, "true"))
-                bIsRestricted = true;
-            else
-                bIsRestricted = false;
-        }
-
-        // Find the source attribute (the name of the file)
-        CXMLAttribute* pSrc = Attributes.Find("src");
-
-        if (pSrc)
-        {
-            // If we found it grab the value
-            std::string strFilename = pSrc->GetValue();
-
-            if (!strFilename.empty())
-            {
-                std::string strFullFilename;
-                ReplaceSlashes(strFilename);
-
-                if (IsFilenameUsed(strFilename, false))
-                {
-                    CLogger::LogPrintf("WARNING: Duplicate html file in resource '%s': '%s'\n", m_strResourceName.c_str(), strFilename.c_str());
-                }
-
-                // Try to find the file
-                if (IsValidFilePath(strFilename.c_str()) && GetFilePath(strFilename.c_str(), strFullFilename))
-                {
-                    // This one is supposed to be default, but there's already a default page
-                    if (bFoundDefault && bIsDefault)
-                    {
-                        CLogger::LogPrintf("Only one html item can be default per resource, ignoring %s in %s\n", strFilename.c_str(),
-                                           m_strResourceName.c_str());
-                        bIsDefault = false;
-                    }
-
-                    // If this is supposed to be default, we've now found our default page
-                    if (bIsDefault)
-                        bFoundDefault = true;
-
-                    // Create a new resource HTML file and add it to the list
-                    auto pResourceFile = new CResourceHTMLItem(this, strFilename.c_str(), strFullFilename.c_str(), &Attributes, bIsDefault, bIsRaw,
-                                                               bIsRestricted, m_bOOPEnabledInMetaXml);
-                    m_ResourceFiles.push_back(pResourceFile);
-
-                    // This is the first HTML file? Remember it
-                    if (!pFirstHTML)
-                        pFirstHTML = pResourceFile;
-                }
-                else
-                {
-                    m_strFailureReason = SString("Couldn't find html %s for resource %s\n", strFilename.c_str(), m_strResourceName.c_str());
-                    CLogger::ErrorPrintf(m_strFailureReason);
-                    return false;
-                }
-            }
-            else
-            {
-                CLogger::LogPrintf("WARNING: Empty 'src' attribute from 'html' node of 'meta.xml' for resource '%s', ignoring\n", m_strResourceName.c_str());
-            }
-        }
-        else
-        {
-            CLogger::LogPrintf("WARNING: Missing 'src' attribute from 'html' node of 'meta.xml' for resource '%s', ignoring\n", m_strResourceName.c_str());
-        }
-    }
-
-    // If we haven't found a default html page, we put the first HTML as the default
-    if (pFirstHTML && !bFoundDefault)
-        pFirstHTML->SetDefaultPage(true);
-
-    return true;
-}
-
-bool CResource::ReadIncludedConfigs(CXMLNode* pRoot)
-{
-    int i = 0;
-
-    // Loop through the list of included configs
-    for (CXMLNode* pConfig = pRoot->FindSubNode("config", i); pConfig != nullptr; pConfig = pRoot->FindSubNode("config", ++i))
-    {
-        CXMLAttributes& Attributes = pConfig->GetAttributes();
-
-        bool           bServer = true;
-        bool           bClient = false;
-        CXMLAttribute* pType = Attributes.Find("type");
-
-        if (pType)
-        {
-            // Grab the type. Client or server or shared
-            const char* szType = pType->GetValue().c_str();
-
-            if (!stricmp(szType, "client"))
-            {
-                bServer = false;
-                bClient = true;
-            }
-            else if (!stricmp(szType, "shared"))
-                bClient = true;
-            else if (stricmp(szType, "server") != 0)
-                CLogger::LogPrintf("Unknown config type specified in %s. Assuming 'server'\n", m_strResourceName.c_str());
-        }
-
-        // Find the source (file path)
-        CXMLAttribute* pSrc = Attributes.Find("src");
-
-        if (pSrc)
-        {
-            // Grab the filename
-            std::string strFilename = pSrc->GetValue();
-
-            if (!strFilename.empty())
-            {
-                std::string strFullFilename;
-                ReplaceSlashes(strFilename);
-
-                if (bClient && IsFilenameUsed(strFilename, true))
-                {
-                    CLogger::LogPrintf("WARNING: Ignoring duplicate client config file in resource '%s': '%s'\n", m_strResourceName.c_str(),
-                                       strFilename.c_str());
-                    bClient = false;
-                }
-                if (bServer && IsFilenameUsed(strFilename, false))
-                {
-                    CLogger::LogPrintf("WARNING: Duplicate config file in resource '%s': '%s'\n", m_strResourceName.c_str(), strFilename.c_str());
-                }
-
-                // Extract / grab the filepath
-                if (IsValidFilePath(strFilename.c_str()) && GetFilePath(strFilename.c_str(), strFullFilename))
-                {
-                    // Create it and push it to the list over resource files. Depending on if it's client or server type
-                    if (bServer)
-                        m_ResourceFiles.push_back(new CResourceConfigItem(this, strFilename.c_str(), strFullFilename.c_str(), &Attributes));
-
-                    if (bClient)
-                        m_ResourceFiles.push_back(new CResourceClientConfigItem(this, strFilename.c_str(), strFullFilename.c_str(), &Attributes));
-                }
-                else
-                {
-                    m_strFailureReason = SString("Couldn't find config %s for resource %s\n", strFilename.c_str(), m_strResourceName.c_str());
-                    CLogger::ErrorPrintf(m_strFailureReason);
-                    return false;
-                }
-            }
-            else
-            {
-                CLogger::LogPrintf("WARNING: Empty 'src' attribute from 'config' node of 'meta.xml' for resource '%s', ignoring\n", m_strResourceName.c_str());
-            }
-        }
-        else
-        {
-            CLogger::LogPrintf("WARNING: Missing 'src' attribute from 'config' node of 'meta.xml' for resource '%s', ignoring\n", m_strResourceName.c_str());
-        }
-    }
-
-    return true;
-}
-
-bool CResource::ReadIncludedFiles(CXMLNode* pRoot)
-{
-    int i = 0;
-
-    // Loop through the included files
-    for (CXMLNode* pFile = pRoot->FindSubNode("file", i); pFile != nullptr; pFile = pRoot->FindSubNode("file", ++i))
-    {
-        CXMLAttributes& Attributes = pFile->GetAttributes();
-
-        // Grab the filepath attribute
-        CXMLAttribute* pSrc = Attributes.Find("src");
-
-        if (pSrc)
-        {
-            // Grab the value
-            std::string strFilename = pSrc->GetValue();
-
-            if (!strFilename.empty())
-            {
-                std::string strFullFilename;
-                ReplaceSlashes(strFilename);
-
-                if (IsFilenameUsed(strFilename, true))
-                {
-                    CLogger::LogPrintf("WARNING: Ignoring duplicate client file in resource '%s': '%s'\n", m_strResourceName.c_str(), strFilename.c_str());
-                    continue;
-                }
-
-                bool           bDownload = true;
-                CXMLAttribute* pDownload = Attributes.Find("download");
-
-                if (pDownload)
-                {
-                    const char* szDownload = pDownload->GetValue().c_str();
-
-                    if (!stricmp(szDownload, "no") || !stricmp(szDownload, "false"))
-                        bDownload = false;
-                }
-
-                // Create a new resourcefile item
-                if (IsValidFilePath(strFilename.c_str()) && GetFilePath(strFilename.c_str(), strFullFilename))
-                {
-                    m_ResourceFiles.push_back(new CResourceClientFileItem(this, strFilename.c_str(), strFullFilename.c_str(), &Attributes, bDownload));
-                }
-                else
-                {
-                    m_strFailureReason = SString("Couldn't find file %s for resource %s\n", strFilename.c_str(), m_strResourceName.c_str());
-                    CLogger::ErrorPrintf(m_strFailureReason);
-                    return false;
-                }
-            }
-            else
-            {
-                CLogger::LogPrintf("WARNING: Empty 'src' attribute from 'file' node of 'meta.xml' for resource '%s', ignoring\n", m_strResourceName.c_str());
-            }
-        }
-        else
-        {
-            CLogger::LogPrintf("WARNING: Missing 'src' attribute from 'file' node of 'meta.xml' for resource '%s', ignoring\n", m_strResourceName.c_str());
-        }
-    }
-
-    return true;
-}
-
-bool CResource::ReadIncludedExports(CXMLNode* pRoot)
-{
-    int i = 0;
-    m_ExportedFunctions.clear();
-
-    // Read our exportlist
-    for (CXMLNode* pExport = pRoot->FindSubNode("export", i); pExport != nullptr; pExport = pRoot->FindSubNode("export", ++i))
-    {
-        CXMLAttributes& Attributes = pExport->GetAttributes();
-
-        // See if the http attribute is true or false
-        bool           bHTTP = false;
-        CXMLAttribute* pHttp = Attributes.Find("http");
-
-        if (pHttp)
-        {
-            const char* szHttp = pHttp->GetValue().c_str();
-
-            if (!stricmp(szHttp, "yes") || !stricmp(szHttp, "true"))
-                bHTTP = true;
-            else
-                bHTTP = false;
-        }
-
-        // See if the restricted attribute is true or false
-        bool           bRestricted = false;
-        CXMLAttribute* pRestricted = Attributes.Find("restricted");
-
-        if (pRestricted)
-        {
-            const char* szRestricted = pRestricted->GetValue().c_str();
-
-            if (!stricmp(szRestricted, "yes") || !stricmp(szRestricted, "true"))
-                bRestricted = true;
-            else
-                bRestricted = false;
-        }
-
-        // Find the type attribute
-        bool bServer = true;
-        bool bClient = false;
-
-        CXMLAttribute* pType = Attributes.Find("type");
-
-        if (pType)
-        {
-            // Grab the type. Client or server or shared
-            const char* szType = pType->GetValue().c_str();
-
-            if (!stricmp(szType, "client"))
-            {
-                bServer = false;
-                bClient = true;
-            }
-            else if (!stricmp(szType, "shared"))
-                bClient = true;
-            else if (stricmp(szType, "server") != 0)
-                CLogger::LogPrintf("Unknown exported function type specified in %s. Assuming 'server'\n", m_strResourceName.c_str());
-        }
-
-        // Grab the functionname attribute
-        CXMLAttribute* pFunction = Attributes.Find("function");
-
-        if (pFunction)
-        {
-            // Grab the functionname from the attribute
-            const std::string& strFunction = pFunction->GetValue();
-
-            // Add it to the list if it wasn't zero long. Otherwize show a warning
-            if (!strFunction.empty())
-            {
-                if (bServer)
-                    m_ExportedFunctions.push_back(CExportedFunction(strFunction.c_str(), bHTTP, CExportedFunction::EXPORTED_FUNCTION_TYPE_SERVER,
-                                                                    bRestricted || GetName() == "webadmin" || GetName() == "runcode"));
-                if (bClient)
-                    m_ExportedFunctions.push_back(CExportedFunction(strFunction.c_str(), bHTTP, CExportedFunction::EXPORTED_FUNCTION_TYPE_CLIENT,
-                                                                    bRestricted || GetName() == "webadmin" || GetName() == "runcode"));
-            }
-            else
-            {
-                CLogger::ErrorPrintf("WARNING: Empty 'function' attribute of 'export' node of 'meta.xml' for resource '%s', ignoring\n",
-                                     m_strResourceName.c_str());
-            }
-        }
-        else
-        {
-            CLogger::LogPrintf("WARNING: Missing 'function' attribute from 'export' node of 'meta.xml' for resource '%s', ignoring\n",
-                               m_strResourceName.c_str());
-        }
-    }
-
-    return true;
-}
-
-bool CResource::ReadIncludedScripts(CXMLNode* pRoot)
-{
-    int i = 0;
-
-    // Loop through all script nodes under the root
-    for (CXMLNode* pScript = pRoot->FindSubNode("script", i); pScript != nullptr; pScript = pRoot->FindSubNode("script", ++i))
-    {
-        CXMLAttributes& Attributes = pScript->GetAttributes();
-
-        // Grab the type attribute (server / client)
-        bool           bServer = true;
-        bool           bClient = false;
-        CXMLAttribute* pType = Attributes.Find("type");
-
-        if (pType)
-        {
-            const char* szType = pType->GetValue().c_str();
-
-            // Check its content (server or client or shared) and set the type accordingly
-            if (!stricmp(szType, "client"))
-            {
-                bServer = false;
-                bClient = true;
-            }
-            else if (!stricmp(szType, "shared"))
-                bClient = true;
-            else if (stricmp(szType, "server") != 0)
-                CLogger::LogPrintf("Unknown script type specified in %s. Assuming 'server'\n", m_strResourceName.c_str());
-        }
-
-        // Grab the source attribute
-        CXMLAttribute* pSrc = Attributes.Find("src");
-
-        if (pSrc)
-        {
-            // Grab the source value from the attribute
-            std::string strFilename = pSrc->GetValue();
-
-            if (!strFilename.empty())
-            {
-                std::string strFullFilename;
-                ReplaceSlashes(strFilename);
-
-                if (bClient && IsFilenameUsed(strFilename, true))
-                {
-                    CLogger::LogPrintf("WARNING: Ignoring duplicate client script file in resource '%s': '%s'\n", m_strResourceName.c_str(),
-                                       strFilename.c_str());
-                    bClient = false;
-                }
-                if (bServer && IsFilenameUsed(strFilename, false))
-                {
-                    CLogger::LogPrintf("WARNING: Duplicate script file in resource '%s': '%s'\n", m_strResourceName.c_str(), strFilename.c_str());
-                }
-
-                // Extract / get the filepath of the file
-                if (IsValidFilePath(strFilename.c_str()) && GetFilePath(strFilename.c_str(), strFullFilename))
-                {
-                    // Create it depending on the type (client or server or shared) and add it to the list of resource files
-                    if (bServer)
-                        m_ResourceFiles.push_back(new CResourceScriptItem(this, strFilename.c_str(), strFullFilename.c_str(), &Attributes));
-                    if (bClient)
-                        m_ResourceFiles.push_back(new CResourceClientScriptItem(this, strFilename.c_str(), strFullFilename.c_str(), &Attributes));
-                }
-                else
-                {
-                    m_strFailureReason = SString("Couldn't find script %s for resource %s\n", strFilename.c_str(), m_strResourceName.c_str());
-                    CLogger::ErrorPrintf(m_strFailureReason);
-                    return false;
-                }
-            }
-            else
-            {
-                CLogger::LogPrintf("WARNING: Empty 'src' attribute from 'script' node of 'meta.xml' for resource '%s', ignoring\n", m_strResourceName.c_str());
-            }
-        }
-        else
-        {
-            CLogger::LogPrintf("WARNING: Missing 'src' attribute from 'script' node of 'meta.xml' for resource '%s', ignoring\n", m_strResourceName.c_str());
-        }
-    }
-
-    return true;
-}
-
-bool CResource::ReadIncludedMaps(CXMLNode* pRoot)
-{
-    int i = 0;
-
-    // Loop through the map nodes under the root
-    for (CXMLNode* pMap = pRoot->FindSubNode("map", i); pMap != nullptr; pMap = pRoot->FindSubNode("map", ++i))
-    {
-        CXMLAttributes& Attributes = pMap->GetAttributes();
-
-        // Grab the dimension attribute
-        int            iDimension = 0;
-        CXMLAttribute* pDimension = Attributes.Find("dimension");
-
-        if (pDimension)
-        {
-            iDimension = atoi(pDimension->GetValue().c_str());
-
-            if (iDimension < 0 || iDimension > 65535)
-                iDimension = 0;
-        }
-
-        // Grab the source node
-        CXMLAttribute* pSrc = Attributes.Find("src");
-
-        if (pSrc)
-        {
-            std::string strFilename = pSrc->GetValue();
-
-            if (!strFilename.empty())
-            {
-                std::string strFullFilename;
-                ReplaceSlashes(strFilename);
-
-                if (IsFilenameUsed(strFilename, false))
-                {
-                    CLogger::LogPrintf("WARNING: Duplicate map file in resource '%s': '%s'\n", m_strResourceName.c_str(), strFilename.c_str());
-                }
-
-                // Grab the file (evt extract it). Make a map item resource and put it into the resourcefiles list
-                if (IsValidFilePath(strFilename.c_str()) && GetFilePath(strFilename.c_str(), strFullFilename))
-                {
-                    m_ResourceFiles.push_back(new CResourceMapItem(this, strFilename.c_str(), strFullFilename.c_str(), &Attributes, iDimension));
-                }
-                else
-                {
-                    m_strFailureReason = SString("Couldn't find map %s for resource %s\n", strFilename.c_str(), m_strResourceName.c_str());
-                    CLogger::ErrorPrintf(m_strFailureReason);
-                    return false;
-                }
-            }
-            else
-            {
-                CLogger::LogPrintf("WARNING: Empty 'src' attribute from 'map' node of 'meta.xml' for resource '%s', ignoring\n", m_strResourceName.c_str());
-            }
-        }
-        else
-        {
-            CLogger::LogPrintf("WARNING: Missing 'src' attribute from 'map' node of 'meta.xml' for resource '%s', ignoring\n", m_strResourceName.c_str());
-        }
-    }
-
-    return true;
-}
-
 bool CResource::GetDefaultSetting(const char* szName, char* szValue, size_t sizeBuffer)
 {
     // Look through its subnodes for settings with a matching name
@@ -2063,77 +1735,6 @@ bool CResource::RemoveFile(const char* szName)
     }
 
     return false;
-}
-
-// read the included resources from the XML file and store it for future reference
-bool CResource::ReadIncludedResources(CXMLNode* pRoot)
-{
-    int i = 0;
-
-    // Loop through the included resources list
-    for (CXMLNode* pInclude = pRoot->FindSubNode("include", i); pInclude != nullptr; pInclude = pRoot->FindSubNode("include", ++i))
-    {
-        CXMLAttributes& Attributes = pInclude->GetAttributes();
-
-        // Grab the minversion attribute (minimum version the included resource needs to be)
-        SVersion       svMinVersion;
-        CXMLAttribute* pMinVersion = Attributes.Find("minversion");
-
-        if (pMinVersion)
-        {
-            const std::string& strMinVersion = pMinVersion->GetValue();
-
-            if (!strMinVersion.empty())
-            {
-                std::stringstream ss;
-                ss << strMinVersion;
-                ss >> svMinVersion.m_uiMajor;
-                ss >> svMinVersion.m_uiMinor;
-                ss >> svMinVersion.m_uiRevision;
-            }
-        }
-
-        // Grab the maxversion attribute (maximum version the included resource needs to be)
-        SVersion       svMaxVersion;
-        CXMLAttribute* pMaxVersion = Attributes.Find("maxversion");
-
-        if (pMaxVersion)
-        {
-            const std::string& strMaxVersion = pMaxVersion->GetValue();
-
-            if (!strMaxVersion.empty())
-            {
-                std::stringstream ss;
-                ss << strMaxVersion;
-                ss >> svMaxVersion.m_uiMajor;
-                ss >> svMaxVersion.m_uiMinor;
-                ss >> svMaxVersion.m_uiRevision;
-            }
-        }
-
-        // Grab the resource attribute
-        CXMLAttribute* pSrc = Attributes.Find("resource");
-
-        if (pSrc)
-        {
-            // Grab the value and add an included resource
-            const std::string& strIncludedResource = pSrc->GetValue();
-
-            // If there's text in the node
-            if (!strIncludedResource.empty())
-                m_IncludedResources.push_back(new CIncludedResources(m_pResourceManager, strIncludedResource.c_str(), svMinVersion, svMaxVersion, this));
-            else
-                CLogger::LogPrintf("WARNING: Empty 'resource' attribute from 'include' node of 'meta.xml' for resource '%s', ignoring\n",
-                                   m_strResourceName.c_str());
-        }
-        else
-        {
-            CLogger::LogPrintf("WARNING: Missing 'resource' attribute from 'include' node of 'meta.xml' for resource '%s', ignoring\n",
-                               m_strResourceName.c_str());
-        }
-    }
-
-    return true;
 }
 
 bool CResource::LinkToIncludedResources()
@@ -2775,6 +2376,75 @@ bool CResource::IsHttpAccessAllowed(CAccount* pAccount)
 
     // If nothing explicitly set, then default to denied
     return false;
+}
+
+bool CResource::IsDuplicateServerFile(const fs::path& relativeFilePath)
+{
+    return std::find(m_serverFiles.begin(), m_serverFiles.end(), relativeFilePath) != m_serverFiles.end();
+}
+
+bool CResource::IsDuplicateClientFile(const fs::path& relativeFilePath)
+{
+    return std::find(m_clientFiles.begin(), m_clientFiles.end(), relativeFilePath) != m_clientFiles.end();
+}
+
+static std::unordered_set<std::string> reservedWindowsFileNames = {"CON"s,  "PRN"s,  "AUX"s,  "NUL"s,  "COM1"s, "COM2"s, "COM3"s, "COM4"s,
+                                                                   "COM5"s, "COM6"s, "COM7"s, "COM8"s, "COM9"s, "LPT1"s, "LPT2"s, "LPT3"s,
+                                                                   "LPT4"s, "LPT5"s, "LPT6"s, "LPT7"s, "LPT8"s, "LPT9"s};
+
+std::optional<CResource::ResourceFilePath> CResource::ProduceResourceFilePath(const std::filesystem::path& relativePath, bool windowsPlatformCheck)
+{
+    if (relativePath.is_absolute())
+        return std::nullopt;
+
+    // NOTE(botder): The path provided to `std::filesystem::canonical` must exist
+    std::error_code errorCode;
+    fs::path        absoluteFilePath = fs::canonical(m_staticRootDirectory / relativePath, errorCode);
+
+    if (errorCode)
+        return std::nullopt;
+
+    // Check if the resulting absolute file path is inside our resource directory
+    auto [rootIter, absoluteIter] = std::mismatch(m_staticRootDirectory.begin(), m_staticRootDirectory.end(), absoluteFilePath.begin(), absoluteFilePath.end());
+
+    if (rootIter == m_staticRootDirectory.end() || ++rootIter != m_staticRootDirectory.end())
+        return std::nullopt;
+
+    fs::path relativeFilePath = fs::relative(absoluteFilePath, m_staticRootDirectory, errorCode);
+
+    if (errorCode)
+        return std::nullopt;
+
+    // Check if the relative file path is allowed on a Windows operating system
+    // See https://docs.microsoft.com/en-us/windows/win32/fileio/naming-a-file
+    bool isWindowsCompatible = true;
+
+    if (windowsPlatformCheck)
+    {
+        std::string fileName = relativeFilePath.filename().string();
+
+        if (fileName.back() == '.' || fileName.back() == ' ')
+        {
+            isWindowsCompatible = false;
+        }
+        else if (reservedWindowsFileNames.find(fileName) != reservedWindowsFileNames.end())
+        {
+            isWindowsCompatible = false;
+        }
+        else
+        {
+            for (unsigned char c : fileName)
+            {
+                if (c < 32 || c == '<' || c == '>' || c == ':' || c == '"' || c == '/' || c == '\\' || c == '|' || c == '?' || c == '*')
+                {
+                    isWindowsCompatible = false;
+                    break;
+                }
+            }
+        }
+    }
+
+    return ResourceFilePath{absoluteFilePath, relativeFilePath, isWindowsCompatible};
 }
 
 bool CResource::CallExportedFunction(const char* szFunctionName, CLuaArguments& Arguments, CLuaArguments& Returns, CResource& Caller)

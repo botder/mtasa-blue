@@ -41,13 +41,7 @@ namespace mtasa
 
         using ProcessNodeFunction = void (MetaFileParser::*)(CXMLNode*);
 
-        struct Processor
-        {
-            ProcessNodeFunction function = nullptr;
-            bool                processOnlyOnce = false;
-        };
-
-        std::unordered_map<std::string, Processor> processors = {
+        std::unordered_map<std::string, std::pair<ProcessNodeFunction, bool>> processors = {
             {"file"s, {&MetaFileParser::ProcessFileNode, false}},
             {"config"s, {&MetaFileParser::ProcessConfigNode, false}},
             {"script"s, {&MetaFileParser::ProcessScriptNode, false}},
@@ -73,10 +67,10 @@ namespace mtasa
 
             if (auto processorIter = processors.find(nodeName); processorIter != processors.end())
             {
-                Processor& processor = processorIter->second;
-                std::invoke(processor.function, this, node);
+                auto& [processFunction, processOnlyOnce] = processorIter->second;
+                std::invoke(processFunction, this, node);
 
-                if (processor.processOnlyOnce)
+                if (processOnlyOnce)
                     processors.erase(processorIter);
             }
         }

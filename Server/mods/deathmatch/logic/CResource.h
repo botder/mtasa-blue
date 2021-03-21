@@ -35,6 +35,11 @@ class CAccount;
 class CLuaMain;
 class CResourceManager;
 
+namespace mtasa
+{
+    class MetaFileParser;
+}
+
 struct SVersion
 {
     unsigned int m_uiMajor = 0;
@@ -357,6 +362,34 @@ private:
     bool         IsHttpAccessAllowed(CAccount* pAccount);
 
 private:
+    std::filesystem::path m_staticRootDirectory;
+
+    std::vector<std::filesystem::path> m_serverFiles;
+    std::vector<std::filesystem::path> m_clientFiles;
+
+    bool IsDuplicateServerFile(const std::filesystem::path& relativeFilePath);
+    bool IsDuplicateClientFile(const std::filesystem::path& relativeFilePath);
+
+    bool ProcessMeta(const mtasa::MetaFileParser& meta);
+    bool ProcessMetaInfo(const mtasa::MetaFileParser& meta);
+    bool ProcessMetaIncludes(const mtasa::MetaFileParser& meta);
+    bool ProcessMetaMaps(const mtasa::MetaFileParser& meta);
+    bool ProcessMetaFiles(const mtasa::MetaFileParser& meta);
+    bool ProcessMetaScripts(const mtasa::MetaFileParser& meta);
+    bool ProcessMetaHtmls(const mtasa::MetaFileParser& meta);
+    bool ProcessMetaExports(const mtasa::MetaFileParser& meta);
+    bool ProcessMetaConfigs(const mtasa::MetaFileParser& meta);
+
+    struct ResourceFilePath
+    {
+        std::filesystem::path absolute;
+        std::filesystem::path relative;
+        bool                  isWindowsCompatible = true;
+    };
+
+    std::optional<ResourceFilePath> ProduceResourceFilePath(const std::filesystem::path& relativePath, bool windowsPlatformCheck);
+
+private:
     EResourceState m_eState = EResourceState::None;
     bool           m_bClientSync = false;
 
@@ -364,7 +397,6 @@ private:
     uint           m_uiScriptID = -1;
 
     CResourceManager* m_pResourceManager;
-
 
     SString     m_strResourceName;
     SString     m_strAbsPath;                      // Absolute path to containing directory        i.e. /server/mods/deathmatch/resources
@@ -394,23 +426,6 @@ private:
     std::list<CResource*>          m_Dependents;                   // resources that have "included" or loaded this one
     std::list<CExportedFunction>   m_ExportedFunctions;
     std::list<CResource*>          m_TemporaryIncludes;            // started by startResource script command
-
-    std::filesystem::path m_staticRootDirectory;
-
-    std::vector<std::filesystem::path> m_serverFiles;
-    std::vector<std::filesystem::path> m_clientFiles;
-
-    bool IsDuplicateServerFile(const std::filesystem::path& relativeFilePath);
-    bool IsDuplicateClientFile(const std::filesystem::path& relativeFilePath);
-
-    struct ResourceFilePath
-    {
-        std::filesystem::path absolute;
-        std::filesystem::path relative;
-        bool                  isWindowsCompatible = true;
-    };
-
-    std::optional<ResourceFilePath> ProduceResourceFilePath(const std::filesystem::path& relativePath, bool windowsPlatformCheck);
 
     std::string m_strCircularInclude;
     SString     m_strFailureReason;

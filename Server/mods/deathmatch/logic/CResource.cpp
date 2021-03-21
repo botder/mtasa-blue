@@ -128,8 +128,8 @@ bool CResource::Load()
         return false;
     }
 
-    mtasa::MetaFileParser metaParser{m_strResourceName};
-    std::string           parserError = metaParser.Parse(metaFilePath);
+    mtasa::MetaFileParser meta{m_strResourceName};
+    std::string           parserError = meta.Parse(metaFilePath);
 
     if (!parserError.empty())
     {
@@ -139,316 +139,8 @@ bool CResource::Load()
     }
 
     // Process resource meta information from parser
-    m_Info.clear();
-
-    for (const auto& [key, value] : metaParser.info)
-    {
-        m_Info[key] = value;
-    }
-
-    m_strMinServerFromMetaXml = metaParser.minServerVersion;
-    m_strMinServerRequirement = metaParser.minServerVersion;
-
-    m_strMinClientFromMetaXml = metaParser.minClientVersion;
-    m_strMinClientRequirement = metaParser.minClientVersion;
-
-    m_uiVersionMajor = metaParser.version.major;
-    m_uiVersionMinor = metaParser.version.minor;
-    m_uiVersionRevision = metaParser.version.revision;
-    m_uiVersionState = metaParser.versionStage;
-
-    m_bOOPEnabledInMetaXml = metaParser.useOOP;
-
-    m_iDownloadPriorityGroup = metaParser.downloadPriorityGroup;
-
-    m_pNodeSettings = metaParser.settingsNode;
-
-    if (metaParser.syncMapElementDataDefined)
-    {
-        m_bSyncMapElementData = metaParser.syncMapElementData;
-        m_bSyncMapElementDataDefined = true;
-    }
-    else
-    {
-        m_bSyncMapElementData = true;
-        m_bSyncMapElementDataDefined = false;
-    }
-
-    // TODO:
-    /*
-    // Find the acl requets
-    CXMLNode* pNodeAclRequest = pRoot->FindSubNode("aclrequest", 0);
-
-    if (pNodeAclRequest)
-        RefreshAutoPermissions(pNodeAclRequest);
-    else
-        RemoveAutoPermissions();
-    */
-
-    for (const mtasa::MetaDependencyItem& item : metaParser.dependencies)
-    {
-        SVersion minVersion{item.minVersion.major, item.minVersion.minor, item.minVersion.revision};
-        SVersion maxVersion{item.maxVersion.major, item.maxVersion.minor, item.maxVersion.revision};
-        m_IncludedResources.push_back(new CIncludedResources{m_pResourceManager, item.resourceName, minVersion, maxVersion, this});
-    }
-
-    for (const mtasa::MetaFileItem& item : metaParser.maps)
-    {
-        std::optional<ResourceFilePath> resourceFilePath = ProduceResourceFilePath(item.sourceFile, false);
-
-        if (!resourceFilePath.has_value() || !IsRegularFile(resourceFilePath->absolute))
-        {
-            std::string filePath = item.sourceFile.string();
-
-            m_strFailureReason =
-                SString("Couldn't find map %.*s for resource %.*s\n", filePath.size(), filePath.data(), m_strResourceName.size(), m_strResourceName.c_str());
-
-            CLogger::ErrorPrintf(m_strFailureReason);
-            return false;
-        }
-
-        std::string filePath = resourceFilePath->relative.string();
-
-        if (IsDuplicateServerFile(resourceFilePath->relative))
-        {
-            CLogger::LogPrintf("WARNING: Duplicate map file in resource '%.*s': '%.*s'\n", m_strResourceName.size(), m_strResourceName.c_str(), filePath.size(),
-                               filePath.data());
-        }
-
-        m_ResourceFiles.push_back(new CResourceMapItem{this, filePath.c_str(), resourceFilePath->absolute.string().c_str(), nullptr, item.dimension});
-
-        m_serverFiles.push_back(std::move(resourceFilePath->relative));
-    }
-
-    for (const mtasa::MetaFileItem& item : metaParser.files)
-    {
-        std::optional<ResourceFilePath> resourceFilePath = ProduceResourceFilePath(item.sourceFile, true);
-
-        if (!resourceFilePath.has_value() || !IsRegularFile(resourceFilePath->absolute))
-        {
-            std::string filePath = item.sourceFile.string();
-
-            m_strFailureReason =
-                SString("Couldn't find file %.*s for resource %.*s\n", filePath.size(), filePath.data(), m_strResourceName.size(), m_strResourceName.c_str());
-
-            CLogger::ErrorPrintf(m_strFailureReason);
-            return false;
-        }
-
-        std::string filePath = resourceFilePath->relative.string();
-
-        if (!resourceFilePath->isWindowsCompatible)
-        {
-            m_strFailureReason = SString("Client file path %.*s for resource %.*s is not supported on Windows\n", filePath.size(), filePath.data(),
-                                         m_strResourceName.size(), m_strResourceName.c_str());
-            CLogger::ErrorPrintf(m_strFailureReason);
-            return false;
-        }
-
-        if (IsDuplicateClientFile(resourceFilePath->relative))
-        {
-            CLogger::LogPrintf("WARNING: Ignoring duplicate client file in resource '%.*s': '%.*s'\n", m_strResourceName.size(), m_strResourceName.c_str(),
-                               filePath.size(), filePath.data());
-            continue;
-        }
-
-        m_ResourceFiles.push_back(
-            new CResourceClientFileItem{this, filePath.c_str(), resourceFilePath->absolute.string().c_str(), nullptr, !item.isClientOptional});
-
-        m_clientFiles.push_back(std::move(resourceFilePath->relative));
-    }
-
-    for (const mtasa::MetaFileItem& item : metaParser.scripts)
-    {
-        std::optional<ResourceFilePath> resourceFilePath = ProduceResourceFilePath(item.sourceFile, item.isForClient);
-
-        if (!resourceFilePath.has_value() || !IsRegularFile(resourceFilePath->absolute))
-        {
-            std::string filePath = item.sourceFile.string();
-
-            m_strFailureReason =
-                SString("Couldn't find script %.*s for resource %.*s\n", filePath.size(), filePath.data(), m_strResourceName.size(), m_strResourceName.c_str());
-
-            CLogger::ErrorPrintf(m_strFailureReason);
-            return false;
-        }
-
-        std::string filePath = resourceFilePath->relative.string();
-
-        if (item.isForClient && !resourceFilePath->isWindowsCompatible)
-        {
-            m_strFailureReason = SString("Client script path %.*s for resource %.*s is not supported on Windows\n", filePath.size(), filePath.data(),
-                                         m_strResourceName.size(), m_strResourceName.c_str());
-            CLogger::ErrorPrintf(m_strFailureReason);
-            return false;
-        }
-
-        if (item.isForServer && IsDuplicateServerFile(resourceFilePath->relative))
-        {
-            CLogger::LogPrintf("WARNING: Duplicate script file in resource '%.*s': '%.*s'\n", m_strResourceName.size(), m_strResourceName.c_str(), filePath.size(),
-                               filePath.data());
-        }
-
-        bool createForClient = item.isForClient;
-
-        if (item.isForClient && IsDuplicateClientFile(resourceFilePath->relative))
-        {
-            createForClient = false;
-
-            CLogger::LogPrintf("WARNING: Ignoring duplicate client script file in resource '%.*s': '%.*s'\n", m_strResourceName.size(), m_strResourceName.c_str(),
-                               filePath.size(), filePath.data());
-        }
-
-        if (item.isForServer)
-        {
-            m_ResourceFiles.push_back(new CResourceScriptItem{this, filePath.c_str(), resourceFilePath->absolute.string().c_str(), nullptr});
-
-            m_serverFiles.push_back(resourceFilePath->relative);
-        }
-
-        if (createForClient)
-        {
-            auto resourceFile = new CResourceClientScriptItem{this, filePath.c_str(), resourceFilePath->absolute.string().c_str(), nullptr};
-            resourceFile->SetNoClientCache(!item.isClientCacheable);
-            m_ResourceFiles.push_back(resourceFile);
-
-            m_clientFiles.push_back(resourceFilePath->relative);
-        }
-    }
-
-    CResourceHTMLItem* firstHtmlFile = nullptr;
-    bool               hasDefaultHtmlPage = false;
-
-    for (const mtasa::MetaFileItem& item : metaParser.htmls)
-    {
-        std::optional<ResourceFilePath> resourceFilePath = ProduceResourceFilePath(item.sourceFile, false);
-
-        if (!resourceFilePath.has_value() || !IsRegularFile(resourceFilePath->absolute))
-        {
-            std::string filePath = item.sourceFile.string();
-
-            m_strFailureReason =
-                SString("Couldn't find html %.*s for resource %.*s\n", filePath.size(), filePath.data(), m_strResourceName.size(), m_strResourceName.c_str());
-
-            CLogger::ErrorPrintf(m_strFailureReason);
-            return false;
-        }
-
-        std::string filePath = resourceFilePath->relative.string();
-
-        if (IsDuplicateServerFile(resourceFilePath->relative))
-        {
-            CLogger::LogPrintf("WARNING: Duplicate html file in resource '%.*s': '%.*s'\n", m_strResourceName.size(), m_strResourceName.c_str(), filePath.size(),
-                               filePath.data());
-        }
-
-        bool isDefault = item.isHttpDefault;
-
-        if (isDefault)
-        {
-            if (hasDefaultHtmlPage)
-            {
-                isDefault = false;
-
-                CLogger::LogPrintf("Only one html item can be default per resource, ignoring %.*s in %.*s\n", filePath.size(), filePath.data(),
-                                   m_strResourceName.size(), m_strResourceName.c_str());
-            }
-            else
-            {
-                hasDefaultHtmlPage = true;
-            }
-        }
-
-        auto resourceFile = new CResourceHTMLItem{this,
-                                                  filePath.c_str(),
-                                                  resourceFilePath->absolute.string().c_str(),
-                                                  nullptr,
-                                                  isDefault,
-                                                  !!item.isHttpRaw,
-                                                  !!item.isHttpRestricted,
-                                                  m_bOOPEnabledInMetaXml};
-
-        m_ResourceFiles.push_back(resourceFile);
-
-        if (firstHtmlFile == nullptr)
-            firstHtmlFile = resourceFile;
-
-        m_serverFiles.push_back(std::move(resourceFilePath->relative));
-    }
-
-    if (firstHtmlFile != nullptr && !hasDefaultHtmlPage)
-        firstHtmlFile->SetDefaultPage(true);
-
-    for (const mtasa::MetaExportItem& item : metaParser.exports)
-    {
-        if (item.isForServer)
-        {
-            m_ExportedFunctions.push_back(
-                CExportedFunction{item.functionName, !!item.isHttpAccessible, CExportedFunction::EXPORTED_FUNCTION_TYPE_SERVER, !!item.isACLRestricted});
-        }
-
-        if (item.isForClient)
-        {
-            m_ExportedFunctions.push_back(
-                CExportedFunction{item.functionName, !!item.isHttpAccessible, CExportedFunction::EXPORTED_FUNCTION_TYPE_CLIENT, !!item.isACLRestricted});
-        }
-    }
-
-    for (const mtasa::MetaFileItem& item : metaParser.configs)
-    {
-        std::optional<ResourceFilePath> resourceFilePath = ProduceResourceFilePath(item.sourceFile, item.isForClient);
-
-        if (!resourceFilePath.has_value() || !IsRegularFile(resourceFilePath->absolute))
-        {
-            std::string filePath = item.sourceFile.string();
-
-            m_strFailureReason =
-                SString("Couldn't find config %.*s for resource %.*s\n", filePath.size(), filePath.data(), m_strResourceName.size(), m_strResourceName.c_str());
-
-            CLogger::ErrorPrintf(m_strFailureReason);
-            return false;
-        }
-
-        std::string filePath = resourceFilePath->relative.string();
-
-        if (item.isForClient && !resourceFilePath->isWindowsCompatible)
-        {
-            m_strFailureReason = SString("Client config path %.*s for resource %.*s is not supported on Windows\n", filePath.size(), filePath.data(),
-                                         m_strResourceName.size(), m_strResourceName.c_str());
-            CLogger::ErrorPrintf(m_strFailureReason);
-            return false;
-        }
-
-        if (item.isForServer && IsDuplicateServerFile(resourceFilePath->relative))
-        {
-            CLogger::LogPrintf("WARNING: Duplicate config file in resource '%.*s': '%.*s'\n", m_strResourceName.size(), m_strResourceName.c_str(),
-                               filePath.size(), filePath.data());
-        }
-
-        bool createForClient = item.isForClient;
-
-        if (item.isForClient && IsDuplicateClientFile(resourceFilePath->relative))
-        {
-            createForClient = false;
-
-            CLogger::LogPrintf("WARNING: Ignoring duplicate client config file in resource '%.*s': '%.*s'\n", m_strResourceName.size(),
-                               m_strResourceName.c_str(), filePath.size(), filePath.data());
-        }
-
-        if (item.isForServer)
-        {
-            m_ResourceFiles.push_back(new CResourceConfigItem{this, filePath.c_str(), resourceFilePath->absolute.string().c_str(), nullptr});
-
-            m_serverFiles.push_back(resourceFilePath->relative);
-        }
-
-        if (createForClient)
-        {
-            m_ResourceFiles.push_back(new CResourceClientConfigItem{this, filePath.c_str(), resourceFilePath->absolute.string().c_str(), nullptr});
-
-            m_clientFiles.push_back(resourceFilePath->relative);
-        }
-    }
+    if (!ProcessMeta(meta))
+        return false;
 
     // Generate a CRC for this resource
     if (!GenerateChecksums())
@@ -2386,6 +2078,362 @@ bool CResource::IsDuplicateServerFile(const fs::path& relativeFilePath)
 bool CResource::IsDuplicateClientFile(const fs::path& relativeFilePath)
 {
     return std::find(m_clientFiles.begin(), m_clientFiles.end(), relativeFilePath) != m_clientFiles.end();
+}
+
+bool CResource::ProcessMeta(const mtasa::MetaFileParser& meta)
+{
+    m_strMinServerFromMetaXml = meta.minServerVersion;
+    m_strMinServerRequirement = meta.minServerVersion;
+
+    m_strMinClientFromMetaXml = meta.minClientVersion;
+    m_strMinClientRequirement = meta.minClientVersion;
+
+    m_bOOPEnabledInMetaXml = meta.useOOP;
+
+    m_iDownloadPriorityGroup = meta.downloadPriorityGroup;
+
+    m_pNodeSettings = meta.settingsNode;
+
+    if (meta.syncMapElementDataDefined)
+    {
+        m_bSyncMapElementData = meta.syncMapElementData;
+        m_bSyncMapElementDataDefined = true;
+    }
+    else
+    {
+        m_bSyncMapElementData = true;
+        m_bSyncMapElementDataDefined = false;
+    }
+
+    // TODO:
+    /*
+    // Find the acl requets
+    CXMLNode* pNodeAclRequest = pRoot->FindSubNode("aclrequest", 0);
+
+    if (pNodeAclRequest)
+        RefreshAutoPermissions(pNodeAclRequest);
+    else
+        RemoveAutoPermissions();
+    */
+
+    return ProcessMetaInfo(meta) && ProcessMetaIncludes(meta) && ProcessMetaMaps(meta) && ProcessMetaFiles(meta) && ProcessMetaScripts(meta) &&
+           ProcessMetaHtmls(meta) && ProcessMetaExports(meta) && ProcessMetaConfigs(meta);
+}
+
+bool CResource::ProcessMetaInfo(const mtasa::MetaFileParser& meta)
+{
+    m_Info.clear();
+
+    for (const auto& [key, value] : meta.info)
+    {
+        m_Info[key] = value;
+    }
+
+    m_uiVersionMajor = meta.version.major;
+    m_uiVersionMinor = meta.version.minor;
+    m_uiVersionRevision = meta.version.revision;
+    m_uiVersionState = meta.versionStage;
+    return true;
+}
+
+bool CResource::ProcessMetaIncludes(const mtasa::MetaFileParser& meta)
+{
+    for (const mtasa::MetaDependencyItem& item : meta.dependencies)
+    {
+        SVersion minVersion{item.minVersion.major, item.minVersion.minor, item.minVersion.revision};
+        SVersion maxVersion{item.maxVersion.major, item.maxVersion.minor, item.maxVersion.revision};
+        m_IncludedResources.push_back(new CIncludedResources{m_pResourceManager, item.resourceName, minVersion, maxVersion, this});
+    }
+
+    return true;
+}
+
+bool CResource::ProcessMetaMaps(const mtasa::MetaFileParser& meta)
+{
+    for (const mtasa::MetaFileItem& item : meta.maps)
+    {
+        std::optional<ResourceFilePath> resourceFilePath = ProduceResourceFilePath(item.sourceFile, false);
+
+        if (!resourceFilePath.has_value() || !IsRegularFile(resourceFilePath->absolute))
+        {
+            std::string filePath = item.sourceFile.string();
+
+            m_strFailureReason =
+                SString("Couldn't find map %.*s for resource %.*s\n", filePath.size(), filePath.data(), m_strResourceName.size(), m_strResourceName.c_str());
+
+            CLogger::ErrorPrintf(m_strFailureReason);
+            return false;
+        }
+
+        std::string filePath = resourceFilePath->relative.string();
+
+        if (IsDuplicateServerFile(resourceFilePath->relative))
+        {
+            CLogger::LogPrintf("WARNING: Duplicate map file in resource '%.*s': '%.*s'\n", m_strResourceName.size(), m_strResourceName.c_str(), filePath.size(),
+                               filePath.data());
+        }
+
+        m_ResourceFiles.push_back(new CResourceMapItem{this, filePath.c_str(), resourceFilePath->absolute.string().c_str(), nullptr, item.dimension});
+
+        m_serverFiles.push_back(std::move(resourceFilePath->relative));
+    }
+
+    return true;
+}
+
+bool CResource::ProcessMetaFiles(const mtasa::MetaFileParser& meta)
+{
+    for (const mtasa::MetaFileItem& item : meta.files)
+    {
+        std::optional<ResourceFilePath> resourceFilePath = ProduceResourceFilePath(item.sourceFile, true);
+
+        if (!resourceFilePath.has_value() || !IsRegularFile(resourceFilePath->absolute))
+        {
+            std::string filePath = item.sourceFile.string();
+
+            m_strFailureReason =
+                SString("Couldn't find file %.*s for resource %.*s\n", filePath.size(), filePath.data(), m_strResourceName.size(), m_strResourceName.c_str());
+
+            CLogger::ErrorPrintf(m_strFailureReason);
+            return false;
+        }
+
+        std::string filePath = resourceFilePath->relative.string();
+
+        if (!resourceFilePath->isWindowsCompatible)
+        {
+            m_strFailureReason = SString("Client file path %.*s for resource %.*s is not supported on Windows\n", filePath.size(), filePath.data(),
+                                         m_strResourceName.size(), m_strResourceName.c_str());
+            CLogger::ErrorPrintf(m_strFailureReason);
+            return false;
+        }
+
+        if (IsDuplicateClientFile(resourceFilePath->relative))
+        {
+            CLogger::LogPrintf("WARNING: Ignoring duplicate client file in resource '%.*s': '%.*s'\n", m_strResourceName.size(), m_strResourceName.c_str(),
+                               filePath.size(), filePath.data());
+            continue;
+        }
+
+        m_ResourceFiles.push_back(
+            new CResourceClientFileItem{this, filePath.c_str(), resourceFilePath->absolute.string().c_str(), nullptr, !item.isClientOptional});
+
+        m_clientFiles.push_back(std::move(resourceFilePath->relative));
+    }
+
+    return true;
+}
+
+bool CResource::ProcessMetaScripts(const mtasa::MetaFileParser& meta)
+{
+    for (const mtasa::MetaFileItem& item : meta.scripts)
+    {
+        std::optional<ResourceFilePath> resourceFilePath = ProduceResourceFilePath(item.sourceFile, item.isForClient);
+
+        if (!resourceFilePath.has_value() || !IsRegularFile(resourceFilePath->absolute))
+        {
+            std::string filePath = item.sourceFile.string();
+
+            m_strFailureReason =
+                SString("Couldn't find script %.*s for resource %.*s\n", filePath.size(), filePath.data(), m_strResourceName.size(), m_strResourceName.c_str());
+
+            CLogger::ErrorPrintf(m_strFailureReason);
+            return false;
+        }
+
+        std::string filePath = resourceFilePath->relative.string();
+
+        if (item.isForClient && !resourceFilePath->isWindowsCompatible)
+        {
+            m_strFailureReason = SString("Client script path %.*s for resource %.*s is not supported on Windows\n", filePath.size(), filePath.data(),
+                                         m_strResourceName.size(), m_strResourceName.c_str());
+            CLogger::ErrorPrintf(m_strFailureReason);
+            return false;
+        }
+
+        if (item.isForServer && IsDuplicateServerFile(resourceFilePath->relative))
+        {
+            CLogger::LogPrintf("WARNING: Duplicate script file in resource '%.*s': '%.*s'\n", m_strResourceName.size(), m_strResourceName.c_str(),
+                               filePath.size(), filePath.data());
+        }
+
+        bool createForClient = item.isForClient;
+
+        if (item.isForClient && IsDuplicateClientFile(resourceFilePath->relative))
+        {
+            createForClient = false;
+
+            CLogger::LogPrintf("WARNING: Ignoring duplicate client script file in resource '%.*s': '%.*s'\n", m_strResourceName.size(),
+                               m_strResourceName.c_str(), filePath.size(), filePath.data());
+        }
+
+        if (item.isForServer)
+        {
+            m_ResourceFiles.push_back(new CResourceScriptItem{this, filePath.c_str(), resourceFilePath->absolute.string().c_str(), nullptr});
+
+            m_serverFiles.push_back(resourceFilePath->relative);
+        }
+
+        if (createForClient)
+        {
+            auto resourceFile = new CResourceClientScriptItem{this, filePath.c_str(), resourceFilePath->absolute.string().c_str(), nullptr};
+            resourceFile->SetNoClientCache(!item.isClientCacheable);
+            m_ResourceFiles.push_back(resourceFile);
+
+            m_clientFiles.push_back(resourceFilePath->relative);
+        }
+    }
+
+    return true;
+}
+
+bool CResource::ProcessMetaHtmls(const mtasa::MetaFileParser& meta)
+{
+    CResourceHTMLItem* firstHtmlFile = nullptr;
+    bool               hasDefaultHtmlPage = false;
+
+    for (const mtasa::MetaFileItem& item : meta.htmls)
+    {
+        std::optional<ResourceFilePath> resourceFilePath = ProduceResourceFilePath(item.sourceFile, false);
+
+        if (!resourceFilePath.has_value() || !IsRegularFile(resourceFilePath->absolute))
+        {
+            std::string filePath = item.sourceFile.string();
+
+            m_strFailureReason =
+                SString("Couldn't find html %.*s for resource %.*s\n", filePath.size(), filePath.data(), m_strResourceName.size(), m_strResourceName.c_str());
+
+            CLogger::ErrorPrintf(m_strFailureReason);
+            return false;
+        }
+
+        std::string filePath = resourceFilePath->relative.string();
+
+        if (IsDuplicateServerFile(resourceFilePath->relative))
+        {
+            CLogger::LogPrintf("WARNING: Duplicate html file in resource '%.*s': '%.*s'\n", m_strResourceName.size(), m_strResourceName.c_str(),
+                               filePath.size(), filePath.data());
+        }
+
+        bool isDefault = item.isHttpDefault;
+
+        if (isDefault)
+        {
+            if (hasDefaultHtmlPage)
+            {
+                isDefault = false;
+
+                CLogger::LogPrintf("Only one html item can be default per resource, ignoring %.*s in %.*s\n", filePath.size(), filePath.data(),
+                                   m_strResourceName.size(), m_strResourceName.c_str());
+            }
+            else
+            {
+                hasDefaultHtmlPage = true;
+            }
+        }
+
+        auto resourceFile = new CResourceHTMLItem{this,
+                                                  filePath.c_str(),
+                                                  resourceFilePath->absolute.string().c_str(),
+                                                  nullptr,
+                                                  isDefault,
+                                                  !!item.isHttpRaw,
+                                                  !!item.isHttpRestricted,
+                                                  m_bOOPEnabledInMetaXml};
+
+        m_ResourceFiles.push_back(resourceFile);
+
+        if (firstHtmlFile == nullptr)
+            firstHtmlFile = resourceFile;
+
+        m_serverFiles.push_back(std::move(resourceFilePath->relative));
+    }
+
+    if (firstHtmlFile != nullptr && !hasDefaultHtmlPage)
+        firstHtmlFile->SetDefaultPage(true);
+
+    return true;
+}
+
+bool CResource::ProcessMetaExports(const mtasa::MetaFileParser& meta)
+{
+    for (const mtasa::MetaExportItem& item : meta.exports)
+    {
+        if (item.isForServer)
+        {
+            m_ExportedFunctions.push_back(
+                CExportedFunction{item.functionName, !!item.isHttpAccessible, CExportedFunction::EXPORTED_FUNCTION_TYPE_SERVER, !!item.isACLRestricted});
+        }
+
+        if (item.isForClient)
+        {
+            m_ExportedFunctions.push_back(
+                CExportedFunction{item.functionName, !!item.isHttpAccessible, CExportedFunction::EXPORTED_FUNCTION_TYPE_CLIENT, !!item.isACLRestricted});
+        }
+    }
+
+    return true;
+}
+
+bool CResource::ProcessMetaConfigs(const mtasa::MetaFileParser& meta)
+{
+    for (const mtasa::MetaFileItem& item : meta.configs)
+    {
+        std::optional<ResourceFilePath> resourceFilePath = ProduceResourceFilePath(item.sourceFile, item.isForClient);
+
+        if (!resourceFilePath.has_value() || !IsRegularFile(resourceFilePath->absolute))
+        {
+            std::string filePath = item.sourceFile.string();
+
+            m_strFailureReason =
+                SString("Couldn't find config %.*s for resource %.*s\n", filePath.size(), filePath.data(), m_strResourceName.size(), m_strResourceName.c_str());
+
+            CLogger::ErrorPrintf(m_strFailureReason);
+            return false;
+        }
+
+        std::string filePath = resourceFilePath->relative.string();
+
+        if (item.isForClient && !resourceFilePath->isWindowsCompatible)
+        {
+            m_strFailureReason = SString("Client config path %.*s for resource %.*s is not supported on Windows\n", filePath.size(), filePath.data(),
+                                         m_strResourceName.size(), m_strResourceName.c_str());
+            CLogger::ErrorPrintf(m_strFailureReason);
+            return false;
+        }
+
+        if (item.isForServer && IsDuplicateServerFile(resourceFilePath->relative))
+        {
+            CLogger::LogPrintf("WARNING: Duplicate config file in resource '%.*s': '%.*s'\n", m_strResourceName.size(), m_strResourceName.c_str(),
+                               filePath.size(), filePath.data());
+        }
+
+        bool createForClient = item.isForClient;
+
+        if (item.isForClient && IsDuplicateClientFile(resourceFilePath->relative))
+        {
+            createForClient = false;
+
+            CLogger::LogPrintf("WARNING: Ignoring duplicate client config file in resource '%.*s': '%.*s'\n", m_strResourceName.size(),
+                               m_strResourceName.c_str(), filePath.size(), filePath.data());
+        }
+
+        if (item.isForServer)
+        {
+            m_ResourceFiles.push_back(new CResourceConfigItem{this, filePath.c_str(), resourceFilePath->absolute.string().c_str(), nullptr});
+
+            m_serverFiles.push_back(resourceFilePath->relative);
+        }
+
+        if (createForClient)
+        {
+            m_ResourceFiles.push_back(new CResourceClientConfigItem{this, filePath.c_str(), resourceFilePath->absolute.string().c_str(), nullptr});
+
+            m_clientFiles.push_back(resourceFilePath->relative);
+        }
+    }
+
+    return true;
 }
 
 static std::unordered_set<std::string> reservedWindowsFileNames = {"CON"s,  "PRN"s,  "AUX"s,  "NUL"s,  "COM1"s, "COM2"s, "COM3"s, "COM4"s,

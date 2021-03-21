@@ -362,13 +362,23 @@ private:
     bool         IsHttpAccessAllowed(CAccount* pAccount);
 
 private:
+    struct ResourceFilePath
+    {
+        std::filesystem::path absolute;
+        std::filesystem::path relative;
+        bool                  isWindowsCompatible = true;
+    };
+
     std::filesystem::path m_staticRootDirectory;
 
-    std::vector<std::filesystem::path> m_serverFiles;
-    std::vector<std::filesystem::path> m_clientFiles;
+    std::vector<std::filesystem::path>                         m_serverFiles;
+    std::vector<std::pair<std::filesystem::path, std::string>> m_clientFiles;
 
     bool IsDuplicateServerFile(const std::filesystem::path& relativeFilePath);
     bool IsDuplicateClientFile(const std::filesystem::path& relativeFilePath);
+
+    void AddServerFilePath(const ResourceFilePath& resourceFilePath);
+    void AddClientFilePath(const ResourceFilePath& resourceFilePath);
 
     bool ProcessMeta(const mtasa::MetaFileParser& meta);
     bool ProcessMetaInfo(const mtasa::MetaFileParser& meta);
@@ -379,13 +389,6 @@ private:
     bool ProcessMetaHtmls(const mtasa::MetaFileParser& meta);
     bool ProcessMetaExports(const mtasa::MetaFileParser& meta);
     bool ProcessMetaConfigs(const mtasa::MetaFileParser& meta);
-
-    struct ResourceFilePath
-    {
-        std::filesystem::path absolute;
-        std::filesystem::path relative;
-        bool                  isWindowsCompatible = true;
-    };
 
     std::optional<ResourceFilePath> ProduceResourceFilePath(const std::filesystem::path& relativePath, bool windowsPlatformCheck);
 

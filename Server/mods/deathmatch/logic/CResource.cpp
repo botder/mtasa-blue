@@ -2077,7 +2077,28 @@ bool CResource::IsDuplicateServerFile(const fs::path& relativeFilePath)
 
 bool CResource::IsDuplicateClientFile(const fs::path& relativeFilePath)
 {
-    return std::find(m_clientFiles.begin(), m_clientFiles.end(), relativeFilePath) != m_clientFiles.end();
+    std::string lowercasePath = relativeFilePath.string();
+    std::transform(lowercasePath.begin(), lowercasePath.end(), lowercasePath.begin(), [](unsigned char c) { return tolower(c); });
+
+    for (const auto& [path, string] : m_clientFiles)
+    {
+        if (lowercasePath == string || relativeFilePath == path)
+            return true;
+    }
+
+    return false;
+}
+
+void CResource::AddServerFilePath(const ResourceFilePath& resourceFilePath)
+{
+    m_serverFiles.push_back(resourceFilePath.relative);
+}
+
+void CResource::AddClientFilePath(const ResourceFilePath& resourceFilePath)
+{
+    std::string lowercasePath = resourceFilePath.relative.string();
+    std::transform(lowercasePath.begin(), lowercasePath.end(), lowercasePath.begin(), [](unsigned char c) { return tolower(c); });
+    m_clientFiles.push_back(std::make_pair(resourceFilePath.relative, std::move(lowercasePath)));
 }
 
 bool CResource::ProcessMeta(const mtasa::MetaFileParser& meta)
@@ -2175,7 +2196,7 @@ bool CResource::ProcessMetaMaps(const mtasa::MetaFileParser& meta)
 
         m_ResourceFiles.push_back(new CResourceMapItem{this, filePath.c_str(), resourceFilePath->absolute.string().c_str(), nullptr, item.dimension});
 
-        m_serverFiles.push_back(std::move(resourceFilePath->relative));
+        AddServerFilePath(resourceFilePath.value());
     }
 
     return true;
@@ -2218,7 +2239,7 @@ bool CResource::ProcessMetaFiles(const mtasa::MetaFileParser& meta)
         m_ResourceFiles.push_back(
             new CResourceClientFileItem{this, filePath.c_str(), resourceFilePath->absolute.string().c_str(), nullptr, !item.isClientOptional});
 
-        m_clientFiles.push_back(std::move(resourceFilePath->relative));
+        AddClientFilePath(resourceFilePath.value());
     }
 
     return true;
@@ -2271,7 +2292,7 @@ bool CResource::ProcessMetaScripts(const mtasa::MetaFileParser& meta)
         {
             m_ResourceFiles.push_back(new CResourceScriptItem{this, filePath.c_str(), resourceFilePath->absolute.string().c_str(), nullptr});
 
-            m_serverFiles.push_back(resourceFilePath->relative);
+            AddServerFilePath(resourceFilePath.value());
         }
 
         if (createForClient)
@@ -2280,7 +2301,7 @@ bool CResource::ProcessMetaScripts(const mtasa::MetaFileParser& meta)
             resourceFile->SetNoClientCache(!item.isClientCacheable);
             m_ResourceFiles.push_back(resourceFile);
 
-            m_clientFiles.push_back(resourceFilePath->relative);
+            AddClientFilePath(resourceFilePath.value());
         }
     }
 
@@ -2346,7 +2367,7 @@ bool CResource::ProcessMetaHtmls(const mtasa::MetaFileParser& meta)
         if (firstHtmlFile == nullptr)
             firstHtmlFile = resourceFile;
 
-        m_serverFiles.push_back(std::move(resourceFilePath->relative));
+        AddServerFilePath(resourceFilePath.value());
     }
 
     if (firstHtmlFile != nullptr && !hasDefaultHtmlPage)
@@ -2422,14 +2443,14 @@ bool CResource::ProcessMetaConfigs(const mtasa::MetaFileParser& meta)
         {
             m_ResourceFiles.push_back(new CResourceConfigItem{this, filePath.c_str(), resourceFilePath->absolute.string().c_str(), nullptr});
 
-            m_serverFiles.push_back(resourceFilePath->relative);
+            AddServerFilePath(resourceFilePath.value());
         }
 
         if (createForClient)
         {
             m_ResourceFiles.push_back(new CResourceClientConfigItem{this, filePath.c_str(), resourceFilePath->absolute.string().c_str(), nullptr});
 
-            m_clientFiles.push_back(resourceFilePath->relative);
+            AddClientFilePath(resourceFilePath.value());
         }
     }
 

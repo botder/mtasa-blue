@@ -13,6 +13,12 @@
 //#define RESOURCE_DEBUG_MESSAGES
 
 #include "StdInc.h"
+#include "CResource.h"
+#include "CResourceScriptItem.h"
+#include "CResourceConfigItem.h"
+#include "CResourceHTMLItem.h"
+#include "CResourceClientFileItem.h"
+#include "CResourceClientConfigItem.h"
 #include "MetaFileParser.h"
 #include "net/SimHeaders.h"
 #ifndef WIN32

@@ -10,6 +10,7 @@
  *****************************************************************************/
 
 #include "StdInc.h"
+#include "CResourceHTMLItem.h"
 
 void CLuaHTTPDefs::LoadFunctions(lua_State* luaVM)
 {

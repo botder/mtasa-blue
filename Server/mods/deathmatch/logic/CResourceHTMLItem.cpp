@@ -13,6 +13,7 @@
 // This parses it and converts into into a script
 
 #include "StdInc.h"
+#include "CResourceHTMLItem.h"
 
 extern CServerInterface* g_pServerInterface;
 extern CGame*            g_pGame;

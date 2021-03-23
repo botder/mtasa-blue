@@ -10,6 +10,8 @@
  *****************************************************************************/
 
 #include "StdInc.h"
+#include "CResourceScriptItem.h"
+#include "CResourceClientFileItem.h"
 
 CResourceStartPacket::CResourceStartPacket(const char* szResourceName, CResource* pResource)
 {

@@ -15,6 +15,7 @@
 // the VM once its been added
 
 #include "StdInc.h"
+#include "CResourceScriptItem.h"
 
 CResourceScriptItem::CResourceScriptItem(CResource* resource, const char* szShortName, const char* szResourceFileName, CXMLAttributes* xmlAttributes)
     : CResourceFile(resource, szShortName, szResourceFileName, xmlAttributes)

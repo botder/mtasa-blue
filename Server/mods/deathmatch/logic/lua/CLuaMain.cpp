@@ -10,7 +10,7 @@
  *****************************************************************************/
 
 #include "StdInc.h"
-
+#include "CResourceConfigItem.h"
 #include "CLuaFunctionDefs.h"
 #include <clocale>
 

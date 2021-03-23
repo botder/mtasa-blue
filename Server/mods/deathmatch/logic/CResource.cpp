@@ -1226,7 +1226,11 @@ bool CResource::AddMapFile(const char* szName, const char* szFullFilename, int i
         return false;
 
     std::unique_ptr<CXMLFile> document{g_pServerInterface->GetXML()->CreateXML(m_metaFilePath.string().c_str())};
-    CXMLNode*                 root = document ? document->GetRootNode() : nullptr;
+
+    if (document == nullptr || !document->Parse())
+        return false;
+
+    CXMLNode* root = document->GetRootNode();
 
     if (root == nullptr)
         return false;
@@ -1254,53 +1258,36 @@ bool CResource::AddConfigFile(const char* szName, const char* szFullFilepath, in
     if (!IsLoaded() || m_bResourceIsZip)
         return false;
 
-    // Find the meta file path
-    char szMetaPath[MAX_PATH + 1];
-    snprintf(szMetaPath, MAX_PATH, "%s%s", m_strResourceDirectoryPath.c_str(), "meta.xml");
+    std::unique_ptr<CXMLFile> document{g_pServerInterface->GetXML()->CreateXML(m_metaFilePath.string().c_str())};
 
-    // Load the meta file
-    CXMLFile* pMetaFile = g_pServerInterface->GetXML()->CreateXML(szMetaPath);
-
-    if (!pMetaFile)
+    if (document == nullptr || !document->Parse())
         return false;
 
-    if (!pMetaFile->Parse())
-    {
-        delete pMetaFile;
+    CXMLNode* root = document->GetRootNode();
+
+    if (root == nullptr)
         return false;
-    }
 
-    // Grab its rootnode
-    CXMLNode* pRootNode = pMetaFile->GetRootNode();
+    // Create a new config subnode
+    CXMLNode* config = root->CreateSubNode("config");
 
-    if (pRootNode)
-    {
-        // Create a new map subnode
-        CXMLNode* pMapNode = pRootNode->CreateSubNode("config");
+    if (config == nullptr)
+        return false;
 
-        if (pMapNode)
-        {
-            // Set the src attributes
-            pMapNode->GetAttributes().Create("src")->SetValue(szName);
+    // Set the src attributes
+    config->GetAttributes().Create("src")->SetValue(szName);
 
-            // Also set the type attribute (server or client)
-            if (iType == CResourceScriptItem::RESOURCE_FILE_TYPE_CLIENT_CONFIG)
-                pMapNode->GetAttributes().Create("type")->SetValue("client");
-            else if (iType == CResourceScriptItem::RESOURCE_FILE_TYPE_CONFIG)
-                pMapNode->GetAttributes().Create("type")->SetValue("server");
+    // Also set the type attribute (server or client)
+    if (iType == CResourceScriptItem::RESOURCE_FILE_TYPE_CLIENT_CONFIG)
+        config->GetAttributes().Create("type")->SetValue("client");
+    else if (iType == CResourceScriptItem::RESOURCE_FILE_TYPE_CONFIG)
+        config->GetAttributes().Create("type")->SetValue("server");
 
-            // If we're loaded, add it to the resourcefiles too
-            m_ResourceFiles.push_back(new CResourceConfigItem(this, szName, szFullFilepath, &pMapNode->GetAttributes()));
+    // If we're loaded, add it to the resourcefiles too
+    m_ResourceFiles.push_back(new CResourceConfigItem(this, szName, szFullFilepath, &config->GetAttributes()));
 
-            // Success, write and destroy XML
-            pMetaFile->Write();
-            delete pMetaFile;
-            return true;
-        }
-    }
-
-    delete pMetaFile;
-    return false;
+    document->Write();
+    return true;
 }
 
 bool CResource::IncludedFileExists(const char* szName, int iType)

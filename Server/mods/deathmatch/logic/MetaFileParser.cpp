@@ -20,12 +20,10 @@ namespace mtasa
 {
     std::string MetaFileParser::Parse(const fs::path& filePath)
     {
-        CXMLFile* rawDocument = g_pServerInterface->GetXML()->CreateXML(filePath.string().c_str());
+        std::unique_ptr<CXMLFile> document{g_pServerInterface->GetXML()->CreateXML(filePath.string().c_str())};
 
-        if (rawDocument == nullptr)
+        if (document == nullptr)
             return "failed to load XML document file"s;
-
-        std::unique_ptr<CXMLFile> document{rawDocument};
 
         if (!document->Parse())
         {

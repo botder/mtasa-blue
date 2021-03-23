@@ -9,6 +9,7 @@
  *****************************************************************************/
 
 #include "StdInc.h"
+#include "CResource.h"
 
 #define DEFAULT_MAX_FILESIZE 52428800
 

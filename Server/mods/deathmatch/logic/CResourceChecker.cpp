@@ -11,6 +11,7 @@
 
 #include "StdInc.h"
 #include "CResourceChecker.Data.h"
+#include "CResource.h"
 #include <clocale>
 extern CNetServer* g_pRealNetServer;
 

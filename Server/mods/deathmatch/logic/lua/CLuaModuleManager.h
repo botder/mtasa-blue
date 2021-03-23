@@ -19,7 +19,6 @@ class CLuaModuleManager;
 #include "ILuaModuleManager.h"
 #include "CLuaManager.h"
 #include "../CLogger.h"
-#include "../CResource.h"
 #include "CLuaModule.h"
 
 class CScriptDebugging;

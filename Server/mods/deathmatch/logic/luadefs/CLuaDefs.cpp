@@ -10,6 +10,8 @@
  *****************************************************************************/
 
 #include "StdInc.h"
+#include "CResource.h"
+
 extern uint g_uiNetSentByteCounter;
 
 namespace

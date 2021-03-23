@@ -8,7 +8,9 @@
  *  Multi Theft Auto is available from https://www.multitheftauto.com/
  *
  *****************************************************************************/
+
 #include "StdInc.h"
+#include "CResource.h"
 
 extern CGame* g_pGame;
 

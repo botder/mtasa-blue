@@ -13,6 +13,7 @@
 // new resources on demand
 
 #include "StdInc.h"
+#include "CResource.h"
 #define BLOCKED_DB_FILE_NAME    "fileblock.db"
 #define BLOCKED_DB_TABLE_NAME   "`block_reasons`"
 

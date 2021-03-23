@@ -14,6 +14,7 @@
 // map or script.
 
 #include "StdInc.h"
+#include "CResource.h"
 
 CResourceFile::CResourceFile(CResource* resource, const char* szShortName, const char* szResourceFileName, CXMLAttributes* xmlAttributes)
 {

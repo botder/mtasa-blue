@@ -16,6 +16,7 @@
 
 #include "StdInc.h"
 #include "CResourceScriptItem.h"
+#include "CResource.h"
 
 CResourceScriptItem::CResourceScriptItem(CResource* resource, const char* szShortName, const char* szResourceFileName, CXMLAttributes* xmlAttributes)
     : CResourceFile(resource, szShortName, szResourceFileName, xmlAttributes)

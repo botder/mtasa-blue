@@ -10,6 +10,7 @@
  *****************************************************************************/
 
 #include "StdInc.h"
+#include "CResource.h"
 #define MTA_SERVER_CONF_TEMPLATE "mtaserver.conf.template"
 
 extern CGame* g_pGame;

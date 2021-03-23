@@ -10,6 +10,7 @@
  *****************************************************************************/
 
 #include "StdInc.h"
+#include "CResource.h"
 
 #define ERROR_BUFFER            32
 

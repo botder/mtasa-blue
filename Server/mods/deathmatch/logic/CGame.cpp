@@ -14,6 +14,7 @@
 #include "../utils/CMasterServerAnnouncer.h"
 #include "../utils/CHqComms.h"
 #include "../utils/CFunctionUseLogger.h"
+#include "CResource.h"
 #include "net/SimHeaders.h"
 #include <signal.h>
 

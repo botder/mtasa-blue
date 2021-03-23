@@ -12,6 +12,7 @@
 #include "StdInc.h"
 #include "CResourceScriptItem.h"
 #include "CResourceClientFileItem.h"
+#include "CResource.h"
 
 CResourceStartPacket::CResourceStartPacket(const char* szResourceName, CResource* pResource)
 {

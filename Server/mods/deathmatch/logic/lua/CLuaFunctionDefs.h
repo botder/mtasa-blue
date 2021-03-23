@@ -18,6 +18,7 @@ class CRegisteredCommands;
 class CAccountManager;
 class CColManager;
 class CAccessControlListManager;
+class CResourceManager;
 
 #pragma once
 #include "LuaCommon.h"

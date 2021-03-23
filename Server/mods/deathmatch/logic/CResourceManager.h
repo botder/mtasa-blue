@@ -14,7 +14,7 @@
 
 #pragma once
 
-#include "CResource.h"
+#include "SResourceStartOptions.h"
 #include "CElement.h"
 #include "ehs/ehs.h"
 #include <list>

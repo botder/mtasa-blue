@@ -10,6 +10,7 @@
  *****************************************************************************/
 
 #include "StdInc.h"
+#include "CResource.h"
 
 CBlip::CBlip(CElement* pParent, CBlipManager* pBlipManager) : CPerPlayerEntity(pParent)
 {

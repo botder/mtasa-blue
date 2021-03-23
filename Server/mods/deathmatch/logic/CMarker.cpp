@@ -10,6 +10,7 @@
  *****************************************************************************/
 
 #include "StdInc.h"
+#include "CResource.h"
 
 CMarker::CMarker(CMarkerManager* pMarkerManager, CColManager* pColManager, CElement* pParent) : CPerPlayerEntity(pParent)
 {

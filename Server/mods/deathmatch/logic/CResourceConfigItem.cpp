@@ -16,6 +16,7 @@
 
 #include "StdInc.h"
 #include "CResourceConfigItem.h"
+#include "CResource.h"
 
 extern CServerInterface* g_pServerInterface;
 

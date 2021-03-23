@@ -11,6 +11,7 @@
 
 #include "StdInc.h"
 #include "CResourceConfigItem.h"
+#include "CResource.h"
 #include "../utils/CFunctionUseLogger.h"
 
 extern CNetServer* g_pRealNetServer;

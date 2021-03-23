@@ -9,6 +9,7 @@
  *****************************************************************************/
 
 #include "StdInc.h"
+#include "CResource.h"
 
 void CLuaMarkerDefs::LoadFunctions()
 {

@@ -10,6 +10,7 @@
 
 #include "StdInc.h"
 #include "CFunctionUseLogger.h"
+#include "CResource.h"
 
 //
 // CFunctionUseLogger::CFunctionUseLogger

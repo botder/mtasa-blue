@@ -10,6 +10,7 @@
  *****************************************************************************/
 
 #include "StdInc.h"
+#include "CResource.h"
 
 CScriptFile::CScriptFile(uint uiScriptId, const char* szFilename, unsigned long ulMaxSize) : CElement(NULL)
 {

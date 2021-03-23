@@ -125,9 +125,9 @@ bool CResource::Load()
     }
 
     // Load the meta.xml file
-    fs::path metaFilePath = m_staticRootDirectory / "meta.xml";
+    m_metaFilePath = m_staticRootDirectory / "meta.xml";
 
-    if (!IsRegularFile(metaFilePath))
+    if (!IsRegularFile(m_metaFilePath))
     {
         m_strFailureReason = "Couldn't find meta.xml file for resource '"s + m_strResourceName + "'\n"s;
         CLogger::ErrorPrintf(m_strFailureReason.c_str());
@@ -135,7 +135,7 @@ bool CResource::Load()
     }
 
     mtasa::MetaFileParser meta{m_strResourceName};
-    std::string           parserError = meta.Parse(metaFilePath);
+    std::string           parserError = meta.Parse(m_metaFilePath);
 
     if (!parserError.empty())
     {
@@ -1225,48 +1225,28 @@ bool CResource::AddMapFile(const char* szName, const char* szFullFilename, int i
     if (!IsLoaded() || m_bResourceIsZip)
         return false;
 
-    // Find the meta file path
-    char szMetaPath[MAX_PATH + 1];
-    snprintf(szMetaPath, MAX_PATH, "%s%s", m_strResourceDirectoryPath.c_str(), "meta.xml");
+    std::unique_ptr<CXMLFile> document{g_pServerInterface->GetXML()->CreateXML(m_metaFilePath.string().c_str())};
+    CXMLNode*                 root = document ? document->GetRootNode() : nullptr;
 
-    // Load the meta file
-    CXMLFile* pMetaFile = g_pServerInterface->GetXML()->CreateXML(szMetaPath);
-
-    if (!pMetaFile)
+    if (root == nullptr)
         return false;
 
-    if (!pMetaFile->Parse())
-    {
-        delete pMetaFile;
+    // Create a new map subnode
+    CXMLNode* map = root->CreateSubNode("map");
+
+    if (map == nullptr)
         return false;
-    }
 
-    // Grab its rootnode
-    CXMLNode* pRootNode = pMetaFile->GetRootNode();
+    // Set the src and dimension attributes
+    map->GetAttributes().Create("src")->SetValue(szName);
+    map->GetAttributes().Create("dimension")->SetValue(iDimension);
 
-    if (pRootNode)
-    {
-        // Create a new map subnode
-        CXMLNode* pMapNode = pRootNode->CreateSubNode("map");
+    // If we're loaded, add it to the resourcefiles too
+    m_ResourceFiles.push_back(new CResourceMapItem(this, szName, szFullFilename, &map->GetAttributes(), iDimension));
 
-        if (pMapNode)
-        {
-            // Set the src and dimension attributes
-            pMapNode->GetAttributes().Create("src")->SetValue(szName);
-            pMapNode->GetAttributes().Create("dimension")->SetValue(iDimension);
-
-            // If we're loaded, add it to the resourcefiles too
-            m_ResourceFiles.push_back(new CResourceMapItem(this, szName, szFullFilename, &pMapNode->GetAttributes(), iDimension));
-
-            // Success, write and destroy XML
-            pMetaFile->Write();
-            delete pMetaFile;
-            return true;
-        }
-    }
-
-    delete pMetaFile;
-    return false;
+    // Success, write and destroy XML
+    document->Write();
+    return true;
 }
 
 bool CResource::AddConfigFile(const char* szName, const char* szFullFilepath, int iType)

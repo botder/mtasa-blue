@@ -370,6 +370,7 @@ private:
     };
 
     std::filesystem::path m_staticRootDirectory;
+    std::filesystem::path m_metaFilePath;
 
     std::vector<std::filesystem::path>                         m_serverFiles;
     std::vector<std::pair<std::filesystem::path, std::string>> m_clientFiles;

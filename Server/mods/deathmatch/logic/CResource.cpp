@@ -29,17 +29,12 @@
 #define MAX_PATH 260
 #endif
 
-int           do_extract_currentfile(unzFile uf, const int* popt_extract_without_path, int* popt_overwrite, const char* password, const char* szFilePath);
-unsigned long get_current_file_crc(unzFile uf);
+int do_extract_currentfile(unzFile uf, const int* popt_extract_without_path, int* popt_overwrite, const char* password, const char* szFilePath);
 
 std::list<CResource*> CResource::m_StartedResources;
 
 extern CServerInterface* g_pServerInterface;
 extern CGame*            g_pGame;
-
-#ifdef NO_ERRNO_H
-extern int errno;
-#endif
 
 namespace fs = std::filesystem;
 
@@ -363,11 +358,11 @@ std::future<SString> CResource::GenerateChecksumForFile(CResourceFile* pResource
 
         std::vector<char> buffer;
         FileLoad(strPath, buffer);
-        uint        uiFileSize = buffer.size();
-        const char* pFileContents = uiFileSize ? buffer.data() : "";
-        CChecksum   Checksum = CChecksum::GenerateChecksumFromBuffer(pFileContents, uiFileSize);
+        auto        fileSize = static_cast<unsigned int>(buffer.size()); // NOTE(botder): This is safe, FileLoad has a 1GB limit
+        const char* pFileContents = fileSize ? buffer.data() : "";
+        CChecksum   Checksum = CChecksum::GenerateChecksumFromBuffer(pFileContents, fileSize);
         pResourceFile->SetLastChecksum(Checksum);
-        pResourceFile->SetLastFileSize(uiFileSize);
+        pResourceFile->SetLastFileSize(fileSize);
 
         // Check if file is blocked
         char szHashResult[33];
@@ -398,7 +393,7 @@ std::future<SString> CResource::GenerateChecksumForFile(CResourceFile* pResource
 
                 if (pResourceFile->GetLastChecksum() != cachedChecksum)
                 {
-                    if (!FileSave(strCachedFilePath, pFileContents, uiFileSize))
+                    if (!FileSave(strCachedFilePath, pFileContents, fileSize))
                     {
                         return SString("Could not copy '%s' to '%s'\n", *strPath, *strCachedFilePath);
                     }
@@ -1642,8 +1637,7 @@ ResponseCode CResource::HandleRequestCall(HttpRequest* ipoHttpRequest, HttpRespo
 
     if (m_eState != EResourceState::Running)
     {
-        const char* szError = "error: resource not running";
-        ipoHttpResponse->SetBody(szError, strlen(szError));
+        ipoHttpResponse->SetBody("error: resource not running", 28);
         return HTTPRESPONSECODE_200_OK;
     }
 
@@ -1651,8 +1645,7 @@ ResponseCode CResource::HandleRequestCall(HttpRequest* ipoHttpRequest, HttpRespo
 
     if (!*szQueryString)
     {
-        const char* szError = "error: invalid function name";
-        ipoHttpResponse->SetBody(szError, strlen(szError));
+        ipoHttpResponse->SetBody("error: invalid function name", 29);
         return HTTPRESPONSECODE_200_OK;
     }
 
@@ -1884,12 +1877,17 @@ ResponseCode CResource::HandleRequestCall(HttpRequest* ipoHttpRequest, HttpRespo
 
         g_pGame->GetScriptDebugging()->SaveLuaDebugInfo(SLuaDebugInfo());
 
-        ipoHttpResponse->SetBody(strJSON.c_str(), strJSON.length());
+        // NOTE(botder): This is bad and HttpResponse::SetBody only accepts an int
+        auto length = static_cast<int>(strJSON.size());
+
+        if (length < 0)
+            length = std::numeric_limits<int>::max();
+
+        ipoHttpResponse->SetBody(strJSON.c_str(), length);
         return HTTPRESPONSECODE_200_OK;
     }
 
-    const char* szError = "error: not found";
-    ipoHttpResponse->SetBody(szError, strlen(szError));
+    ipoHttpResponse->SetBody("error: not found", 17);
     return HTTPRESPONSECODE_200_OK;
 }
 
@@ -1947,8 +1945,7 @@ ResponseCode CResource::HandleRequestActive(HttpRequest* ipoHttpRequest, HttpRes
                 }
                 else
                 {
-                    SString err("Resource %s is not running.", m_strResourceName.c_str());
-                    ipoHttpResponse->SetBody(err.c_str(), err.size());
+                    ipoHttpResponse->SetBody("error: resource not running", 28);
                     return HTTPRESPONSECODE_401_UNAUTHORIZED;
                 }
             }
@@ -1993,8 +1990,7 @@ ResponseCode CResource::HandleRequestActive(HttpRequest* ipoHttpRequest, HttpRes
         }
     }
 
-    SString err("Cannot find a resource file named '%s' in the resource %s.", strFile.c_str(), m_strResourceName.c_str());
-    ipoHttpResponse->SetBody(err.c_str(), err.size());
+    ipoHttpResponse->SetBody("error: resource file not found", 31);
     return HTTPRESPONSECODE_404_NOTFOUND;
 }
 
@@ -2603,22 +2599,26 @@ bool CResource::UnzipResource()
     if (!m_zipfile)
         return false;
 
-    // See if the dir already exists
-    bool bDirExists = DoesDirectoryExist(m_strResourceCachePath.c_str());
+    // Create the output directory for file extraction
+    std::error_code errorCode;
 
-    // If the folder doesn't exist, create it
-    if (!bDirExists)
+    if (!std::filesystem::create_directories(m_strResourceCachePath, errorCode) || errorCode)
     {
-        // If we're using a zip file, we need a temp directory for extracting
-        // 17 = already exists (on windows)
-        if (File::Mkdir(m_strResourceCachePath.c_str()) == -1 && errno != EEXIST)            // check this is the correct return for *NIX too
+        std::string error = errorCode.message();
+
+        if (error.empty())
         {
-            // Show error
             m_strFailureReason = SString("Couldn't create directory '%s' for resource '%s', check that the server has write access to the resources folder.\n",
                                          m_strResourceCachePath.c_str(), m_strResourceName.c_str());
-            CLogger::ErrorPrintf(m_strFailureReason);
-            return false;
         }
+        else
+        {
+            m_strFailureReason = SString("Couldn't create directory '%s' for resource '%s': %.*s\n", m_strResourceCachePath.c_str(), m_strResourceName.c_str(),
+                                         error.size(), error.c_str());
+        }
+
+        CLogger::ErrorPrintf(m_strFailureReason);
+        return false;
     }
 
     std::vector<char> strFileName;
@@ -2634,8 +2634,9 @@ bool CResource::UnzipResource()
             if (unzGetCurrentFileInfo(m_zipfile, &fileInfo, nullptr, 0, nullptr, 0, nullptr, 0) != UNZ_OK)
                 return false;
 
-            strFileName.reserve(fileInfo.size_filename + 1);
-            unzGetCurrentFileInfo(m_zipfile, &fileInfo, strFileName.data(), strFileName.capacity() - 1, nullptr, 0, nullptr, 0);
+            uLong fileNameSize = fileInfo.size_filename + 1;
+            strFileName.reserve(fileNameSize);
+            unzGetCurrentFileInfo(m_zipfile, &fileInfo, strFileName.data(), fileNameSize - 1, nullptr, 0, nullptr, 0);
 
             // Check if the current file is a directory path
             if (strFileName[fileInfo.size_filename - 1] == '/')
@@ -2673,65 +2674,6 @@ bool CResource::UnzipResource()
     // Store the hash so we can figure out whether it has changed later
     m_zipHash = CChecksum::GenerateChecksumFromFileUnsafe(m_strResourceZip);
     return true;
-}
-
-unsigned long get_current_file_crc(unzFile uf)
-{
-    char filename_inzip[256];
-    int  err = UNZ_OK;
-
-    unz_file_info file_info;
-    err = unzGetCurrentFileInfo(uf, &file_info, filename_inzip, sizeof(filename_inzip), nullptr, 0, nullptr, 0);
-
-    if (err == UNZ_OK)
-        return file_info.crc;
-    else
-        return 0;
-}
-
-int makedir(char* newdir)
-{
-    char* buffer;
-    char* p;
-    int   len = (int)strlen(newdir);
-
-    if (len <= 0)
-        return 0;
-
-    buffer = (char*)malloc(len + 1);
-    strcpy(buffer, newdir);
-
-    if (buffer[len - 1] == '/')
-    {
-        buffer[len - 1] = '\0';
-    }
-    if (File::Mkdir(buffer) == 0)
-    {
-        free(buffer);
-        return 1;
-    }
-
-    p = buffer + 1;
-    while (1)
-    {
-        char hold;
-
-        while (*p && *p != '\\' && *p != '/')
-            p++;
-        hold = *p;
-        *p = 0;
-        if ((File::Mkdir(buffer) == -1) && (errno == ENOENT))
-        {
-            // printf("couldn't create directory %s\n",buffer);
-            free(buffer);
-            return 0;
-        }
-        if (hold == 0)
-            break;
-        *p++ = hold;
-    }
-    free(buffer);
-    return 1;
 }
 
 /* change_file_date : change the date/time of a file

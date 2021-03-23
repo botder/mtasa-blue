@@ -321,14 +321,14 @@ void CResourceManager::ListResourcesLoaded(const SString& strListType)
             if (res->IsActive())
             {
                 if (strListType == "running" || strListType == "all")
-                    CLogger::LogPrintf("%-20.20s   RUNNING   (%d dependents)\n", res->GetName().c_str(), res->GetDependentCount());
+                    CLogger::LogPrintf("%-20.20s   RUNNING   (%zu dependents)\n", res->GetName().c_str(), res->GetDependentCount());
 
                 uiRunningCount++;
             }
             else
             {
                 if (strListType == "stopped" || strListType == "all")
-                    CLogger::LogPrintf("%-20.20s   STOPPED   (%d files)\n", res->GetName().c_str(), res->GetFileCount());
+                    CLogger::LogPrintf("%-20.20s   STOPPED   (%zu files)\n", res->GetName().c_str(), res->GetFileCount());
             }
             uiCount++;
         }

@@ -201,7 +201,7 @@ public:
     bool CallExportedFunction(const char* szFunctionName, CLuaArguments& Arguments, CLuaArguments& Returns, CResource& Caller);
 
     std::list<CResource*>& GetDependents() { return m_Dependents; }
-    int                    GetDependentCount() const noexcept { return m_Dependents.size(); }
+    std::size_t            GetDependentCount() const noexcept { return m_Dependents.size(); }
 
     std::list<CIncludedResources*>::iterator       GetIncludedResourcesBegin() { return m_IncludedResources.begin(); }
     std::list<CIncludedResources*>::const_iterator GetIncludedResourcesBegin() const noexcept { return m_IncludedResources.begin(); }
@@ -209,7 +209,7 @@ public:
     std::list<CIncludedResources*>::iterator       GetIncludedResourcesEnd() { return m_IncludedResources.end(); }
     std::list<CIncludedResources*>::const_iterator GetIncludedResourcesEnd() const noexcept { return m_IncludedResources.end(); }
 
-    size_t GetIncludedResourcesCount() const noexcept { return m_IncludedResources.size(); }
+    std::size_t GetIncludedResourcesCount() const noexcept { return m_IncludedResources.size(); }
 
     bool GetInfoValue(const char* szKey, std::string& strValue) const;
     void SetInfoValue(const char* szKey, const char* szValue, bool bSave = true);
@@ -259,7 +259,7 @@ public:
     const std::string& GetResourceCacheDirectoryPath() const { return m_strResourceCachePath; }
 
     std::list<CResourceFile*>& GetFiles() { return m_ResourceFiles; }
-    size_t                     GetFileCount() const noexcept { return m_ResourceFiles.size(); }
+    std::size_t                GetFileCount() const noexcept { return m_ResourceFiles.size(); }
 
     time_t GetTimeStarted() const noexcept { return m_timeStarted; }
     time_t GetTimeLoaded() const noexcept { return m_timeLoaded; }
@@ -295,7 +295,7 @@ public:
     std::list<CResourceFile*>::iterator       IterEnd() { return m_ResourceFiles.end(); }
     std::list<CResourceFile*>::const_iterator IterEnd() const noexcept { return m_ResourceFiles.end(); }
 
-    size_t IterCount() const noexcept { return m_ResourceFiles.size(); }
+    std::size_t IterCount() const noexcept { return m_ResourceFiles.size(); }
 
     std::list<CExportedFunction>::iterator IterBeginExportedFunctions() { return m_ExportedFunctions.begin(); }
     std::list<CExportedFunction>::iterator IterEndExportedFunctions() { return m_ExportedFunctions.end(); }

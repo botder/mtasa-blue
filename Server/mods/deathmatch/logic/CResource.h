@@ -247,8 +247,6 @@ public:
     bool IsPersistent() const noexcept { return m_bIsPersistent; }
     void SetPersistent(bool bPersistent) { m_bIsPersistent = bPersistent; }
 
-    bool ExtractFile(const char* szFilename);
-    bool DoesFileExistInZip(const char* szFilename);
     bool HasGoneAway();
     bool LinkToIncludedResources();
     bool CheckIfStartable();
@@ -357,8 +355,10 @@ private:
         bool                  isWindowsCompatible = true;
     };
 
+    std::filesystem::path m_rootDirectory;
     std::filesystem::path m_staticRootDirectory;
     std::filesystem::path m_metaFilePath;
+    std::filesystem::path m_archiveFilePath;
 
     std::vector<std::filesystem::path>                         m_serverFiles;
     std::vector<std::pair<std::filesystem::path, std::string>> m_clientFiles;
@@ -392,7 +392,6 @@ private:
 
     SString     m_strResourceName;
     SString     m_strAbsPath;                      // Absolute path to containing directory        i.e. /server/mods/deathmatch/resources
-    std::string m_strResourceZip;                  // Absolute path to zip file (if a zip)         i.e. m_strAbsPath/resource_name.zip
     std::string m_strResourceDirectoryPath;        // Absolute path to resource files (if a dir)   i.e. m_strAbsPath/resource_name
     std::string m_strResourceCachePath;            // Absolute path to unzipped cache (if a zip)   i.e. /server/mods/deathmatch/resources/cache/resource_name
 
@@ -421,7 +420,6 @@ private:
 
     std::string m_strCircularInclude;
     SString     m_strFailureReason;
-    unzFile     m_zipfile = nullptr;
     CChecksum   m_zipHash;
 
     bool m_bResourceIsZip;

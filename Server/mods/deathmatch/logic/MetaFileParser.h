@@ -44,6 +44,7 @@ namespace mtasa
         std::uint16_t         dimension = 0;
         std::uint8_t          isForClient : 1;
         std::uint8_t          isForServer : 1;
+        std::uint8_t          isValidatable : 1;
         std::uint8_t          isClientOptional : 1;
         std::uint8_t          isClientCacheable : 1;
         std::uint8_t          isHttpDefault : 1;
@@ -53,6 +54,7 @@ namespace mtasa
         MetaFileItem()
             : isForClient{false},
               isForServer{true},
+              isValidatable{false},
               isClientOptional{false},
               isClientCacheable{true},
               isHttpDefault{false},
@@ -73,11 +75,11 @@ namespace mtasa
     class MetaExportItem final
     {
     public:
-        std::string   functionName;
-        std::uint8_t  isForClient : 1;
-        std::uint8_t  isForServer : 1;
-        std::uint8_t  isHttpAccessible : 1;
-        std::uint8_t  isACLRestricted : 1;
+        std::string  functionName;
+        std::uint8_t isForClient : 1;
+        std::uint8_t isForServer : 1;
+        std::uint8_t isHttpAccessible : 1;
+        std::uint8_t isACLRestricted : 1;
 
         MetaExportItem() : isForClient{false}, isForServer{true}, isHttpAccessible(false), isACLRestricted(false) {}
     };

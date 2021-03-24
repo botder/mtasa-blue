@@ -89,6 +89,7 @@ namespace mtasa
         item.type = MetaFileItemType::FILE;
         item.isForClient = true;
         item.isForServer = false;
+        item.isValidatable = true;
 
         CXMLAttributes& attributes = node->GetAttributes();
         bool            hasSourceFile = false;
@@ -124,6 +125,11 @@ namespace mtasa
                     if (!stricmp(value.c_str(), "no") || !stricmp(value.c_str(), "false"))
                         item.isClientOptional = true;
                 }
+            }
+            else if (name == "validate"s)
+            {
+                bool disabled = (stricmp(value.c_str(), "false") == 0);
+                item.isValidatable = !disabled;
             }
         }
 
@@ -204,6 +210,7 @@ namespace mtasa
     {
         MetaFileItem item;
         item.type = MetaFileItemType::SCRIPT;
+        item.isValidatable = true;
 
         CXMLAttributes& attributes = node->GetAttributes();
         bool            hasSourceFile = false;
@@ -265,6 +272,11 @@ namespace mtasa
                 {
                     item.isClientCacheable = false;
                 }
+            }
+            else if (name == "validate"s)
+            {
+                bool disabled = (stricmp(value.c_str(), "false") == 0);
+                item.isValidatable = !disabled;
             }
         }
 

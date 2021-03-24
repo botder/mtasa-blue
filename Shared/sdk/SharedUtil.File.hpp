@@ -27,6 +27,7 @@
 #else
     #include <dirent.h>
     #include <sys/stat.h>
+    #include <fcntl.h>
 #endif
 
 //
@@ -331,6 +332,98 @@ uint64 SharedUtil::FileSize(const SString& strFilename)
     fclose(fh);
     return size;
 }
+
+#ifdef WIN32
+
+bool SharedUtil::GetFileLastWriteTime(const wchar_t* filePath, tm& epochTime)
+{
+    HANDLE file = CreateFileW(filePath, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, NULL);
+
+    if (file == INVALID_HANDLE_VALUE)
+        return false;
+
+    FILETIME writeTime;
+
+    if (!GetFileTime(file, NULL, NULL, &writeTime))
+    {
+        CloseHandle(file);
+        return false;
+    }
+
+    CloseHandle(file);
+
+    SYSTEMTIME utc;
+
+    if (!FileTimeToSystemTime(&writeTime, &utc))
+        return false;
+
+    memset(&epochTime, 0, sizeof(epochTime));
+    epochTime.tm_sec = utc.wSecond;
+    epochTime.tm_min = utc.wMinute;
+    epochTime.tm_hour = utc.wHour;
+    epochTime.tm_mday = utc.wDay;
+    epochTime.tm_mon = utc.wMonth - 1;
+    epochTime.tm_year = utc.wYear - 1900;
+    return true;
+}
+
+bool SharedUtil::SetFileLastWriteTime(const wchar_t* filePath, const tm& epochTime)
+{
+    SYSTEMTIME utc;
+    memset(&utc, 0, sizeof(utc));
+    utc.wSecond = epochTime.tm_sec;
+    utc.wMinute = epochTime.tm_min;
+    utc.wHour = epochTime.tm_hour;
+    utc.wDay = epochTime.tm_mday;
+    utc.wMonth = epochTime.tm_mon + 1;
+    utc.wYear = epochTime.tm_year + 1900;
+
+    FILETIME writeTime;
+
+    if (!SystemTimeToFileTime(&utc, &writeTime))
+        return false;
+
+    HANDLE file = CreateFileW(filePath, FILE_WRITE_ATTRIBUTES, FILE_SHARE_WRITE, NULL, OPEN_EXISTING, 0, NULL);
+
+    if (file == INVALID_HANDLE_VALUE)
+        return false;
+
+    BOOL success = SetFileTime(file, NULL, NULL, &writeTime);
+    CloseHandle(file);
+    return !!success;
+}
+
+#else
+
+bool SharedUtil::GetFileLastWriteTime(const char* filePath, struct tm& epochTime)
+{
+    struct stat attr;
+
+    if (stat(filePath, &attr) == -1)
+        return false;
+
+    struct tm* result = gmtime(&attr.st_mtime);
+
+    if (result == nullptr)
+        return false;
+
+    epochTime = *result;
+    return true;
+}
+
+bool SharedUtil::SetFileLastWriteTime(const char* filePath, const struct tm& epochTime)
+{
+    struct tm epochTimeCopy = epochTime;
+
+    struct timespec timebuf[2];
+    memset(&timebuf, 0, sizeof(timebuf));
+    timebuf[0].tv_nsec = UTIME_OMIT;
+    timebuf[1].tv_sec = mktime(&epochTimeCopy);
+
+    return utimensat(AT_FDCWD, filePath, timebuf, 0) == 0;
+}
+
+#endif
 
 //
 // Ensure all directories exist to the file

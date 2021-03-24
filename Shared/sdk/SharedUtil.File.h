@@ -49,6 +49,17 @@ namespace SharedUtil
     uint64 FileSize(const SString& strFilename);
 
     //
+    // File time
+    //
+#ifdef WIN32
+    bool GetFileLastWriteTime(const wchar_t* filePath, struct tm& epochTime);
+    bool SetFileLastWriteTime(const wchar_t* filePath, const struct tm& epochTime);
+#else
+    bool GetFileLastWriteTime(const char* filePath, struct tm& epochTime);
+    bool SetFileLastWriteTime(const char* filePath, const struct tm& epochTime);
+#endif
+
+    //
     // Ensure all directories exist to the file
     //
     void MakeSureDirExists(const SString& strPath);

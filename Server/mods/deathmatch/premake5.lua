@@ -66,7 +66,7 @@ project "Deathmatch"
 		linkoptions { "-pthread" }
 
 	filter "system:linux"
-		links { "rt" }
+		links { "rt", "stdc++fs" }
 
 	filter "platforms:x64"
 		targetdir(buildpath("server/x64"))

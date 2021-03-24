@@ -42,6 +42,18 @@ static bool IsRegularFile(const fs::path& filePath)
     return fs::is_regular_file(filePath, ec) && !ec;
 }
 
+static void unzConvertToEpochTime(const tm_unz& tmu_date, struct tm& calendarTime)
+{
+    memset(&calendarTime, 0, sizeof(calendarTime));
+    calendarTime.tm_sec = tmu_date.tm_sec;
+    calendarTime.tm_min = tmu_date.tm_min;
+    calendarTime.tm_hour = tmu_date.tm_hour;
+    calendarTime.tm_mday = tmu_date.tm_mday;
+    calendarTime.tm_mon = tmu_date.tm_mon;
+    calendarTime.tm_year = tmu_date.tm_year - 1900;
+    calendarTime.tm_isdst = -1;
+}
+
 CResource::CResource(CResourceManager* pResourceManager, bool bIsZipped, const char* szAbsPath, const char* szResourceName)
     : m_pResourceManager(pResourceManager), m_bResourceIsZip(bIsZipped), m_strResourceName(SStringX(szResourceName)), m_strAbsPath(SStringX(szAbsPath))
 {
@@ -2543,12 +2555,30 @@ bool CResource::UnzipResource()
 
         fs::path outputFilePath = m_staticRootDirectory / fileName;
 
+        struct tm zipFileWriteTime;
+        unzConvertToEpochTime(fileInfo.tmu_date, zipFileWriteTime);
+
         if (IsRegularFile(outputFilePath))
         {
+            // Compare file write time (in epoch) to avoid heavy CRC checksum calculation
+            struct tm fileWriteTime;
+
+            if (GetFileLastWriteTime(outputFilePath.c_str(), fileWriteTime))
+            {
+                time_t zipEpoch = mktime(&zipFileWriteTime);
+                time_t outputEpoch = mktime(&fileWriteTime);
+
+                if (zipEpoch != -1 && outputEpoch != -1 && difftime(zipEpoch, outputEpoch) == 0)
+                    continue;
+            }
+
             unsigned long crc = CRCGenerator::GetCRCFromFile(outputFilePath.string().c_str());
 
             if (crc == fileInfo.crc)
+            {
+                SetFileLastWriteTime(outputFilePath.c_str(), zipFileWriteTime);
                 continue;
+            }
         }
 
         fs::path outputDirectory = outputFilePath.parent_path();
@@ -2606,6 +2636,11 @@ bool CResource::UnzipResource()
                 return false;
             }
         }
+
+        // NOTE(botder): We must flush and close the file before applying the last write time
+        fileCloser.reset();
+
+        SetFileLastWriteTime(outputFilePath.c_str(), zipFileWriteTime);
     } while (unzGoToNextFile(zipHandle) == UNZ_OK);
 
     return true;

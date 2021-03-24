@@ -18,10 +18,10 @@
 #include <unzip.h>
 #include <list>
 #include <vector>
-#include <ehs/ehs.h>
 #include <time.h>
 #include <filesystem>
 #include <optional>
+#include <memory>
 
 #define MAX_AUTHOR_LENGTH           255
 #define MAX_RESOURCE_NAME_LENGTH    255
@@ -38,6 +38,7 @@ class CResourceManager;
 namespace mtasa
 {
     class MetaFileParser;
+    class ResourceFileRouter;
 }
 
 struct SVersion
@@ -138,9 +139,10 @@ enum class EResourceState : unsigned char
 // A resource is either a directory with files or a ZIP file which contains the content of such directory.
 // The directory or ZIP file must contain a meta.xml file, which describes the required content by the resource.
 // It's a process-like environment for scripts, maps, images and other files.
-class CResource : public EHS
+class CResource final
 {
     using KeyValueMap = CFastHashMap<SString, SString>;
+    friend class mtasa::ResourceFileRouter;
 
 public:
     ZERO_ON_NEW
@@ -285,8 +287,6 @@ public:
     bool IsResourceZip() const noexcept { return m_bResourceIsZip; }
     bool UnzipResource();
 
-    ResponseCode HandleRequest(HttpRequest* ipoHttpRequest, HttpResponse* ipoHttpResponse);
-
     std::list<CResourceFile*>::iterator       IterBegin() { return m_ResourceFiles.begin(); }
     std::list<CResourceFile*>::const_iterator IterBegin() const noexcept { return m_ResourceFiles.begin(); }
 
@@ -343,10 +343,6 @@ private:
     bool DestroyVM();
     void TidyUp();
 
-    ResponseCode HandleRequestActive(HttpRequest* ipoHttpRequest, HttpResponse* ipoHttpResponse, CAccount* pAccount);
-    ResponseCode HandleRequestCall(HttpRequest* ipoHttpRequest, HttpResponse* ipoHttpResponse, CAccount* pAccount);
-    bool         IsHttpAccessAllowed(CAccount* pAccount);
-
 private:
     struct ResourceFilePath
     {
@@ -354,6 +350,8 @@ private:
         std::filesystem::path relative;
         bool                  isWindowsCompatible = true;
     };
+
+    std::unique_ptr<mtasa::ResourceFileRouter> m_httpRouter;
 
     std::filesystem::path m_rootDirectory;
     std::filesystem::path m_staticRootDirectory;

@@ -9,9 +9,6 @@
  *
  *****************************************************************************/
 
-// Show info about where the actual files are coming from
-//#define RESOURCE_DEBUG_MESSAGES
-
 #include "StdInc.h"
 #include "CResource.h"
 #include "CResourceScriptItem.h"
@@ -23,10 +20,6 @@
 #include "net/SimHeaders.h"
 #ifndef WIN32
 #include <utime.h>
-#endif
-
-#ifndef MAX_PATH
-#define MAX_PATH 260
 #endif
 
 std::list<CResource*> CResource::m_StartedResources;
@@ -1217,95 +1210,52 @@ bool CResource::RemoveFile(const char* szName)
     if (!IsLoaded() || m_bResourceIsZip)
         return false;
 
-    // Find the meta file path
-    char szMetaPath[MAX_PATH + 1];
-    snprintf(szMetaPath, MAX_PATH, "%s%s", m_strResourceDirectoryPath.c_str(), "meta.xml");
+    std::optional<ResourceFilePath> resourceFilePath = ProduceResourceFilePath(fs::path{szName, fs::path::format::generic_format}, false);
 
-    // Load the meta file
-    CXMLFile* pMetaFile = g_pServerInterface->GetXML()->CreateXML(szMetaPath);
-
-    if (!pMetaFile)
+    if (!resourceFilePath.has_value())
         return false;
 
-    if (!pMetaFile->Parse())
-    {
-        delete pMetaFile;
+    // TODO: Find the CResourceFile with the file path above
+
+    std::unique_ptr<CXMLFile> document{g_pServerInterface->GetXML()->CreateXML(m_metaFilePath.string().c_str())};
+
+    if (document == nullptr || !document->Parse())
         return false;
-    }
 
-    // Grab its rootnode
-    CXMLNode* pRootNode = pMetaFile->GetRootNode();
+    CXMLNode* root = document->GetRootNode();
 
-    if (pRootNode)
+    if (root == nullptr)
+        return false;
+
+    CXMLNode* fileNode = nullptr;
+
+    for (auto nodeIter = root->ChildrenBegin(); nodeIter != root->ChildrenEnd(); ++nodeIter)
     {
-        int       i = 0;
-        CXMLNode* pNodeFound = nullptr;
+        CXMLNode*   node = *nodeIter;
+        const char* name = node->GetTagName().c_str();
 
-        // Loop through the map nodes under the root
-        for (CXMLNode* pNode = pRootNode->GetSubNode(i); pNode != nullptr; pNode = pRootNode->GetSubNode(++i))
+        if (!stricmp("map", name) || !stricmp("config", name) || !stricmp("script", name) || !stricmp("html", name))
         {
-            // Grab the tag name
-            const std::string& strTempBuffer = pNode->GetTagName();
+            CXMLAttribute* source = node->GetAttributes().Find("src");
 
-            if (!stricmp(strTempBuffer.c_str(), "map") || !stricmp(strTempBuffer.c_str(), "config") || !stricmp(strTempBuffer.c_str(), "script") ||
-                !stricmp(strTempBuffer.c_str(), "html"))
+            if (source != nullptr && !stricmp(szName, source->GetValue().c_str()))
             {
-                // Grab the src attribute? Same name?
-                CXMLAttribute* pAttrib = pNode->GetAttributes().Find("src");
-
-                if (pAttrib && !stricmp(pAttrib->GetValue().c_str(), szName))
-                {
-                    pNodeFound = pNode;
-                    break;
-                }
+                fileNode = node;
+                break;
             }
         }
-
-        // Found our node?
-        if (pNodeFound)
-        {
-            // Delete the node from the XML, write it and then clean up
-            pRootNode->DeleteSubNode(pNodeFound);
-
-            // Find the file in our filelist
-            CResourceFile* pFileFound = nullptr;
-
-            for (CResourceFile* pResourceFile : m_ResourceFiles)
-            {
-                // Found a matching file? Remember its type
-                if (!stricmp(szName, pResourceFile->GetName()))
-                {
-                    pFileFound = pResourceFile;
-                    break;
-                }
-            }
-
-            // Found the resource file?
-            if (pFileFound)
-            {
-                // Delete it from our list
-                delete pFileFound;
-                m_ResourceFiles.remove(pFileFound);
-            }
-            else
-                CLogger::LogPrintf("WARNING: Problems removing resource file from memory");
-        }
-
-        // Delete the file
-        char szFullFilepath[MAX_PATH + 1];
-        snprintf(szFullFilepath, MAX_PATH, "%s%s", m_strResourceDirectoryPath.c_str(), szName);
-
-        if (File::Delete(szFullFilepath) != 0)
-            CLogger::LogPrintf("WARNING: Problems deleting the actual file, but was removed from resource");
-
-        // Delete the metafile
-        pMetaFile->Write();
-        delete pMetaFile;
-
-        return true;
     }
 
-    return false;
+    if (fileNode == nullptr)
+        return false;
+
+    root->DeleteSubNode(fileNode);
+
+    if (File::Delete(resourceFilePath->absolute.string().c_str()) != 0)
+        CLogger::LogPrintf("WARNING: Problems deleting the actual file, but was removed from resource");
+
+    document->Write();
+    return true;
 }
 
 bool CResource::LinkToIncludedResources()
@@ -1322,14 +1272,7 @@ bool CResource::LinkToIncludedResources()
 
             if (m_strFailureReason.empty())
                 m_strFailureReason = SString("Failed to link to %s", pIncludedResources->GetName().c_str());
-#ifdef RESOURCE_DEBUG_MESSAGES
-            CLogger::LogPrintf("  Links to %s .. FAILED\n", pIncludedResources->GetName().c_str());
-#endif
         }
-#ifdef RESOURCE_DEBUG_MESSAGES
-        else
-            CLogger::LogPrintf("  Links to %s .. OK\n", pIncludedResources->GetName().c_str());
-#endif
     }
 
     return m_bLinked;
@@ -1370,9 +1313,6 @@ bool CResource::CheckIfStartable()
     // Check if all the included resources are startable
     for (CIncludedResources* pIncludedResources : m_IncludedResources)
     {
-#ifdef RESOURCE_DEBUG_MESSAGES
-        CLogger::LogPrintf("  Checking if %s is loaded\n", (*iterr)->GetName().c_str());
-#endif
         CResource* pResource = pIncludedResources->GetResource();
 
         if (!pResource || !pResource->CheckIfStartable())

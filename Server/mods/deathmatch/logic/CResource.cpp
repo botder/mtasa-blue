@@ -1267,56 +1267,6 @@ bool CResource::IsIncludedResourceRecursive(std::vector<CResource*>* past)
     return false;
 }
 
-bool CResource::IsDependentResource(CResource* pResource)
-{
-    // Check if the given resource is a resource we're depending on
-    for (CResource* pDependent : m_Dependents)
-    {
-        if (pDependent == pResource)
-            return true;
-    }
-
-    return false;
-}
-
-bool CResource::IsDependentResourceRecursive(CResource* pResource)
-{
-    // Check if the given resource is a resource we're depending on. Also
-    // check our dependencies dependencies and etc.. further down the tree
-    for (CResource* pDependent : m_Dependents)
-    {
-        if (pDependent == pResource || pDependent->IsDependentResourceRecursive(pResource))
-            return true;
-    }
-
-    return false;
-}
-
-bool CResource::IsDependentResource(const char* szResourceName)
-{
-    // Check if the given resource is a resource we're depending on
-    for (CResource* pDependent : m_Dependents)
-    {
-        if (!strcmp(pDependent->GetName().c_str(), szResourceName))
-            return true;
-    }
-
-    return false;
-}
-
-bool CResource::IsDependentResourceRecursive(const char* szResourceName)
-{
-    // Check if the given resource is a resource we're depending on. Also
-    // check our dependencies dependencies and etc.. further down the tree
-    for (CResource* pDependent : m_Dependents)
-    {
-        if (!strcmp(pDependent->GetName().c_str(), szResourceName) || pDependent->IsDependentResourceRecursive(szResourceName))
-            return true;
-    }
-
-    return false;
-}
-
 void CResource::AddTemporaryInclude(CResource* pResource)
 {
     if (!ListContains(m_TemporaryIncludes, pResource))
@@ -1338,26 +1288,6 @@ void CResource::RemoveDependent(CResource* pResource)
     CheckState();
 }
 
-void Unescape(std::string& str)
-{
-    const char* pPercent = strchr(str.c_str(), '%');
-
-    while (pPercent)
-    {
-        if (pPercent[1] && pPercent[2])
-        {
-            int iCharCode = 0;
-            sscanf(&pPercent[1], "%02X", &iCharCode);
-            str.replace(pPercent - str.c_str(), 3, (char*)&iCharCode);
-            pPercent = strchr(pPercent + 3, '%');
-        }
-        else
-        {
-            break;
-        }
-    }
-}
-
 bool CResource::IsDuplicateServerFile(const fs::path& relativeFilePath)
 {
     return std::find(m_serverFiles.begin(), m_serverFiles.end(), relativeFilePath) != m_serverFiles.end();
@@ -1365,7 +1295,7 @@ bool CResource::IsDuplicateServerFile(const fs::path& relativeFilePath)
 
 bool CResource::IsDuplicateClientFile(const fs::path& relativeFilePath)
 {
-    std::string lowercasePath = relativeFilePath.string();
+    std::string lowercasePath = relativeFilePath.generic_string();
     std::transform(lowercasePath.begin(), lowercasePath.end(), lowercasePath.begin(), [](unsigned char c) { return tolower(c); });
 
     for (const auto& [path, string] : m_clientFiles)
@@ -1384,7 +1314,7 @@ void CResource::AddServerFilePath(const ResourceFilePath& resourceFilePath)
 
 void CResource::AddClientFilePath(const ResourceFilePath& resourceFilePath)
 {
-    std::string lowercasePath = resourceFilePath.relative.string();
+    std::string lowercasePath = resourceFilePath.relative.generic_string();
     std::transform(lowercasePath.begin(), lowercasePath.end(), lowercasePath.begin(), [](unsigned char c) { return tolower(c); });
     m_clientFiles.push_back(std::make_pair(resourceFilePath.relative, std::move(lowercasePath)));
 }

@@ -243,10 +243,6 @@ public:
 
     void AddDependent(CResource* pResource);
     void RemoveDependent(CResource* pResource);
-    bool IsDependentResource(CResource* pResource);
-    bool IsDependentResource(const char* szResourceName);
-    bool IsDependentResourceRecursive(CResource* pResource);
-    bool IsDependentResourceRecursive(const char* szResourceName);
 
     bool IsIncludedResourceRecursive(std::vector<CResource*>* past);
     void InvalidateIncludedResourceReference(CResource* pRresource);

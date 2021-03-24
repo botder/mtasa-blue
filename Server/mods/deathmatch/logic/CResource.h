@@ -212,6 +212,8 @@ public:
     std::list<CIncludedResources*>::iterator       GetIncludedResourcesEnd() { return m_IncludedResources.end(); }
     std::list<CIncludedResources*>::const_iterator GetIncludedResourcesEnd() const noexcept { return m_IncludedResources.end(); }
 
+    const std::list<CIncludedResources*>& GetIncludedResources() const noexcept { return m_IncludedResources; }
+
     std::size_t GetIncludedResourcesCount() const noexcept { return m_IncludedResources.size(); }
 
     bool GetInfoValue(const char* szKey, std::string& strValue) const;
@@ -229,6 +231,8 @@ public:
     }
     bool IsStarting() const noexcept { return m_eState == EResourceState::Starting; }
     bool IsStopping() const noexcept { return m_eState == EResourceState::Stopping; }
+
+    EResourceState GetState() const noexcept { return m_eState; }
 
     bool IsClientSynced() const noexcept { return m_bClientSync; }
 
@@ -253,7 +257,6 @@ public:
     bool HasGoneAway();
     bool LinkToIncludedResources();
     bool CheckIfStartable();
-    void DisplayInfo();
 
     bool               GetFilePath(const char* szFilename, std::string& strPath);
     const std::string& GetResourceDirectoryPath() const { return m_strResourceDirectoryPath; }
@@ -321,6 +324,8 @@ public:
     void SetUsingDbConnectMysql(bool bUsingDbConnectMysql) { m_bUsingDbConnectMysql = bUsingDbConnectMysql; }
     bool IsUsingDbConnectMysql();
     bool IsFileDbConnectMysqlProtected(const SString& strFilename, bool bReadOnly);
+
+    const std::string& GetCircularInclude() const noexcept { return m_strCircularInclude; }
 
 protected:
     SString             GetAutoGroupName();

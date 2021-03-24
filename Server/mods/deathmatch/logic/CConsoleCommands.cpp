@@ -168,14 +168,82 @@ bool CConsoleCommands::ResourceInfo(CConsole* pConsole, const char* szArguments,
     if (szArguments && szArguments[0])
     {
         CResource* resource = g_pGame->GetResourceManager()->GetResource(szArguments);
-        if (resource)
+
+        if (resource != nullptr)
         {
-            resource->DisplayInfo();
+            CLogger::LogPrintf("== Details for resource '%s' ==\n", resource->GetName().c_str());
+
+            switch (resource->GetState())
+            {
+                case EResourceState::Loaded:
+                {
+                    CLogger::LogPrintf("Status: Stopped\n");
+                    break;
+                }
+                case EResourceState::Starting:
+                {
+                    CLogger::LogPrintf("Status: Starting\n");
+                    break;
+                }
+                case EResourceState::Running:
+                {
+                    CLogger::LogPrintf("Status: Running    Dependents: %zu\n", resource->GetDependentCount());
+
+                    for (CResource* pDependent : resource->GetDependents())
+                        CLogger::LogPrintf("  %s\n", pDependent->GetName().c_str());
+                }
+                case EResourceState::Stopping:
+                {
+                    CLogger::LogPrintf("Status: Stopping\n");
+                    break;
+                }
+                case EResourceState::None:
+                default:
+                {
+                    CLogger::LogPrintf("Status: Failed to load\n");
+                    break;
+                }
+            }
+
+            if (!resource->GetCircularInclude().empty())
+                CLogger::LogPrintf("Status: Circular include error: %s\n", resource->GetCircularInclude().c_str());
+
+            CLogger::LogPrintf("Included resources: %zu\n", resource->GetIncludedResourcesCount());
+
+            for (CIncludedResources* pIncludedResources : resource->GetIncludedResources())
+            {
+                if (pIncludedResources->DoesExist())
+                {
+                    if (pIncludedResources->GetResource()->IsLoaded())
+                        CLogger::LogPrintf("  %s .. OK\n", pIncludedResources->GetName().c_str());
+                    else
+                        CLogger::LogPrintf("  %s .. FAILED TO LOAD\n", pIncludedResources->GetName().c_str());
+                }
+                else
+                {
+                    if (pIncludedResources->IsBadVersion())
+                    {
+                        CLogger::LogPrintf("  %s .. BAD VERSION (not between %d and %d)\n", pIncludedResources->GetMinimumVersion(),
+                                           pIncludedResources->GetMaximumVersion());
+                    }
+                    else
+                    {
+                        CLogger::LogPrintf("  %s .. NOT FOUND\n", pIncludedResources->GetName().c_str());
+                    }
+                }
+            }
+
+            CLogger::LogPrintf("Files: %zu\n", resource->GetFileCount());
+            CLogger::LogPrintf("== End ==\n");
         }
         else
+        {
             pEchoClient->SendConsole("info: Resource was not found");
+        }
+            
         return true;
     }
+
     return false;
 }
 

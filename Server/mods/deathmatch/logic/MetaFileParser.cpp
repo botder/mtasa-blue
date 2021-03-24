@@ -16,6 +16,13 @@ using namespace std::string_literals;
 
 namespace fs = std::filesystem;
 
+static fs::path ProduceRelativeFilePath(const std::string& input)
+{
+    std::string copy{input};
+    std::replace(copy.begin(), copy.end(), '\\', '/');
+    return fs::path{copy, fs::path::format::generic_format}.lexically_normal();
+}
+
 namespace mtasa
 {
     std::string MetaFileParser::Parse(const fs::path& filePath)
@@ -98,7 +105,7 @@ namespace mtasa
                 if (!hasSourceFile)
                 {
                     hasSourceFile = true;
-                    item.sourceFile = fs::path{value, fs::path::format::generic_format}.lexically_normal();
+                    item.sourceFile = ProduceRelativeFilePath(value);
 
                     if (item.sourceFile.empty())
                     {
@@ -150,7 +157,7 @@ namespace mtasa
                 if (!hasSourceFile)
                 {
                     hasSourceFile = true;
-                    item.sourceFile = fs::path{value, fs::path::format::generic_format}.lexically_normal();
+                    item.sourceFile = ProduceRelativeFilePath(value);
 
                     if (item.sourceFile.empty())
                     {
@@ -213,7 +220,7 @@ namespace mtasa
                 if (!hasSourceFile)
                 {
                     hasSourceFile = true;
-                    item.sourceFile = fs::path{value, fs::path::format::generic_format}.lexically_normal();
+                    item.sourceFile = ProduceRelativeFilePath(value);
 
                     if (item.sourceFile.empty())
                     {
@@ -291,7 +298,7 @@ namespace mtasa
                 if (!hasSourceFile)
                 {
                     hasSourceFile = true;
-                    item.sourceFile = fs::path{value, fs::path::format::generic_format}.lexically_normal();
+                    item.sourceFile = ProduceRelativeFilePath(value);
 
                     if (item.sourceFile.empty())
                     {
@@ -350,7 +357,7 @@ namespace mtasa
                 if (!hasSourceFile)
                 {
                     hasSourceFile = true;
-                    item.sourceFile = fs::path{value, fs::path::format::generic_format}.lexically_normal();
+                    item.sourceFile = ProduceRelativeFilePath(value);
 
                     if (item.sourceFile.empty())
                     {

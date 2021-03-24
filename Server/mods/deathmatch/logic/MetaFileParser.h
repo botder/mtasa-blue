@@ -117,9 +117,6 @@ namespace mtasa
         std::string minClientVersion;
         std::string minServerVersion;
 
-        MetaFileVersion version;
-        std::uint8_t    versionStage = 2;
-
         std::uint8_t useOOP : 1;
         std::uint8_t syncMapElementData : 1;
         std::uint8_t syncMapElementDataDefined : 1;

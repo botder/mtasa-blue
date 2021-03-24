@@ -219,11 +219,6 @@ public:
     bool GetInfoValue(const char* szKey, std::string& strValue) const;
     void SetInfoValue(const char* szKey, const char* szValue, bool bSave = true);
 
-    unsigned int GetVersionMajor() const noexcept { return m_uiVersionMajor; }
-    unsigned int GetVersionMinor() const noexcept { return m_uiVersionMinor; }
-    unsigned int GetVersionRevision() const noexcept { return m_uiVersionRevision; }
-    unsigned int GetVersionState() const noexcept { return m_uiVersionState; }
-
     bool IsLoaded() const noexcept { return m_eState != EResourceState::None; }
     bool IsActive() const noexcept
     {
@@ -250,7 +245,9 @@ public:
     bool IsPersistent() const noexcept { return m_bIsPersistent; }
     void SetPersistent(bool bPersistent) { m_bIsPersistent = bPersistent; }
 
+    // Return true if is looks like the resource files have been removed
     bool HasGoneAway();
+
     bool LinkToIncludedResources();
     bool CheckIfStartable();
 
@@ -312,8 +309,6 @@ public:
 
     bool CheckFunctionRightCache(lua_CFunction f, bool* pbOutAllowed);
     void UpdateFunctionRightCache(lua_CFunction f, bool bAllowed);
-
-    bool IsFilenameUsed(const SString& strFilename, bool bClient);
 
     int GetDownloadPriorityGroup() const noexcept { return m_iDownloadPriorityGroup; }
 
@@ -391,11 +386,6 @@ private:
     SString     m_strAbsPath;                      // Absolute path to containing directory        i.e. /server/mods/deathmatch/resources
     std::string m_strResourceDirectoryPath;        // Absolute path to resource files (if a dir)   i.e. m_strAbsPath/resource_name
     std::string m_strResourceCachePath;            // Absolute path to unzipped cache (if a zip)   i.e. /server/mods/deathmatch/resources/cache/resource_name
-
-    unsigned int m_uiVersionMajor = 0;
-    unsigned int m_uiVersionMinor = 0;
-    unsigned int m_uiVersionRevision = 0;
-    unsigned int m_uiVersionState = 2;            // 2 = release
 
     int m_iDownloadPriorityGroup = 0;
 

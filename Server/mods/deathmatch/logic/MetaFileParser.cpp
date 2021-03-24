@@ -481,54 +481,8 @@ namespace mtasa
 
         for (auto iter = attributes.ListBegin(); iter != attributes.ListEnd(); ++iter)
         {
-            CXMLAttribute*     attribute = *iter;
-            const std::string& name = attribute->GetName();
-            const std::string& value = attribute->GetValue();
-
-            info.try_emplace(name, value);
-
-            if (name == "major"s)
-            {
-                unsigned int major = 0;
-
-                if (auto [p, ec] = std::from_chars(value.data(), value.data() + value.size(), major); ec == std::errc{})
-                {
-                    version.major = major;
-                }
-            }
-            else if (name == "minor"s)
-            {
-                unsigned int minor = 0;
-
-                if (auto [p, ec] = std::from_chars(value.data(), value.data() + value.size(), minor); ec == std::errc{})
-                {
-                    version.minor = minor;
-                }
-            }
-            else if (name == "revision"s)
-            {
-                unsigned int revision = 0;
-
-                if (auto [p, ec] = std::from_chars(value.data(), value.data() + value.size(), revision); ec == std::errc{})
-                {
-                    version.revision = revision;
-                }
-            }
-            else if (name == "state"s)
-            {
-                if (!stricmp(value.c_str(), "alpha"))
-                {
-                    versionStage = 0;
-                }
-                else if (!stricmp(value.c_str(), "beta"))
-                {
-                    versionStage = 1;
-                }
-                else
-                {
-                    versionStage = 2;
-                }
-            }
+            CXMLAttribute* attribute = *iter;
+            info.try_emplace(attribute->GetName(), attribute->GetValue());
         }
     }
 

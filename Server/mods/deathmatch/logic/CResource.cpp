@@ -64,11 +64,6 @@ bool CResource::Load()
     m_bStartedManually = false;
     m_bDoneDbConnectMysqlScan = false;
 
-    m_uiVersionMajor = 0;
-    m_uiVersionMinor = 0;
-    m_uiVersionRevision = 0;
-    m_uiVersionState = 2;            // release
-
     m_bClientConfigs = true;
     m_bClientScripts = true;
     m_bClientFiles = true;
@@ -300,6 +295,7 @@ std::future<SString> CResource::GenerateChecksumForFile(CResourceFile* pResource
     return SharedUtil::async([pResourceFile, this] {
         SString strPath;
 
+        // TODO: Get rid of GetFilePath, we can store the absolute path in CResourceFile
         if (!GetFilePath(pResourceFile->GetName(), strPath))
             return SString();
 
@@ -389,6 +385,8 @@ bool CResource::GenerateChecksums()
 
 bool CResource::HasResourceChanged()
 {
+    // TODO: Clean this up after CResourceFile refactor
+
     if (m_bResourceIsZip)
     {
         // Zip file might have changed
@@ -402,6 +400,7 @@ bool CResource::HasResourceChanged()
 
     for (CResourceFile* pResourceFile : m_ResourceFiles)
     {
+        // TODO: Get rid of GetFilePath, we can store the absolute path in CResourceFile
         if (GetFilePath(pResourceFile->GetName(), strPath))
         {
             CChecksum checksum = CChecksum::GenerateChecksumFromFileUnsafe(strPath);
@@ -944,7 +943,6 @@ bool CResource::DestroyVM()
     return true;
 }
 
-// Return true if is looks like the resource files have been removed
 bool CResource::HasGoneAway()
 {
     if (m_bResourceIsZip)
@@ -957,7 +955,6 @@ bool CResource::HasGoneAway()
     }
 }
 
-// gets the path of the file specified
 bool CResource::GetFilePath(const char* szFilename, string& strPath)
 {
     // Always prefer the local resource directory, as scripts may
@@ -972,27 +969,6 @@ bool CResource::GetFilePath(const char* szFilename, string& strPath)
 
     strPath = m_strResourceCachePath + szFilename;
     return FileExists(strPath);
-}
-
-// Return true if file name is used by this resource
-bool CResource::IsFilenameUsed(const SString& strFilename, bool bClient)
-{
-    for (CResourceFile* pResourceFile : m_ResourceFiles)
-    {
-        if (strFilename.CompareI(pResourceFile->GetName()))
-        {
-            bool bIsClientFile = (pResourceFile->GetType() == CResourceFile::RESOURCE_FILE_TYPE_CLIENT_SCRIPT ||
-                                  pResourceFile->GetType() == CResourceFile::RESOURCE_FILE_TYPE_CLIENT_CONFIG ||
-                                  pResourceFile->GetType() == CResourceFile::RESOURCE_FILE_TYPE_CLIENT_FILE);
-
-            if (bIsClientFile == bClient)
-            {
-                return true;
-            }
-        }
-    }
-
-    return false;
 }
 
 bool CResource::GetDefaultSetting(const char* szName, char* szValue, size_t sizeBuffer)
@@ -1028,11 +1004,13 @@ bool CResource::GetDefaultSetting(const char* szName, char* szValue, size_t size
 
 bool CResource::SetDefaultSetting(const char* szName, const char* szValue)
 {
+    // TODO: Add implementaion here
     return false;
 }
 
 bool CResource::RemoveDefaultSetting(const char* szName)
 {
+    // TODO: Add implementaion here
     return false;
 }
 
@@ -1368,10 +1346,6 @@ bool CResource::ProcessMetaInfo(const mtasa::MetaFileParser& meta)
         m_Info[key] = value;
     }
 
-    m_uiVersionMajor = meta.version.major;
-    m_uiVersionMinor = meta.version.minor;
-    m_uiVersionRevision = meta.version.revision;
-    m_uiVersionState = meta.versionStage;
     return true;
 }
 
@@ -1785,7 +1759,6 @@ bool CResource::CheckState()
 
 void CResource::OnPlayerJoin(CPlayer& Player)
 {
-    // do the player join crap
     Player.Send(CResourceStartPacket(m_strResourceName.c_str(), this));
     SendNoClientCacheScripts(&Player);
 }

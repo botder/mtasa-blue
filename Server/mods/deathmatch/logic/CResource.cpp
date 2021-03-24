@@ -1,11 +1,10 @@
 /*****************************************************************************
  *
- *  PROJECT:     Multi Theft Auto v1.0
+ *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
- *  FILE:        mods/deathmatch/logic/CResource.cpp
- *  PURPOSE:     Resource handler class
+ *  PURPOSE:     Single resource unit handler
  *
- *  Multi Theft Auto is available from http://www.multitheftauto.com/
+ *  Multi Theft Auto is available from https://multitheftauto.com/
  *
  *****************************************************************************/
 
@@ -18,12 +17,6 @@
 #include "CResourceClientConfigItem.h"
 #include "MetaFileParser.h"
 #include "ResourceFileRouter.h"
-#include "net/SimHeaders.h"
-#ifndef WIN32
-#include <utime.h>
-#endif
-
-std::list<CResource*> CResource::m_StartedResources;
 
 extern CServerInterface* g_pServerInterface;
 extern CGame*            g_pGame;
@@ -808,12 +801,7 @@ bool CResource::Start(std::list<CResource*>* pDependents, bool bManualStart, con
     // HACK?: stops resources getting loaded twice when you change them then manually restart
     GenerateChecksums();
 
-    // Add us to the running resources list
-    m_StartedResources.push_back(this);
-
-    // Sort by priority, for start grouping on the client
-    m_StartedResources.sort([](CResource* a, CResource* b) { return a->m_iDownloadPriorityGroup > b->m_iDownloadPriorityGroup; });
-
+    m_pResourceManager->OnResourceStart(this);
     return true;
 }
 
@@ -828,6 +816,8 @@ bool CResource::Stop(bool bManualStop)
     if (m_bStartedManually && !bManualStop)
         return false;
 
+    m_pResourceManager->OnResourceStop(this);
+
     m_eState = EResourceState::Stopping;
     m_pResourceManager->RemoveMinClientRequirement(this);
     m_pResourceManager->RemoveSyncMapElementDataOption(this);
@@ -837,9 +827,6 @@ bool CResource::Stop(bool bManualStop)
 
     // Tell the modules we are stopping
     g_pGame->GetLuaManager()->GetLuaModuleManager()->ResourceStopping(m_pVM->GetVirtualMachine());
-
-    // Remove us from the running resources list
-    m_StartedResources.remove(this);
 
     // Tell all the players that have joined that this resource is stopped
     g_pGame->GetPlayerManager()->BroadcastOnlyJoined(CResourceStopPacket(m_usNetID));

@@ -118,6 +118,9 @@ public:
     void    AddBlockedFileReason(const SString& strFileHash, const SString& strReason);
     SString GetBlockedFileReason(const SString& strFileHash);
 
+    void OnResourceStart(CResource* resource);
+    void OnResourceStop(CResource* resource);
+
 private:
     SString                 m_strResourceDirectory;
     CMappedList<CResource*> m_resources;
@@ -140,4 +143,11 @@ private:
 
     ushort                     m_usNextNetId;
     std::map<SString, SString> m_BlockedFileReasonMap;
+
+    struct CompareResourcePriorityGroup
+    {
+        bool operator()(const CResource* lhs, const CResource* rhs) const;
+    };
+
+    std::set<CResource*, CompareResourcePriorityGroup> m_runningResources;
 };

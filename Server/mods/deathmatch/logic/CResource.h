@@ -2,12 +2,12 @@
  *
  *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
- *  FILE:        mods/deathmatch/logic/CResource.h
- *  PURPOSE:     Resource handler class
+ *  PURPOSE:     Single resource unit handler
  *
- *  Multi Theft Auto is available from http://www.multitheftauto.com/
+ *  Multi Theft Auto is available from https://multitheftauto.com/
  *
  *****************************************************************************/
+
 #pragma once
 
 #include "packets/CResourceStartPacket.h"
@@ -15,7 +15,6 @@
 #include "packets/CEntityRemovePacket.h"
 #include "SResourceStartOptions.h"
 #include "CResourceFile.h"
-#include <unzip.h>
 #include <list>
 #include <vector>
 #include <time.h>
@@ -23,9 +22,11 @@
 #include <optional>
 #include <memory>
 
-#define MAX_AUTHOR_LENGTH           255
 #define MAX_RESOURCE_NAME_LENGTH    255
-#define MAX_FUNCTION_NAME_LENGTH    50
+
+// TODO(botder): Why are these unused?
+// #define MAX_AUTHOR_LENGTH           255
+// #define MAX_FUNCTION_NAME_LENGTH    50
 
 class CDummy;
 class CElement;
@@ -320,9 +321,6 @@ public:
     void SetUsingDbConnectMysql(bool bUsingDbConnectMysql) { m_bUsingDbConnectMysql = bUsingDbConnectMysql; }
     bool IsUsingDbConnectMysql();
     bool IsFileDbConnectMysqlProtected(const SString& strFilename, bool bReadOnly);
-
-public:
-    static std::list<CResource*> m_StartedResources;
 
 protected:
     SString             GetAutoGroupName();

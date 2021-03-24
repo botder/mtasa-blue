@@ -526,10 +526,9 @@ CResource* CResourceManager::GetResourceFromNetID(unsigned short usNetID)
 void CResourceManager::OnPlayerJoin(CPlayer& Player)
 {
     // Loop through our started resources so they start in the correct order clientside
-    list<CResource*>::iterator iter = CResource::m_StartedResources.begin();
-    for (; iter != CResource::m_StartedResources.end(); iter++)
+    for (CResource* resource : m_runningResources)
     {
-        (*iter)->OnPlayerJoin(Player);
+        resource->OnPlayerJoin(Player);
     }
 }
 
@@ -1436,4 +1435,19 @@ SString CResourceManager::GetBlockedFileReason(const SString& strFileHash)
         return *pstrReason;
 
     return "";
+}
+
+void CResourceManager::OnResourceStart(CResource* resource)
+{
+    m_runningResources.insert(resource);
+}
+
+void CResourceManager::OnResourceStop(CResource* resource)
+{
+    m_runningResources.erase(resource);
+}
+
+bool CResourceManager::CompareResourcePriorityGroup::operator()(const CResource* lhs, const CResource* rhs) const
+{
+    return lhs->GetDownloadPriorityGroup() > rhs->GetDownloadPriorityGroup();
 }

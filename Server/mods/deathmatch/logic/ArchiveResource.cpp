@@ -10,6 +10,10 @@
 
 #include "StdInc.h"
 #include "ArchiveResource.h"
+#include <unzip.h>
+#ifdef WIN32
+    #include <iowin32.h>
+#endif
 
 namespace fs = std::filesystem;
 

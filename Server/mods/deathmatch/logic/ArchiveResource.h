@@ -26,6 +26,8 @@ namespace mtasa
 
         void SetSourceArchive(const std::filesystem::path& sourceArchive) { m_sourceArchive = sourceArchive; }
 
+        bool IsArchived() const override { return true; }
+
         bool Load() override;
         bool Start() override;
 

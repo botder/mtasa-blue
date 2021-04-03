@@ -587,6 +587,52 @@ public:
     }
 
     //
+    // Read next string, using default if needed
+    //
+    void ReadString(std::string& outValue, const char* defaultValue = nullptr)
+    {
+        int iArgument = lua_type(m_luaVM, m_iIndex);
+
+        if (iArgument == LUA_TSTRING || iArgument == LUA_TNUMBER)
+        {
+            size_t length = lua_strlen(m_luaVM, m_iIndex);
+
+            try
+            {
+                outValue.assign(lua_tostring(m_luaVM, m_iIndex++), length);
+            }
+            catch (const std::bad_alloc&)
+            {
+                SetCustomError("out of memory", "Memory allocation");
+            }
+
+            return;
+        }
+        else if (iArgument == LUA_TNONE || iArgument == LUA_TNIL)
+        {
+            if (defaultValue != nullptr)
+            {
+                m_iIndex++;
+
+                try
+                {
+                    outValue.assign(defaultValue);
+                }
+                catch (const std::bad_alloc&)
+                {
+                    SetCustomError("out of memory", "Memory allocation");
+                }
+
+                return;
+            }
+        }
+
+        outValue = "";
+        SetTypeError("string");
+        m_iIndex++;
+    }
+
+    //
     // Force-reads next argument as string
     //
     void ReadAnyAsString(SString& outValue)
@@ -642,6 +688,26 @@ public:
         outValue.uiSize = 0;
         SetTypeError("string");
         m_iIndex++;
+    }
+
+    void ReadStringView(std::string_view& view, bool isOptional = false)
+    {
+        if (lua_type(m_luaVM, m_iIndex) == LUA_TSTRING)
+        {
+            std::size_t length = 0;
+            const char* data = lua_tolstring(m_luaVM, m_iIndex++, &length);
+            view = std::string_view{data, length};
+        }
+        else if (isOptional)
+        {
+            ++m_iIndex;
+            view = std::string_view{};
+        }
+        else
+        {
+            SetTypeError("string");
+            ++m_iIndex;
+        }
     }
 
     //

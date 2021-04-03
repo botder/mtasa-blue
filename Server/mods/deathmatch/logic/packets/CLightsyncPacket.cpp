@@ -22,7 +22,7 @@ bool CLightsyncPacket::Write(NetBitStreamInterface& BitStream) const
 {
     bool bSyncPosition;
 
-    if (Count() == 0)
+    if (Empty())
         return false;
 
     for (std::vector<CPlayer*>::const_iterator iter = m_players.begin(); iter != m_players.end(); ++iter)

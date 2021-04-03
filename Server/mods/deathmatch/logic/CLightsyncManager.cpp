@@ -164,7 +164,7 @@ void CLightsyncManager::DoPulse()
                     }
                 }
 
-                if (packet.Count() > 0)
+                if (!packet.Empty())
                 {
                     iBitsSent += pPlayer->Send(packet);
                     iPacketsSent++;

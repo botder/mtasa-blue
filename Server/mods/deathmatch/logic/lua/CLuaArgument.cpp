@@ -1034,7 +1034,7 @@ bool CLuaArgument::ReadFromJSONObject(json_object* object, std::vector<CLuaArgum
                         }
                         case 'R':            // resource
                         {
-                            std::string_view resourceName{strString};
+                            std::string_view resourceName{strString.c_str(), strString.size()};
                             resourceName.substr(3);
 
                             Resource* resource = g_pGame->GetResourceManager().GetResourceFromName(resourceName);

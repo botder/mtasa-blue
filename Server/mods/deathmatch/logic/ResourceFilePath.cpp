@@ -45,7 +45,7 @@ namespace mtasa
         fs::path relativeFilePath = fs::path{relativePath}.lexically_normal();
 #else
         // On non-Windows platforms, the backslash character is not a directory separator
-        std::string relativePathString{resourceRelativePath};
+        std::string relativePathString{relativePath};
         std::replace(relativePathString.begin(), relativePathString.end(), '\\', '/');
         fs::path relativeFilePath = fs::path{std::move(relativePathString)}.lexically_normal();
 #endif

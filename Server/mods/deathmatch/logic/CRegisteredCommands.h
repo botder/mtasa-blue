@@ -21,7 +21,7 @@ class CRegisteredCommands
 {
     struct SCommand
     {
-        class CLuaMain* pLuaMain;
+        class CLuaMain* luaContext;
         SString         strKey;
         CLuaFunctionRef iLuaFunction;
         bool            bRestricted;
@@ -32,12 +32,12 @@ public:
     CRegisteredCommands(class CAccessControlListManager* pACLManager);
     ~CRegisteredCommands();
 
-    bool AddCommand(class CLuaMain* pLuaMain, const char* szKey, const CLuaFunctionRef& iLuaFunction, bool bRestricted, bool bCaseSensitive);
-    bool RemoveCommand(class CLuaMain* pLuaMain, const char* szKey, const CLuaFunctionRef& iLuaFunction = CLuaFunctionRef());
+    bool AddCommand(class CLuaMain* luaContext, const char* szKey, const CLuaFunctionRef& iLuaFunction, bool bRestricted, bool bCaseSensitive);
+    bool RemoveCommand(class CLuaMain* luaContext, const char* szKey, const CLuaFunctionRef& iLuaFunction = CLuaFunctionRef());
     void ClearCommands();
-    void CleanUpForVM(class CLuaMain* pLuaMain);
+    void CleanUpForVM(class CLuaMain* luaContext);
 
-    bool CommandExists(const char* szKey, class CLuaMain* pLuaMain = NULL);
+    bool CommandExists(const char* szKey, class CLuaMain* luaContext = NULL);
 
     void GetCommands(lua_State* luaVM);
     void GetCommands(lua_State* luaVM, CLuaMain* pTargetLuaMain);
@@ -45,8 +45,8 @@ public:
     bool ProcessCommand(const char* szKey, const char* szArguments, class CClient* pClient);
 
 private:
-    SCommand* GetCommand(const char* szKey, class CLuaMain* pLuaMain = NULL);
-    void CallCommandHandler(class CLuaMain* pLuaMain, const CLuaFunctionRef& iLuaFunction, const char* szKey, const char* szArguments, class CClient* pClient);
+    SCommand* GetCommand(const char* szKey, class CLuaMain* luaContext = NULL);
+    void CallCommandHandler(class CLuaMain* luaContext, const CLuaFunctionRef& iLuaFunction, const char* szKey, const char* szArguments, class CClient* pClient);
 
     void TakeOutTheTrash();
 

@@ -128,9 +128,9 @@ public:
     virtual void           GetStats(CPerfStatResult* pOutResult, const std::map<SString, int>& optionMap, const SString& strFilter) = 0;
 
     // CPerfStatLuaTiming
-    virtual void OnLuaMainCreate(CLuaMain* pLuaMain) = 0;
-    virtual void OnLuaMainDestroy(CLuaMain* pLuaMain) = 0;
-    virtual void UpdateLuaTiming(CLuaMain* pLuaMain, const char* szEventName, TIMEUS timeUs) = 0;
+    virtual void OnLuaMainCreate(CLuaMain* luaContext) = 0;
+    virtual void OnLuaMainDestroy(CLuaMain* luaContext) = 0;
+    virtual void UpdateLuaTiming(CLuaMain* luaContext, const char* szEventName, TIMEUS timeUs) = 0;
 
     static CPerfStatLuaTiming* GetSingleton();
 };
@@ -147,8 +147,8 @@ public:
     virtual void           GetStats(CPerfStatResult* pOutResult, const std::map<SString, int>& optionMap, const SString& strFilter) = 0;
 
     // CPerfStatLuaMemory
-    virtual void OnLuaMainCreate(CLuaMain* pLuaMain) = 0;
-    virtual void OnLuaMainDestroy(CLuaMain* pLuaMain) = 0;
+    virtual void OnLuaMainCreate(CLuaMain* luaContext) = 0;
+    virtual void OnLuaMainDestroy(CLuaMain* luaContext) = 0;
 
     static CPerfStatLuaMemory* GetSingleton();
 };

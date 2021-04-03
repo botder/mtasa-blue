@@ -98,23 +98,23 @@ public:
     std::list<CKeyBind*>::iterator IterEnd() { return m_List.end(); }
 
     // Key-function bind funcs
-    bool AddKeyFunction(const char* szKey, bool bHitState, CLuaMain* pLuaMain, const CLuaFunctionRef& iLuaFunction, CLuaArguments& Arguments);
-    bool AddKeyFunction(const SBindableKey* pKey, bool bHitState, CLuaMain* pLuaMain, const CLuaFunctionRef& iLuaFunction, CLuaArguments& Arguments);
-    bool RemoveKeyFunction(const char* szKey, CLuaMain* pLuaMain, bool bCheckHitState = false, bool bHitState = true,
+    bool AddKeyFunction(const char* szKey, bool bHitState, CLuaMain* luaContext, const CLuaFunctionRef& iLuaFunction, CLuaArguments& Arguments);
+    bool AddKeyFunction(const SBindableKey* pKey, bool bHitState, CLuaMain* luaContext, const CLuaFunctionRef& iLuaFunction, CLuaArguments& Arguments);
+    bool RemoveKeyFunction(const char* szKey, CLuaMain* luaContext, bool bCheckHitState = false, bool bHitState = true,
                            const CLuaFunctionRef& iLuaFunction = CLuaFunctionRef());
-    bool KeyFunctionExists(const char* szKey, CLuaMain* pLuaMain = NULL, bool bCheckHitState = false, bool bHitState = true,
+    bool KeyFunctionExists(const char* szKey, CLuaMain* luaContext = NULL, bool bCheckHitState = false, bool bHitState = true,
                            const CLuaFunctionRef& iLuaFunction = CLuaFunctionRef());
 
     // Control-function bind funcs
-    bool AddControlFunction(const char* szControl, bool bHitState, CLuaMain* pLuaMain, const CLuaFunctionRef& iLuaFunction, CLuaArguments& Arguments);
-    bool AddControlFunction(const SBindableGTAControl* pControl, bool bHitState, CLuaMain* pLuaMain, const CLuaFunctionRef& iLuaFunction,
+    bool AddControlFunction(const char* szControl, bool bHitState, CLuaMain* luaContext, const CLuaFunctionRef& iLuaFunction, CLuaArguments& Arguments);
+    bool AddControlFunction(const SBindableGTAControl* pControl, bool bHitState, CLuaMain* luaContext, const CLuaFunctionRef& iLuaFunction,
                             CLuaArguments& Arguments);
-    bool RemoveControlFunction(const char* szControl, CLuaMain* pLuaMain, bool bCheckHitState = false, bool bHitState = true,
+    bool RemoveControlFunction(const char* szControl, CLuaMain* luaContext, bool bCheckHitState = false, bool bHitState = true,
                                const CLuaFunctionRef& iLuaFunction = CLuaFunctionRef());
-    bool ControlFunctionExists(const char* szControl, CLuaMain* pLuaMain = NULL, bool bCheckHitState = false, bool bHitState = true,
+    bool ControlFunctionExists(const char* szControl, CLuaMain* luaContext = NULL, bool bCheckHitState = false, bool bHitState = true,
                                const CLuaFunctionRef& iLuaFunction = CLuaFunctionRef());
 
-    void RemoveAllKeys(CLuaMain* pLuaMain);
+    void RemoveAllKeys(CLuaMain* luaContext);
 
     static bool IsMouse(const SBindableKey* pKey);
     void        RemoveDeletedBinds();

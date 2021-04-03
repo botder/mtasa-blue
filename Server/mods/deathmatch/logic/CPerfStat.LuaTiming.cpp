@@ -122,9 +122,9 @@ public:
     virtual void           GetStats(CPerfStatResult* pOutResult, const std::map<SString, int>& optionMap, const SString& strFilter);
 
     // CPerfStatLuaTiming
-    virtual void OnLuaMainCreate(CLuaMain* pLuaMain);
-    virtual void OnLuaMainDestroy(CLuaMain* pLuaMain);
-    virtual void UpdateLuaTiming(CLuaMain* pLuaMain, const char* szEventName, TIMEUS timeUs);
+    virtual void OnLuaMainCreate(CLuaMain* luaContext);
+    virtual void OnLuaMainDestroy(CLuaMain* luaContext);
+    virtual void UpdateLuaTiming(CLuaMain* luaContext, const char* szEventName, TIMEUS timeUs);
 
     // CPerfStatLuaTimingImpl functions
     void GetLuaTimingStats(CPerfStatResult* pResult, const std::map<SString, int>& strOptionMap, const SString& strFilter);
@@ -195,9 +195,9 @@ const SString& CPerfStatLuaTimingImpl::GetCategoryName()
 //
 //
 ///////////////////////////////////////////////////////////////
-void CPerfStatLuaTimingImpl::OnLuaMainCreate(CLuaMain* pLuaMain)
+void CPerfStatLuaTimingImpl::OnLuaMainCreate(CLuaMain* luaContext)
 {
-    MapSet(m_LuaMainMap, pLuaMain, 1);
+    MapSet(m_LuaMainMap, luaContext, 1);
 }
 
 ///////////////////////////////////////////////////////////////
@@ -207,10 +207,10 @@ void CPerfStatLuaTimingImpl::OnLuaMainCreate(CLuaMain* pLuaMain)
 //
 //
 ///////////////////////////////////////////////////////////////
-void CPerfStatLuaTimingImpl::OnLuaMainDestroy(CLuaMain* pLuaMain)
+void CPerfStatLuaTimingImpl::OnLuaMainDestroy(CLuaMain* luaContext)
 {
-    MapRemove(m_LuaMainMap, pLuaMain);
-    MapRemove(AllLuaTiming.LuaMainTimingMap, pLuaMain);
+    MapRemove(m_LuaMainMap, luaContext);
+    MapRemove(AllLuaTiming.LuaMainTimingMap, luaContext);
 }
 
 ///////////////////////////////////////////////////////////////
@@ -220,13 +220,13 @@ void CPerfStatLuaTimingImpl::OnLuaMainDestroy(CLuaMain* pLuaMain)
 //
 //
 ///////////////////////////////////////////////////////////////
-void CPerfStatLuaTimingImpl::UpdateLuaTiming(CLuaMain* pLuaMain, const char* szEventName, TIMEUS timeUs)
+void CPerfStatLuaTimingImpl::UpdateLuaTiming(CLuaMain* luaContext, const char* szEventName, TIMEUS timeUs)
 {
-    CLuaMainTiming* pLuaMainTiming = MapFind(AllLuaTiming.LuaMainTimingMap, pLuaMain);
+    CLuaMainTiming* pLuaMainTiming = MapFind(AllLuaTiming.LuaMainTimingMap, luaContext);
     if (!pLuaMainTiming)
     {
-        MapSet(AllLuaTiming.LuaMainTimingMap, pLuaMain, CLuaMainTiming());
-        pLuaMainTiming = MapFind(AllLuaTiming.LuaMainTimingMap, pLuaMain);
+        MapSet(AllLuaTiming.LuaMainTimingMap, luaContext, CLuaMainTiming());
+        pLuaMainTiming = MapFind(AllLuaTiming.LuaMainTimingMap, luaContext);
     }
 
     {

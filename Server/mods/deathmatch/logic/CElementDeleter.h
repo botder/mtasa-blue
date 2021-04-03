@@ -24,7 +24,7 @@ public:
     bool IsBeingDeleted(class CElement* pElement);
     void Unreference(CElement* pElement);
 
-    void CleanUpForVM(CLuaMain* pLuaMain);
+    void CleanUpForVM(CLuaMain* luaContext);
 
 private:
     CElementListType m_List;

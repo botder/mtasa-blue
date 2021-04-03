@@ -22,20 +22,20 @@ CRegisteredCommands::~CRegisteredCommands()
     ClearCommands();
 }
 
-bool CRegisteredCommands::AddCommand(CLuaMain* pLuaMain, const char* szKey, const CLuaFunctionRef& iLuaFunction, bool bRestricted, bool bCaseSensitive)
+bool CRegisteredCommands::AddCommand(CLuaMain* luaContext, const char* szKey, const CLuaFunctionRef& iLuaFunction, bool bRestricted, bool bCaseSensitive)
 {
-    assert(pLuaMain);
+    assert(luaContext);
     assert(szKey);
 
     // Check if we already have this key and handler
-    SCommand* pCommand = GetCommand(szKey, pLuaMain);
+    SCommand* pCommand = GetCommand(szKey, luaContext);
 
     if (pCommand && iLuaFunction == pCommand->iLuaFunction)
         return false;
 
     // Create the entry
     pCommand = new SCommand;
-    pCommand->pLuaMain = pLuaMain;
+    pCommand->luaContext = luaContext;
     pCommand->strKey.AssignLeft(szKey, MAX_REGISTERED_COMMAND_LENGTH);
     pCommand->iLuaFunction = iLuaFunction;
     pCommand->bRestricted = bRestricted;
@@ -47,9 +47,9 @@ bool CRegisteredCommands::AddCommand(CLuaMain* pLuaMain, const char* szKey, cons
     return true;
 }
 
-bool CRegisteredCommands::RemoveCommand(CLuaMain* pLuaMain, const char* szKey, const CLuaFunctionRef& iLuaFunction)
+bool CRegisteredCommands::RemoveCommand(CLuaMain* luaContext, const char* szKey, const CLuaFunctionRef& iLuaFunction)
 {
-    assert(pLuaMain);
+    assert(luaContext);
     assert(szKey);
 
     // Call the handler for every virtual machine that matches the given key
@@ -65,7 +65,7 @@ bool CRegisteredCommands::RemoveCommand(CLuaMain* pLuaMain, const char* szKey, c
             iCompareResult = stricmp((*iter)->strKey.c_str(), szKey);
 
         // Matching VM's and names?
-        if ((*iter)->pLuaMain == pLuaMain && iCompareResult == 0)
+        if ((*iter)->luaContext == luaContext && iCompareResult == 0)
         {
             if (VERIFY_FUNCTION(iLuaFunction) && (*iter)->iLuaFunction != iLuaFunction)
             {
@@ -106,9 +106,9 @@ void CRegisteredCommands::ClearCommands()
     m_Commands.clear();
 }
 
-void CRegisteredCommands::CleanUpForVM(CLuaMain* pLuaMain)
+void CRegisteredCommands::CleanUpForVM(CLuaMain* luaContext)
 {
-    assert(pLuaMain);
+    assert(luaContext);
 
     // Delete every command that matches
     list<SCommand*>::iterator iter = m_Commands.begin();
@@ -116,7 +116,7 @@ void CRegisteredCommands::CleanUpForVM(CLuaMain* pLuaMain)
     while (iter != m_Commands.end())
     {
         // Matching VM's?
-        if ((*iter)->pLuaMain == pLuaMain)
+        if ((*iter)->luaContext == luaContext)
         {
             // Delete the entry and remove it from the list
             delete *iter;
@@ -127,11 +127,11 @@ void CRegisteredCommands::CleanUpForVM(CLuaMain* pLuaMain)
     }
 }
 
-bool CRegisteredCommands::CommandExists(const char* szKey, CLuaMain* pLuaMain)
+bool CRegisteredCommands::CommandExists(const char* szKey, CLuaMain* luaContext)
 {
     assert(szKey);
 
-    return GetCommand(szKey, pLuaMain) != NULL;
+    return GetCommand(szKey, luaContext) != NULL;
 }
 
 bool CRegisteredCommands::ProcessCommand(const char* szKey, const char* szArguments, CClient* pClient)
@@ -161,7 +161,7 @@ bool CRegisteredCommands::ProcessCommand(const char* szKey, const char* szArgume
                     !(*iter)->bRestricted))            // If this command is restricted, the default access should be false unless granted specially
             {
                 // Call it
-                CallCommandHandler((*iter)->pLuaMain, (*iter)->iLuaFunction, (*iter)->strKey, szArguments, pClient);
+                CallCommandHandler((*iter)->luaContext, (*iter)->iLuaFunction, (*iter)->strKey, szArguments, pClient);
                 bHandled = true;
             }
         }
@@ -174,7 +174,7 @@ bool CRegisteredCommands::ProcessCommand(const char* szKey, const char* szArgume
     return bHandled;
 }
 
-CRegisteredCommands::SCommand* CRegisteredCommands::GetCommand(const char* szKey, class CLuaMain* pLuaMain)
+CRegisteredCommands::SCommand* CRegisteredCommands::GetCommand(const char* szKey, class CLuaMain* luaContext)
 {
     assert(szKey);
 
@@ -190,7 +190,7 @@ CRegisteredCommands::SCommand* CRegisteredCommands::GetCommand(const char* szKey
             iCompareResult = stricmp((*iter)->strKey.c_str(), szKey);
 
         // Matching name and no given VM or matching VM
-        if (iCompareResult == 0 && (!pLuaMain || pLuaMain == (*iter)->pLuaMain))
+        if (iCompareResult == 0 && (!luaContext || luaContext == (*iter)->luaContext))
             return *iter;
     }
 
@@ -198,10 +198,10 @@ CRegisteredCommands::SCommand* CRegisteredCommands::GetCommand(const char* szKey
     return NULL;
 }
 
-void CRegisteredCommands::CallCommandHandler(CLuaMain* pLuaMain, const CLuaFunctionRef& iLuaFunction, const char* szKey, const char* szArguments,
+void CRegisteredCommands::CallCommandHandler(CLuaMain* luaContext, const CLuaFunctionRef& iLuaFunction, const char* szKey, const char* szArguments,
                                              CClient* pClient)
 {
-    assert(pLuaMain);
+    assert(luaContext);
     assert(szKey);
 
     CLuaArguments Arguments;
@@ -252,7 +252,7 @@ void CRegisteredCommands::CallCommandHandler(CLuaMain* pLuaMain, const CLuaFunct
     }
 
     // Call the handler with the arguments we pushed
-    Arguments.Call(pLuaMain, iLuaFunction);
+    Arguments.Call(luaContext, iLuaFunction);
 }
 
 void CRegisteredCommands::GetCommands(lua_State* luaVM)
@@ -270,7 +270,7 @@ void CRegisteredCommands::GetCommands(lua_State* luaVM)
             lua_pushstring(luaVM, pCommand->strKey.c_str());
             lua_rawseti(luaVM, -2, 1);
 
-            lua_pushresource(luaVM, pCommand->pLuaMain->GetResource());
+            lua_pushresource(luaVM, &pCommand->luaContext->GetResource());
             lua_rawseti(luaVM, -2, 2);
         }
         lua_settable(luaVM, -3);
@@ -285,7 +285,7 @@ void CRegisteredCommands::GetCommands(lua_State* luaVM, CLuaMain* pTargetLuaMain
 
     for (SCommand* pCommand : m_Commands)
     {
-        if (pCommand->pLuaMain == pTargetLuaMain)
+        if (pCommand->luaContext == pTargetLuaMain)
         {
             lua_pushinteger(luaVM, ++uiIndex);
             lua_pushstring(luaVM, pCommand->strKey.c_str());

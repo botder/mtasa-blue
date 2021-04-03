@@ -27,7 +27,7 @@ public:
     }
     ~CLuaTimerManager() { RemoveAllTimers(); };
 
-    void DoPulse(CLuaMain* pLuaMain);
+    void DoPulse(CLuaMain* luaContext);
 
     CLuaTimer* GetTimerFromScriptID(unsigned int uiScriptID);
 

@@ -11,7 +11,7 @@
 
 #include "StdInc.h"
 
-void CLuaTimerManager::DoPulse(CLuaMain* pLuaMain)
+void CLuaTimerManager::DoPulse(CLuaMain* luaContext)
 {
     assert(m_ProcessQueue.empty());
     assert(!m_pPendingDelete);
@@ -39,7 +39,7 @@ void CLuaTimerManager::DoPulse(CLuaMain* pLuaMain)
             // Set our debug info
             g_pGame->GetScriptDebugging()->SaveLuaDebugInfo(m_pProcessingTimer->GetLuaDebugInfo());
 
-            m_pProcessingTimer->ExecuteTimer(pLuaMain);
+            m_pProcessingTimer->ExecuteTimer(luaContext);
             // Reset
             g_pGame->GetScriptDebugging()->SaveLuaDebugInfo(SLuaDebugInfo());
 

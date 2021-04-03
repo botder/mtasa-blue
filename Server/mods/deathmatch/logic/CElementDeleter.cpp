@@ -59,9 +59,9 @@ bool CElementDeleter::IsBeingDeleted(CElement* pElement)
     return ListContains(m_List, pElement);
 }
 
-void CElementDeleter::CleanUpForVM(CLuaMain* pLuaMain)
+void CElementDeleter::CleanUpForVM(CLuaMain* luaContext)
 {
     CElementListType::const_iterator iter = m_List.begin();
     for (; iter != m_List.end(); iter++)
-        (*iter)->DeleteEvents(pLuaMain, false);
+        (*iter)->DeleteEvents(luaContext, false);
 }

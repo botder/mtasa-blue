@@ -61,12 +61,12 @@ public:
     virtual void           GetStats(CPerfStatResult* pOutResult, const std::map<SString, int>& optionMap, const SString& strFilter);
 
     // CPerfStatLuaMemory
-    virtual void OnLuaMainCreate(CLuaMain* pLuaMain);
-    virtual void OnLuaMainDestroy(CLuaMain* pLuaMain);
+    virtual void OnLuaMainCreate(CLuaMain* luaContext);
+    virtual void OnLuaMainDestroy(CLuaMain* luaContext);
 
     // CPerfStatLuaMemoryImpl
     void GetLuaMemoryStats(CPerfStatResult* pResult, const std::map<SString, int>& strOptionMap, const SString& strFilter);
-    void UpdateLuaMemory(CLuaMain* pLuaMain, int iMemUsed);
+    void UpdateLuaMemory(CLuaMain* luaContext, int iMemUsed);
 
     SString                  m_strCategoryName;
     CAllLuaMemory            AllLuaMemory;
@@ -131,9 +131,9 @@ const SString& CPerfStatLuaMemoryImpl::GetCategoryName()
 //
 //
 ///////////////////////////////////////////////////////////////
-void CPerfStatLuaMemoryImpl::OnLuaMainCreate(CLuaMain* pLuaMain)
+void CPerfStatLuaMemoryImpl::OnLuaMainCreate(CLuaMain* luaContext)
 {
-    MapSet(m_LuaMainMap, pLuaMain, 1);
+    MapSet(m_LuaMainMap, luaContext, 1);
 }
 
 ///////////////////////////////////////////////////////////////
@@ -143,10 +143,10 @@ void CPerfStatLuaMemoryImpl::OnLuaMainCreate(CLuaMain* pLuaMain)
 //
 //
 ///////////////////////////////////////////////////////////////
-void CPerfStatLuaMemoryImpl::OnLuaMainDestroy(CLuaMain* pLuaMain)
+void CPerfStatLuaMemoryImpl::OnLuaMainDestroy(CLuaMain* luaContext)
 {
-    MapRemove(m_LuaMainMap, pLuaMain);
-    MapRemove(AllLuaMemory.LuaMainMemoryMap, pLuaMain);
+    MapRemove(m_LuaMainMap, luaContext);
+    MapRemove(AllLuaMemory.LuaMainMemoryMap, luaContext);
 }
 
 ///////////////////////////////////////////////////////////////
@@ -156,26 +156,26 @@ void CPerfStatLuaMemoryImpl::OnLuaMainDestroy(CLuaMain* pLuaMain)
 //
 //
 ///////////////////////////////////////////////////////////////
-void CPerfStatLuaMemoryImpl::UpdateLuaMemory(CLuaMain* pLuaMain, int iMemUsed)
+void CPerfStatLuaMemoryImpl::UpdateLuaMemory(CLuaMain* luaContext, int iMemUsed)
 {
-    CLuaMainMemory* pLuaMainMemory = MapFind(AllLuaMemory.LuaMainMemoryMap, pLuaMain);
+    CLuaMainMemory* pLuaMainMemory = MapFind(AllLuaMemory.LuaMainMemoryMap, luaContext);
     if (!pLuaMainMemory)
     {
-        MapSet(AllLuaMemory.LuaMainMemoryMap, pLuaMain, CLuaMainMemory());
-        pLuaMainMemory = MapFind(AllLuaMemory.LuaMainMemoryMap, pLuaMain);
+        MapSet(AllLuaMemory.LuaMainMemoryMap, luaContext, CLuaMainMemory());
+        pLuaMainMemory = MapFind(AllLuaMemory.LuaMainMemoryMap, luaContext);
     }
 
     pLuaMainMemory->Delta += iMemUsed - pLuaMainMemory->Current;
     pLuaMainMemory->Current = iMemUsed;
     pLuaMainMemory->Max = std::max(pLuaMainMemory->Max, pLuaMainMemory->Current);
 
-    pLuaMainMemory->OpenXMLFiles = pLuaMain->GetXMLFileCount();
-    pLuaMainMemory->OpenFiles = pLuaMain->GetOpenFileCount();
-    pLuaMainMemory->Refs = pLuaMain->m_CallbackTable.size();
-    pLuaMainMemory->TimerCount = pLuaMain->GetTimerCount();
-    pLuaMainMemory->ElementCount = pLuaMain->GetElementCount();
-    pLuaMainMemory->TextDisplayCount = pLuaMain->GetTextDisplayCount();
-    pLuaMainMemory->TextItemCount = pLuaMain->GetTextItemCount();
+    pLuaMainMemory->OpenXMLFiles = luaContext->GetXMLFileCount();
+    pLuaMainMemory->OpenFiles = luaContext->GetOpenFileCount();
+    pLuaMainMemory->Refs = luaContext->m_CallbackTable.size();
+    pLuaMainMemory->TimerCount = luaContext->GetTimerCount();
+    pLuaMainMemory->ElementCount = luaContext->GetElementCount();
+    pLuaMainMemory->TextDisplayCount = luaContext->GetTextDisplayCount();
+    pLuaMainMemory->TextItemCount = luaContext->GetTextItemCount();
 }
 
 ///////////////////////////////////////////////////////////////
@@ -230,16 +230,15 @@ void CPerfStatLuaMemoryImpl::GetLuaMemoryStats(CPerfStatResult* pResult, const s
 
     // Fetch mem stats from Lua
     {
-        for (std::map<CLuaMain*, int>::iterator iter = m_LuaMainMap.begin(); iter != m_LuaMainMap.end(); ++iter)
+        for (const auto& [luaContext, unused] : m_LuaMainMap)
         {
-            CLuaMain* pLuaMain = iter->first;
-            if (pLuaMain->GetVM())
+            if (lua_State* luaState = luaContext->GetLuaState())
             {
                 if (bAccurate)
-                    lua_gc(pLuaMain->GetVM(), LUA_GCCOLLECT, 0);
+                    lua_gc(luaState, LUA_GCCOLLECT, 0);
 
-                int iMemUsed = lua_getgccount(pLuaMain->GetVM());
-                UpdateLuaMemory(pLuaMain, iMemUsed);
+                int iMemUsed = lua_getgccount(luaState);
+                UpdateLuaMemory(luaContext, iMemUsed);
             }
         }
     }

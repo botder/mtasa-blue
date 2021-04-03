@@ -347,7 +347,7 @@ bool CKeyBinds::ProcessKey(const char* szKey, bool bHitState, eKeyBindType bindT
     return bFound;
 }
 
-bool CKeyBinds::AddKeyFunction(const char* szKey, bool bHitState, CLuaMain* pLuaMain, const CLuaFunctionRef& iLuaFunction, CLuaArguments& Arguments)
+bool CKeyBinds::AddKeyFunction(const char* szKey, bool bHitState, CLuaMain* luaContext, const CLuaFunctionRef& iLuaFunction, CLuaArguments& Arguments)
 {
     if (szKey == NULL || IS_REFNIL(iLuaFunction))
         return false;
@@ -358,7 +358,7 @@ bool CKeyBinds::AddKeyFunction(const char* szKey, bool bHitState, CLuaMain* pLua
         CKeyFunctionBind* pBind = new CKeyFunctionBind;
         pBind->boundKey = pKey;
         pBind->bHitState = bHitState;
-        pBind->luaMain = pLuaMain;
+        pBind->luaMain = luaContext;
         pBind->m_iLuaFunction = iLuaFunction;
         pBind->m_Arguments = Arguments;
 
@@ -369,14 +369,14 @@ bool CKeyBinds::AddKeyFunction(const char* szKey, bool bHitState, CLuaMain* pLua
     return false;
 }
 
-bool CKeyBinds::AddKeyFunction(const SBindableKey* pKey, bool bHitState, CLuaMain* pLuaMain, const CLuaFunctionRef& iLuaFunction, CLuaArguments& Arguments)
+bool CKeyBinds::AddKeyFunction(const SBindableKey* pKey, bool bHitState, CLuaMain* luaContext, const CLuaFunctionRef& iLuaFunction, CLuaArguments& Arguments)
 {
     if (pKey)
     {
         CKeyFunctionBind* pBind = new CKeyFunctionBind;
         pBind->boundKey = pKey;
         pBind->bHitState = bHitState;
-        pBind->luaMain = pLuaMain;
+        pBind->luaMain = luaContext;
         pBind->m_iLuaFunction = iLuaFunction;
         pBind->m_Arguments = Arguments;
 
@@ -387,7 +387,7 @@ bool CKeyBinds::AddKeyFunction(const SBindableKey* pKey, bool bHitState, CLuaMai
     return false;
 }
 
-bool CKeyBinds::RemoveKeyFunction(const char* szKey, CLuaMain* pLuaMain, bool bCheckHitState, bool bHitState, const CLuaFunctionRef& iLuaFunction)
+bool CKeyBinds::RemoveKeyFunction(const char* szKey, CLuaMain* luaContext, bool bCheckHitState, bool bHitState, const CLuaFunctionRef& iLuaFunction)
 {
     bool                      bFound = false;
     CKeyFunctionBind*         pBind = NULL;
@@ -400,7 +400,7 @@ bool CKeyBinds::RemoveKeyFunction(const char* szKey, CLuaMain* pLuaMain, bool bC
             pBind = static_cast<CKeyFunctionBind*>(*iter);
             if (!stricmp(szKey, pBind->boundKey->szKey))
             {
-                if (pBind->luaMain == pLuaMain)
+                if (pBind->luaMain == luaContext)
                 {
                     if (!bCheckHitState || pBind->bHitState == bHitState)
                     {
@@ -427,7 +427,7 @@ bool CKeyBinds::RemoveKeyFunction(const char* szKey, CLuaMain* pLuaMain, bool bC
     return bFound;
 }
 
-bool CKeyBinds::KeyFunctionExists(const char* szKey, CLuaMain* pLuaMain, bool bCheckHitState, bool bHitState, const CLuaFunctionRef& iLuaFunction)
+bool CKeyBinds::KeyFunctionExists(const char* szKey, CLuaMain* luaContext, bool bCheckHitState, bool bHitState, const CLuaFunctionRef& iLuaFunction)
 {
     bool                      bFound = false;
     list<CKeyBind*>           cloneList = m_List;
@@ -439,7 +439,7 @@ bool CKeyBinds::KeyFunctionExists(const char* szKey, CLuaMain* pLuaMain, bool bC
             CKeyFunctionBind* pBind = static_cast<CKeyFunctionBind*>(*iter);
             if (stricmp(szKey, pBind->boundKey->szKey) == 0)
             {
-                if (pLuaMain == NULL || pBind->luaMain == pLuaMain)
+                if (luaContext == NULL || pBind->luaMain == luaContext)
                 {
                     if (!bCheckHitState || pBind->bHitState == bHitState)
                     {
@@ -455,7 +455,7 @@ bool CKeyBinds::KeyFunctionExists(const char* szKey, CLuaMain* pLuaMain, bool bC
     return bFound;
 }
 
-void CKeyBinds::RemoveAllKeys(CLuaMain* pLuaMain)
+void CKeyBinds::RemoveAllKeys(CLuaMain* luaContext)
 {
     CKeyBind*                 pBind = NULL;
     list<CKeyBind*>           cloneList = m_List;
@@ -465,7 +465,7 @@ void CKeyBinds::RemoveAllKeys(CLuaMain* pLuaMain)
         pBind = *iter;
         if (!pBind->IsBeingDeleted())
         {
-            if (pBind->luaMain == pLuaMain)
+            if (pBind->luaMain == luaContext)
             {
                 if (m_bProcessingKey)
                     pBind->beingDeleted = true;
@@ -482,7 +482,7 @@ void CKeyBinds::RemoveAllKeys(CLuaMain* pLuaMain)
     }
 }
 
-bool CKeyBinds::AddControlFunction(const char* szControl, bool bHitState, CLuaMain* pLuaMain, const CLuaFunctionRef& iLuaFunction, CLuaArguments& Arguments)
+bool CKeyBinds::AddControlFunction(const char* szControl, bool bHitState, CLuaMain* luaContext, const CLuaFunctionRef& iLuaFunction, CLuaArguments& Arguments)
 {
     if (szControl == NULL)
         return false;
@@ -494,7 +494,7 @@ bool CKeyBinds::AddControlFunction(const char* szControl, bool bHitState, CLuaMa
         pBind->boundKey = NULL;
         pBind->boundControl = pControl;
         pBind->bHitState = bHitState;
-        pBind->luaMain = pLuaMain;
+        pBind->luaMain = luaContext;
         pBind->m_iLuaFunction = iLuaFunction;
         pBind->m_Arguments = Arguments;
 
@@ -505,7 +505,7 @@ bool CKeyBinds::AddControlFunction(const char* szControl, bool bHitState, CLuaMa
     return false;
 }
 
-bool CKeyBinds::AddControlFunction(const SBindableGTAControl* pControl, bool bHitState, CLuaMain* pLuaMain, const CLuaFunctionRef& iLuaFunction,
+bool CKeyBinds::AddControlFunction(const SBindableGTAControl* pControl, bool bHitState, CLuaMain* luaContext, const CLuaFunctionRef& iLuaFunction,
                                    CLuaArguments& Arguments)
 {
     if (pControl)
@@ -514,7 +514,7 @@ bool CKeyBinds::AddControlFunction(const SBindableGTAControl* pControl, bool bHi
         pBind->boundKey = NULL;
         pBind->boundControl = pControl;
         pBind->bHitState = bHitState;
-        pBind->luaMain = pLuaMain;
+        pBind->luaMain = luaContext;
         pBind->m_iLuaFunction = iLuaFunction;
         pBind->m_Arguments = Arguments;
 
@@ -525,7 +525,7 @@ bool CKeyBinds::AddControlFunction(const SBindableGTAControl* pControl, bool bHi
     return false;
 }
 
-bool CKeyBinds::RemoveControlFunction(const char* szControl, CLuaMain* pLuaMain, bool bCheckHitState, bool bHitState, const CLuaFunctionRef& iLuaFunction)
+bool CKeyBinds::RemoveControlFunction(const char* szControl, CLuaMain* luaContext, bool bCheckHitState, bool bHitState, const CLuaFunctionRef& iLuaFunction)
 {
     bool                      bFound = false;
     CControlFunctionBind*     pBind = NULL;
@@ -538,7 +538,7 @@ bool CKeyBinds::RemoveControlFunction(const char* szControl, CLuaMain* pLuaMain,
             pBind = static_cast<CControlFunctionBind*>(*iter);
             if (stricmp(szControl, pBind->boundControl->szControl) == 0)
             {
-                if (pBind->luaMain == pLuaMain)
+                if (pBind->luaMain == luaContext)
                 {
                     if (!bCheckHitState || pBind->bHitState == bHitState)
                     {
@@ -564,7 +564,7 @@ bool CKeyBinds::RemoveControlFunction(const char* szControl, CLuaMain* pLuaMain,
     return bFound;
 }
 
-bool CKeyBinds::ControlFunctionExists(const char* szControl, CLuaMain* pLuaMain, bool bCheckHitState, bool bHitState, const CLuaFunctionRef& iLuaFunction)
+bool CKeyBinds::ControlFunctionExists(const char* szControl, CLuaMain* luaContext, bool bCheckHitState, bool bHitState, const CLuaFunctionRef& iLuaFunction)
 {
     bool                      bFound = false;
     list<CKeyBind*>           cloneList = m_List;
@@ -576,7 +576,7 @@ bool CKeyBinds::ControlFunctionExists(const char* szControl, CLuaMain* pLuaMain,
             CControlFunctionBind* pBind = static_cast<CControlFunctionBind*>(*iter);
             if (stricmp(szControl, pBind->boundControl->szControl) == 0)
             {
-                if (pLuaMain == NULL || pBind->luaMain == pLuaMain)
+                if (luaContext == NULL || pBind->luaMain == luaContext)
                 {
                     if (!bCheckHitState || pBind->bHitState == bHitState)
                     {

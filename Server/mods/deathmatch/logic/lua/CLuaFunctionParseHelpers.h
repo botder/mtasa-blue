@@ -11,7 +11,12 @@
 #pragma once
 
 #include "CElementIDs.h"
+#include "CLuaMain.h"
 #include "CConsoleClient.h"
+#include "lua/CLuaVector2.h"
+#include "lua/CLuaVector3.h"
+#include "lua/CLuaVector4.h"
+#include "lua/CLuaMatrix.h"
 #include "ResourceManager.h"
 #include <filesystem>
 

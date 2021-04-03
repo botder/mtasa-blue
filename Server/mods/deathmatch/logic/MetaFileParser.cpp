@@ -18,9 +18,13 @@ namespace fs = std::filesystem;
 
 static fs::path ProduceRelativeFilePath(const std::string& input)
 {
+#ifdef WIN32
+    return fs::path{input}.lexically_normal();
+#else
     std::string copy{input};
     std::replace(copy.begin(), copy.end(), '\\', '/');
-    return fs::path{copy, fs::path::format::generic_format}.lexically_normal();
+    return fs::path{std::move(copy)}.lexically_normal();
+#endif
 }
 
 namespace mtasa

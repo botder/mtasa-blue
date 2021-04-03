@@ -10,7 +10,10 @@
  *****************************************************************************/
 
 #include "StdInc.h"
-#include "CResource.h"
+#include "Resource.h"
+#include "ResourceManager.h"
+
+using namespace mtasa;
 
 namespace
 {
@@ -155,8 +158,11 @@ void CPerfStatSqliteTimingImpl::UpdateSqliteTiming(CRegistry* pRegistry, const c
 
     // Get resource name
     if (m_currentluaVM)
-        if (CResource* pResource = g_pGame->GetResourceManager()->GetResourceFromLuaState(m_currentluaVM))
-            info.resourceName = pResource->GetName();
+    {
+        if (Resource* resource = g_pGame->GetResourceManager().GetResourceFromLuaState(m_currentluaVM))
+            info.resourceName = resource->GetName();
+    }
+
     m_currentluaVM = NULL;
 
     // Use registry name if resource name empty

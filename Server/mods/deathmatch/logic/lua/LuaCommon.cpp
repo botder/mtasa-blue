@@ -10,7 +10,9 @@
  *****************************************************************************/
 
 #include "StdInc.h"
-#include "CResource.h"
+#include "Resource.h"
+
+using namespace mtasa;
 
 extern CGame* g_pGame;
 
@@ -50,9 +52,9 @@ void lua_pushelement(lua_State* luaVM, CElement* pElement)
         ElementID ID = pElement->GetID();
         if (ID != INVALID_ELEMENT_ID)
         {
-            const char* szClass = NULL;
-            CLuaMain*   pLuaMain = g_pGame->GetLuaManager()->GetVirtualMachine(luaVM);
-            if (pLuaMain && pLuaMain->IsOOPEnabled())
+            const char* szClass = nullptr;
+            CLuaMain*   luaContext = g_pGame->GetLuaManager()->GetLuaContext(luaVM);
+            if (luaContext != nullptr && luaContext->IsOOPEnabled())
                 szClass = CLuaClassDefs::GetElementClass(pElement);
 
             lua_pushobject(luaVM, szClass, (void*)reinterpret_cast<unsigned int*>(ID.Value()));
@@ -65,9 +67,10 @@ void lua_pushelement(lua_State* luaVM, CElement* pElement)
 
 void lua_pushacl(lua_State* luaVM, CAccessControlList* pACL)
 {
-    const char* szClass = NULL;
-    CLuaMain*   pLuaMain = g_pGame->GetLuaManager()->GetVirtualMachine(luaVM);
-    if (pLuaMain && pLuaMain->IsOOPEnabled())
+    const char* szClass = nullptr;
+    CLuaMain*   luaContext = g_pGame->GetLuaManager()->GetLuaContext(luaVM);
+
+    if (luaContext != nullptr && luaContext->IsOOPEnabled())
         szClass = CLuaClassDefs::GetACLClass(pACL);
 
     lua_pushobject(luaVM, szClass, (void*)reinterpret_cast<unsigned int*>(pACL->GetScriptID()));
@@ -75,9 +78,10 @@ void lua_pushacl(lua_State* luaVM, CAccessControlList* pACL)
 
 void lua_pushaclgroup(lua_State* luaVM, CAccessControlListGroup* pGroup)
 {
-    const char* szClass = NULL;
-    CLuaMain*   pLuaMain = g_pGame->GetLuaManager()->GetVirtualMachine(luaVM);
-    if (pLuaMain && pLuaMain->IsOOPEnabled())
+    const char* szClass = nullptr;
+    CLuaMain*   luaContext = g_pGame->GetLuaManager()->GetLuaContext(luaVM);
+
+    if (luaContext != nullptr && luaContext->IsOOPEnabled())
         szClass = CLuaClassDefs::GetACLGroupClass(pGroup);
 
     lua_pushobject(luaVM, szClass, (void*)reinterpret_cast<unsigned int*>(pGroup->GetScriptID()));
@@ -85,29 +89,34 @@ void lua_pushaclgroup(lua_State* luaVM, CAccessControlListGroup* pGroup)
 
 void lua_pushaccount(lua_State* luaVM, CAccount* pAccount)
 {
-    const char* szClass = NULL;
-    CLuaMain*   pLuaMain = g_pGame->GetLuaManager()->GetVirtualMachine(luaVM);
-    if (pLuaMain && pLuaMain->IsOOPEnabled())
+    const char* szClass = nullptr;
+    CLuaMain*   luaContext = g_pGame->GetLuaManager()->GetLuaContext(luaVM);
+
+    if (luaContext != nullptr && luaContext->IsOOPEnabled())
         szClass = CLuaClassDefs::GetAccountClass(pAccount);
 
     lua_pushobject(luaVM, szClass, (void*)reinterpret_cast<unsigned int*>(pAccount->GetScriptID()));
 }
 
-void lua_pushresource(lua_State* luaVM, CResource* pResource)
+void lua_pushresource(lua_State* luaVM, Resource* resource)
 {
-    const char* szClass = NULL;
-    CLuaMain*   pLuaMain = g_pGame->GetLuaManager()->GetVirtualMachine(luaVM);
-    if (pLuaMain && pLuaMain->IsOOPEnabled())
-        szClass = CLuaClassDefs::GetResourceClass(pResource);
+    const char* className = nullptr;
+    CLuaMain*   luaContext = g_pGame->GetLuaManager()->GetLuaContext(luaVM);
 
-    lua_pushobject(luaVM, szClass, (void*)reinterpret_cast<unsigned int*>(pResource->GetScriptID()));
+    if (luaContext != nullptr && luaContext->IsOOPEnabled())
+    {
+        className = CLuaClassDefs::GetResourceClass(resource);
+    }
+
+    lua_pushobject(luaVM, className, reinterpret_cast<void*>(resource->GetUniqueIdentifier()));
 }
 
 void lua_pushtextdisplay(lua_State* luaVM, CTextDisplay* pDisplay)
 {
-    const char* szClass = NULL;
-    CLuaMain*   pLuaMain = g_pGame->GetLuaManager()->GetVirtualMachine(luaVM);
-    if (pLuaMain && pLuaMain->IsOOPEnabled())
+    const char* szClass = nullptr;
+    CLuaMain*   luaContext = g_pGame->GetLuaManager()->GetLuaContext(luaVM);
+
+    if (luaContext != nullptr && luaContext->IsOOPEnabled())
         szClass = CLuaClassDefs::GetTextDisplayClass(pDisplay);
 
     lua_pushobject(luaVM, szClass, (void*)reinterpret_cast<unsigned int*>(pDisplay->GetScriptID()));
@@ -115,9 +124,10 @@ void lua_pushtextdisplay(lua_State* luaVM, CTextDisplay* pDisplay)
 
 void lua_pushtextitem(lua_State* luaVM, CTextItem* pItem)
 {
-    const char* szClass = NULL;
-    CLuaMain*   pLuaMain = g_pGame->GetLuaManager()->GetVirtualMachine(luaVM);
-    if (pLuaMain && pLuaMain->IsOOPEnabled())
+    const char* szClass = nullptr;
+    CLuaMain*   luaContext = g_pGame->GetLuaManager()->GetLuaContext(luaVM);
+
+    if (luaContext != nullptr && luaContext->IsOOPEnabled())
         szClass = CLuaClassDefs::GetTextItemClass(pItem);
 
     lua_pushobject(luaVM, szClass, (void*)reinterpret_cast<unsigned int*>(pItem->GetScriptID()));
@@ -125,9 +135,10 @@ void lua_pushtextitem(lua_State* luaVM, CTextItem* pItem)
 
 void lua_pushtimer(lua_State* luaVM, CLuaTimer* pTimer)
 {
-    const char* szClass = NULL;
-    CLuaMain*   pLuaMain = g_pGame->GetLuaManager()->GetVirtualMachine(luaVM);
-    if (pLuaMain && pLuaMain->IsOOPEnabled())
+    const char* szClass = nullptr;
+    CLuaMain*   luaContext = g_pGame->GetLuaManager()->GetLuaContext(luaVM);
+
+    if (luaContext != nullptr && luaContext->IsOOPEnabled())
         szClass = CLuaClassDefs::GetTimerClass(pTimer);
 
     lua_pushobject(luaVM, szClass, (void*)reinterpret_cast<unsigned int*>(pTimer->GetScriptID()));
@@ -135,9 +146,10 @@ void lua_pushtimer(lua_State* luaVM, CLuaTimer* pTimer)
 
 void lua_pushxmlnode(lua_State* luaVM, CXMLNode* pElement)
 {
-    const char* szClass = NULL;
-    CLuaMain*   pLuaMain = g_pGame->GetLuaManager()->GetVirtualMachine(luaVM);
-    if (pLuaMain && pLuaMain->IsOOPEnabled())
+    const char* szClass = nullptr;
+    CLuaMain*   luaContext = g_pGame->GetLuaManager()->GetLuaContext(luaVM);
+
+    if (luaContext != nullptr && luaContext->IsOOPEnabled())
         szClass = CLuaClassDefs::GetXmlNodeClass(pElement);
 
     lua_pushobject(luaVM, szClass, (void*)reinterpret_cast<unsigned int*>(pElement->GetID()));
@@ -145,9 +157,10 @@ void lua_pushxmlnode(lua_State* luaVM, CXMLNode* pElement)
 
 void lua_pushban(lua_State* luaVM, CBan* pBan)
 {
-    const char* szClass = NULL;
-    CLuaMain*   pLuaMain = g_pGame->GetLuaManager()->GetVirtualMachine(luaVM);
-    if (pLuaMain && pLuaMain->IsOOPEnabled())
+    const char* szClass = nullptr;
+    CLuaMain*   luaContext = g_pGame->GetLuaManager()->GetLuaContext(luaVM);
+
+    if (luaContext != nullptr && luaContext->IsOOPEnabled())
         szClass = CLuaClassDefs::GetBanClass(pBan);
 
     lua_pushobject(luaVM, szClass, (void*)reinterpret_cast<unsigned int*>(pBan->GetScriptID()));
@@ -155,9 +168,10 @@ void lua_pushban(lua_State* luaVM, CBan* pBan)
 
 void lua_pushquery(lua_State* luaVM, CDbJobData* pJobData)
 {
-    const char* szClass = NULL;
-    CLuaMain*   pLuaMain = g_pGame->GetLuaManager()->GetVirtualMachine(luaVM);
-    if (pLuaMain && pLuaMain->IsOOPEnabled())
+    const char* szClass = nullptr;
+    CLuaMain*   luaContext = g_pGame->GetLuaManager()->GetLuaContext(luaVM);
+
+    if (luaContext != nullptr && luaContext->IsOOPEnabled())
         szClass = CLuaClassDefs::GetQueryClass(pJobData);
 
     lua_pushobject(luaVM, szClass, (void*)reinterpret_cast<unsigned int*>(pJobData->GetId()));
@@ -169,8 +183,8 @@ void lua_pushuserdata(lua_State* luaVM, void* pData)
         return lua_pushelement(luaVM, pEntity);
     if (CPlayer* pEntity = UserDataCast<CPlayer>((CPlayer*)NULL, pData, NULL))
         return lua_pushelement(luaVM, pEntity);
-    else if (CResource* pResource = UserDataCast<CResource>((CResource*)NULL, pData, NULL))
-        return lua_pushresource(luaVM, pResource);
+    else if (auto resource = UserDataCast<Resource>(static_cast<Resource*>(nullptr), pData, NULL))
+        return lua_pushresource(luaVM, resource);
     else if (CXMLNode* pNode = UserDataCast<CXMLNode>((CXMLNode*)NULL, pData, NULL))
         return lua_pushxmlnode(luaVM, pNode);
     else if (CLuaTimer* pTimer = UserDataCast<CLuaTimer>((CLuaTimer*)NULL, pData, luaVM))

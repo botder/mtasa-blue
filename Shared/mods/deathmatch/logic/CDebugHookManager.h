@@ -17,7 +17,7 @@
 struct SDebugHookCallInfo
 {
     CLuaFunctionRef       functionRef;
-    CLuaMain*             pLuaMain;
+    CLuaMain*             luaContext;
     CFastHashSet<SString> allowedNameMap;
 };
 
@@ -49,7 +49,7 @@ public:
     ~CDebugHookManager();
     bool AddDebugHook(EDebugHookType hookType, const CLuaFunctionRef& functionRef, const std::vector<SString>& allowedNameList);
     bool RemoveDebugHook(EDebugHookType hookType, const CLuaFunctionRef& functionRef);
-    void OnLuaMainDestroy(CLuaMain* pLuaMain);
+    void OnLuaMainDestroy(CLuaMain* luaContext);
 
     bool OnPreFunction(lua_CFunction f, lua_State* luaVM, bool bAllowed);
     void OnPostFunction(lua_CFunction f, lua_State* luaVM);

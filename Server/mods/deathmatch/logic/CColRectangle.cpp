@@ -11,6 +11,8 @@
 
 #include "StdInc.h"
 
+using namespace mtasa;
+
 CColRectangle::CColRectangle(CColManager* pManager, CElement* pParent, const CVector2D& vecPosition, const CVector2D& vecSize) : CColShape(pManager, pParent)
 {
     m_vecPosition.fX = vecPosition.fX;
@@ -21,7 +23,7 @@ CColRectangle::CColRectangle(CColManager* pManager, CElement* pParent, const CVe
     UpdateSpatialData();
 }
 
-CElement* CColRectangle::Clone(bool* bAddEntity, CResource* pResource)
+CElement* CColRectangle::Clone(bool* bAddEntity, Resource* resource)
 {
     CColRectangle* pColRectangle = new CColRectangle(m_pManager, GetParentEntity(), m_vecPosition, m_vecSize);
     return pColRectangle;

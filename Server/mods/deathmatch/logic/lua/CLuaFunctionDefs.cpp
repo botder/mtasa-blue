@@ -29,7 +29,6 @@ CVehicleManager*           CLuaFunctionDefs::m_pVehicleManager;
 CTeamManager*              CLuaFunctionDefs::m_pTeamManager;
 CAccountManager*           CLuaFunctionDefs::m_pAccountManager;
 CColManager*               CLuaFunctionDefs::m_pColManager;
-CResourceManager*          CLuaFunctionDefs::m_pResourceManager;
 CAccessControlListManager* CLuaFunctionDefs::m_pACLManager;
 CLuaModuleManager*         CLuaFunctionDefs::m_pLuaModuleManager;
 
@@ -50,6 +49,7 @@ void CLuaFunctionDefs::Initialize(CLuaManager* pLuaManager, CGame* pGame)
     m_pScriptDebugging = pGame->GetScriptDebugging();
     m_pVehicleManager = pGame->GetVehicleManager();
     m_pColManager = pGame->GetColManager();
-    m_pResourceManager = pGame->GetResourceManager();
     m_pACLManager = pGame->GetACLManager();
+
+    m_resourceManager = &pGame->GetResourceManager();
 }

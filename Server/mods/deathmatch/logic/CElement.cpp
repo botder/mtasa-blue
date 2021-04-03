@@ -414,10 +414,10 @@ CElement* CElement::SetParentObject(CElement* pParent, bool bUpdatePerPlayerEnti
     return pParent;
 }
 
-bool CElement::AddEvent(CLuaMain* pLuaMain, const char* szName, const CLuaFunctionRef& iLuaFunction, bool bPropagated, EEventPriorityType eventPriority,
+bool CElement::AddEvent(CLuaMain* luaContext, const char* szName, const CLuaFunctionRef& iLuaFunction, bool bPropagated, EEventPriorityType eventPriority,
                         float fPriorityMod)
 {
-    return m_pEventManager->Add(pLuaMain, szName, iLuaFunction, bPropagated, eventPriority, fPriorityMod);
+    return m_pEventManager->Add(luaContext, szName, iLuaFunction, bPropagated, eventPriority, fPriorityMod);
 }
 
 bool CElement::CallEvent(const char* szName, const CLuaArguments& Arguments, CPlayer* pCaller)
@@ -445,15 +445,15 @@ bool CElement::CallEvent(const char* szName, const CLuaArguments& Arguments, CPl
     return (!pEvents->WasEventCancelled());
 }
 
-bool CElement::DeleteEvent(CLuaMain* pLuaMain, const char* szName, const CLuaFunctionRef& iLuaFunction)
+bool CElement::DeleteEvent(CLuaMain* luaContext, const char* szName, const CLuaFunctionRef& iLuaFunction)
 {
-    return m_pEventManager->Delete(pLuaMain, szName, iLuaFunction);
+    return m_pEventManager->Delete(luaContext, szName, iLuaFunction);
 }
 
-void CElement::DeleteEvents(CLuaMain* pLuaMain, bool bRecursive)
+void CElement::DeleteEvents(CLuaMain* luaContext, bool bRecursive)
 {
     // Delete it from our events
-    m_pEventManager->Delete(pLuaMain);
+    m_pEventManager->Delete(luaContext);
 
     // Delete it from all our children's events
     if (bRecursive)
@@ -461,7 +461,7 @@ void CElement::DeleteEvents(CLuaMain* pLuaMain, bool bRecursive)
         CChildListType ::const_iterator iter = m_Children.begin();
         for (; iter != m_Children.end(); iter++)
         {
-            (*iter)->DeleteEvents(pLuaMain, true);
+            (*iter)->DeleteEvents(luaContext, true);
         }
     }
 }
@@ -786,11 +786,11 @@ CXMLNode* CElement::OutputToXML(CXMLNode* pNodeParent)
     return pNode;
 }
 
-void CElement::CleanUpForVM(CLuaMain* pLuaMain, bool bRecursive)
+void CElement::CleanUpForVM(CLuaMain* luaContext, bool bRecursive)
 {
     // Delete all our events and custom datas attached to that VM
-    DeleteEvents(pLuaMain, false);
-    // DeleteCustomData ( pLuaMain, false ); * Removed to keep custom data global
+    DeleteEvents(luaContext, false);
+    // DeleteCustomData ( luaContext, false ); * Removed to keep custom data global
 
     // If recursive, do it on our children too
     if (bRecursive)
@@ -798,7 +798,7 @@ void CElement::CleanUpForVM(CLuaMain* pLuaMain, bool bRecursive)
         CChildListType ::const_iterator iter = m_Children.begin();
         for (; iter != m_Children.end(); iter++)
         {
-            (*iter)->CleanUpForVM(pLuaMain, true);
+            (*iter)->CleanUpForVM(luaContext, true);
         }
     }
 }

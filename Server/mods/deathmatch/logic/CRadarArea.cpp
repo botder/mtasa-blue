@@ -10,7 +10,9 @@
  *****************************************************************************/
 
 #include "StdInc.h"
-#include "CResource.h"
+#include "Resource.h"
+
+using namespace mtasa;
 
 CRadarArea::CRadarArea(CRadarAreaManager* pRadarAreaManager, CElement* pParent) : CPerPlayerEntity(pParent)
 {
@@ -31,7 +33,7 @@ CRadarArea::~CRadarArea()
     Unlink();
 }
 
-CElement* CRadarArea::Clone(bool* bAddEntity, CResource* pResource)
+CElement* CRadarArea::Clone(bool* bAddEntity, Resource* resource)
 {
     CRadarArea* const pTemp = m_pRadarAreaManager->Create(GetParentEntity());
 
@@ -39,7 +41,7 @@ CElement* CRadarArea::Clone(bool* bAddEntity, CResource* pResource)
     {
         pTemp->SetSize(GetSize());
         pTemp->SetColor(GetColor());
-        if (pResource->IsClientSynced())
+        if (resource->IsClientSynced())
             pTemp->Sync(true);
         *bAddEntity = false;
     }

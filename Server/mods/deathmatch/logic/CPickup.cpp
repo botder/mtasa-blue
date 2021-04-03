@@ -11,6 +11,8 @@
 
 #include "StdInc.h"
 
+using namespace mtasa;
+
 extern CGame* g_pGame;
 
 CPickup::CPickup(CElement* pParent, CPickupManager* pPickupManager, CColManager* pColManager) : CElement(pParent)
@@ -57,7 +59,7 @@ CPickup::~CPickup()
     Unlink();
 }
 
-CElement* CPickup::Clone(bool* bAddEntity, CResource* pResource)
+CElement* CPickup::Clone(bool* bAddEntity, Resource* resource)
 {
     CPickup* pTemp = m_pPickupManager->Create(GetParentEntity());
     if (pTemp)

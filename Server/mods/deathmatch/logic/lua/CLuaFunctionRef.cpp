@@ -19,12 +19,12 @@ CIntrusiveList<CLuaFunctionRef> CLuaFunctionRef::ms_AllRefList(&CLuaFunctionRef:
 // Custom Lua stack argument->reference function
 CLuaFunctionRef luaM_toref(lua_State* luaVM, int iArgument)
 {
-    CLuaMain* pLuaMain = g_pGame->GetLuaManager()->GetVirtualMachine(luaVM);
-    assert(pLuaMain);
+    CLuaMain* luaContext = g_pGame->GetLuaManager()->GetLuaContext(luaVM);
+    assert(luaContext);
 
     const void* pFuncPtr = lua_topointer(luaVM, iArgument);
 
-    if (CRefInfo* pInfo = MapFind(pLuaMain->m_CallbackTable, pFuncPtr))
+    if (CRefInfo* pInfo = MapFind(luaContext->m_CallbackTable, pFuncPtr))
     {
         // Re-use the lua ref we already have to this function
         pInfo->ulUseCount++;
@@ -40,7 +40,7 @@ CLuaFunctionRef luaM_toref(lua_State* luaVM, int iArgument)
         CRefInfo info;
         info.ulUseCount = 1;
         info.iFunction = ref;
-        MapSet(pLuaMain->m_CallbackTable, pFuncPtr, info);
+        MapSet(luaContext->m_CallbackTable, pFuncPtr, info);
 
         return CLuaFunctionRef(luaVM, ref, pFuncPtr);
     }
@@ -51,11 +51,13 @@ void luaM_inc_use(lua_State* luaVM, int iFunction, const void* pFuncPtr)
 {
     if (!luaVM)
         return;
-    CLuaMain* pLuaMain = g_pGame->GetLuaManager()->GetVirtualMachine(luaVM);
-    if (!pLuaMain)
+
+    CLuaMain* luaContext = g_pGame->GetLuaManager()->GetLuaContext(luaVM);
+
+    if (luaContext == nullptr)
         return;
 
-    CRefInfo* pInfo = MapFind(pLuaMain->m_CallbackTable, pFuncPtr);
+    CRefInfo* pInfo = MapFind(luaContext->m_CallbackTable, pFuncPtr);
     assert(pInfo);
     assert(pInfo->iFunction == iFunction);
     pInfo->ulUseCount++;
@@ -66,11 +68,13 @@ void luaM_dec_use(lua_State* luaVM, int iFunction, const void* pFuncPtr)
 {
     if (!luaVM)
         return;
-    CLuaMain* pLuaMain = g_pGame->GetLuaManager()->GetVirtualMachine(luaVM);
-    if (!pLuaMain)
+
+    CLuaMain* luaContext = g_pGame->GetLuaManager()->GetLuaContext(luaVM);
+
+    if (luaContext == nullptr)
         return;
 
-    CRefInfo* pInfo = MapFind(pLuaMain->m_CallbackTable, pFuncPtr);
+    CRefInfo* pInfo = MapFind(luaContext->m_CallbackTable, pFuncPtr);
     assert(pInfo);
     assert(pInfo->iFunction == iFunction);
 
@@ -78,8 +82,8 @@ void luaM_dec_use(lua_State* luaVM, int iFunction, const void* pFuncPtr)
     {
         // Remove on last unuse
         lua_unref(luaVM, iFunction);
-        MapRemove(pLuaMain->m_CallbackTable, pFuncPtr);
-        MapRemove(pLuaMain->m_FunctionTagMap, iFunction);
+        MapRemove(luaContext->m_CallbackTable, pFuncPtr);
+        MapRemove(luaContext->m_FunctionTagMap, iFunction);
     }
 }
 

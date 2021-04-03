@@ -193,13 +193,17 @@ public:
 
         if (iBadFileHashesRev && (iBadFileHashesRev == 1 || iBadFileHashesRev != m_iPrevBadFileHashesRev))
         {
+            mtasa::ResourceManager& resourceManager = g_pGame->GetResourceManager();
+
             m_iPrevBadFileHashesRev = iBadFileHashesRev;
-            g_pGame->GetResourceManager()->ClearBlockedFileReason("");
+            resourceManager.ClearBlockedFileReasons();
+
             for (auto item : itemList)
             {
-                g_pGame->GetResourceManager()->AddBlockedFileReason(item.strHash, item.strReason);
+                resourceManager.AddBlockedFileReason(item.strHash, item.strReason);
             }
-            g_pGame->GetResourceManager()->SaveBlockedFileReasons();
+
+            resourceManager.SaveBlockedFileReasons();
         }
     }
 

@@ -36,7 +36,7 @@ public:
     unsigned int GetRepeats() const { return m_uiRepeats; };
     void         SetRepeats(unsigned int uiRepeats) { m_uiRepeats = uiRepeats; }
 
-    void ExecuteTimer(class CLuaMain* pLuaMain);
+    void ExecuteTimer(class CLuaMain* luaContext);
 
     CTickCount GetTimeLeft();
 

@@ -30,7 +30,7 @@ CResourceScriptItem::~CResourceScriptItem()
 
 bool CResourceScriptItem::Start()
 {
-    m_pVM = m_resource->GetVirtualMachine();
+    m_luaContext = m_resource->GetLuaContext();
 
     // Load the file
     std::vector<char> buffer;
@@ -39,7 +39,7 @@ bool CResourceScriptItem::Start()
 
     if (iSize > 0)
     {
-        m_pVM->LoadScriptFromBuffer(&buffer.at(0), iSize, m_strResourceFileName.c_str());
+        m_luaContext->LoadScriptFromBuffer(&buffer.at(0), iSize, m_strResourceFileName.c_str());
     }
 
     return true;

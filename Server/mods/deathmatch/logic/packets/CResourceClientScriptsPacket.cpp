@@ -1,45 +1,46 @@
 /*****************************************************************************
  *
- *  PROJECT:     Multi Theft Auto v1.3
+ *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
- *  FILE:        mods/deathmatch/logic/packets/CResourceClientScriptsPacket.cpp
  *  PURPOSE:     Resource client-side scripts packet class
  *
- *  Multi Theft Auto is available from http://www.multitheftauto.com/
+ *  Multi Theft Auto is available from https://multitheftauto.com/
  *
  *****************************************************************************/
 
 #include "StdInc.h"
-#include "CResource.h"
-
-CResourceClientScriptsPacket::CResourceClientScriptsPacket(CResource* pResource) : m_pResource(pResource)
-{
-}
-
-void CResourceClientScriptsPacket::AddItem(CResourceClientScriptItem* pItem)
-{
-    m_vecItems.push_back(pItem);
-}
+#include "CResourceClientScriptsPacket.h"
+#include "Resource.h"
 
 bool CResourceClientScriptsPacket::Write(NetBitStreamInterface& BitStream) const
 {
-    if (m_vecItems.size() == 0)
+    if (m_scripts.empty() || m_scripts.size() > 0xFFFF)
         return false;
 
-    BitStream.Write(m_pResource->GetNetID());
+    BitStream.Write(m_resource.GetRemoteIdentifier());
 
-    auto usItemCount = static_cast<unsigned short>(m_vecItems.size());
-    BitStream.Write(usItemCount);
+    auto scriptCount = static_cast<std::uint16_t>(m_scripts.size());
+    BitStream.Write(scriptCount);
 
-    for (std::vector<CResourceClientScriptItem*>::const_iterator iter = m_vecItems.begin(); iter != m_vecItems.end(); ++iter)
+    bool writeResourcePath = (BitStream.Version() >= 0x50);
+
+    for (const Script& script : m_scripts)
     {
-        if (BitStream.Version() >= 0x50)
-            BitStream.WriteString(ConformResourcePath((*iter)->GetFullName()));
+        if (script.relativePath.size() > 0xFFFF || script.sourceCode.size() > 0xFFFFFFFF)
+            return false;
 
-        const SString& data = (*iter)->GetSourceCode();
-        unsigned int   len = data.length();
-        BitStream.Write(len);
-        BitStream.Write(data.c_str(), len);
+        if (writeResourcePath)
+        {
+            auto filePathLength = static_cast<std::uint16_t>(script.relativePath.size());
+            BitStream.Write(filePathLength);
+
+            if (filePathLength > 0)
+                BitStream.Write(script.relativePath.data(), filePathLength);
+        }
+
+        auto sourceCodeLength = static_cast<unsigned int>(script.sourceCode.size());
+        BitStream.Write(sourceCodeLength);
+        BitStream.Write(script.sourceCode.data(), sourceCodeLength);
     }
 
     return true;

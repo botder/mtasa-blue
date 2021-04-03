@@ -10,7 +10,9 @@
  *****************************************************************************/
 
 #include "StdInc.h"
-#include "CResource.h"
+#include "Resource.h"
+
+using namespace mtasa;
 
 CBlip::CBlip(CElement* pParent, CBlipManager* pBlipManager) : CPerPlayerEntity(pParent)
 {
@@ -34,7 +36,7 @@ CBlip::~CBlip()
     Unlink();
 }
 
-CElement* CBlip::Clone(bool* bAddEntity, CResource* pResource)
+CElement* CBlip::Clone(bool* bAddEntity, Resource* resource)
 {
     CBlip* pTemp = m_pBlipManager->Create(GetParentEntity());
     if (pTemp)
@@ -44,7 +46,7 @@ CElement* CBlip::Clone(bool* bAddEntity, CResource* pResource)
         pTemp->m_sOrdering = m_sOrdering;
         pTemp->m_usVisibleDistance = m_usVisibleDistance;
         pTemp->SetColor(GetColor());
-        if (pResource->IsClientSynced())
+        if (resource->IsClientSynced())
             pTemp->Sync(true);
         *bAddEntity = false;
     }

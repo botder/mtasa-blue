@@ -12,6 +12,8 @@
 #include "StdInc.h"
 #include "../luadefs/CLuaGenericDefs.h"
 
+using namespace mtasa;
+
 extern CGame* g_pGame;
 
 CLuaManager::CLuaManager(CObjectManager* pObjectManager, CPlayerManager* pPlayerManager, CVehicleManager* pVehicleManager, CBlipManager* pBlipManager,
@@ -47,111 +49,102 @@ CLuaManager::CLuaManager(CObjectManager* pObjectManager, CPlayerManager* pPlayer
 CLuaManager::~CLuaManager()
 {
     CLuaCFunctions::RemoveAllFunctions();
-    list<CLuaMain*>::iterator iter;
-    for (iter = m_virtualMachines.begin(); iter != m_virtualMachines.end(); ++iter)
+
+    for (CLuaMain* luaContext : std::exchange(m_luaContexts, {}))
     {
-        delete (*iter);
+        delete luaContext;
     }
 
-    // Destroy the module manager
     delete m_pLuaModuleManager;
 }
 
-CLuaMain* CLuaManager::CreateVirtualMachine(CResource* pResourceOwner, bool bEnableOOP)
+CLuaMain* CLuaManager::CreateLuaContext(Resource& ownerResource, bool bEnableOOP)
 {
-    // Create it and add it to the list over VM's
-    CLuaMain* pLuaMain = new CLuaMain(this, m_pObjectManager, m_pPlayerManager, m_pVehicleManager, m_pBlipManager, m_pRadarAreaManager, m_pMapManager,
-                                      pResourceOwner, bEnableOOP);
-    m_virtualMachines.push_back(pLuaMain);
-    pLuaMain->InitVM();
+    auto luaContext = new CLuaMain(ownerResource, this, m_pObjectManager, m_pPlayerManager, m_pVehicleManager, m_pBlipManager, m_pRadarAreaManager,
+                                   m_pMapManager, bEnableOOP);
 
-    m_pLuaModuleManager->RegisterFunctions(pLuaMain->GetVirtualMachine());
+    m_luaContexts.push_back(luaContext);
 
-    return pLuaMain;
+    luaContext->InitVM();
+
+    m_pLuaModuleManager->RegisterFunctions(luaContext->GetLuaState());
+
+    return luaContext;
 }
 
-bool CLuaManager::RemoveVirtualMachine(CLuaMain* pLuaMain)
+bool CLuaManager::RemoveLuaContext(CLuaMain* luaContext)
 {
-    if (pLuaMain)
+    if (luaContext)
     {
         // Remove all events registered by it and all commands added
-        m_pEvents->RemoveAllEvents(pLuaMain);
-        m_pRegisteredCommands->CleanUpForVM(pLuaMain);
+        m_pEvents->RemoveAllEvents(luaContext);
+        m_pRegisteredCommands->CleanUpForVM(luaContext);
 
         // Delete it unless it is already
-        if (!pLuaMain->BeingDeleted())
+        if (!luaContext->BeingDeleted())
         {
-            delete pLuaMain;
+            delete luaContext;
         }
 
-        // Remove it from our list
-        m_virtualMachines.remove(pLuaMain);
+        m_luaContexts.erase(std::remove(m_luaContexts.begin(), m_luaContexts.end(), luaContext));
         return true;
     }
 
     return false;
 }
 
-void CLuaManager::OnLuaMainOpenVM(CLuaMain* pLuaMain, lua_State* luaVM)
+void CLuaManager::OnLuaStateOpen(CLuaMain* luaContext, lua_State* luaVM)
 {
-    MapSet(m_VirtualMachineMap, pLuaMain->GetVirtualMachine(), pLuaMain);
+    MapSet(m_luaStateToLuaContext, luaContext->GetLuaState(), luaContext);
 }
 
-void CLuaManager::OnLuaMainCloseVM(CLuaMain* pLuaMain, lua_State* luaVM)
+void CLuaManager::OnLuaStateClose(CLuaMain* luaContext, lua_State* luaVM)
 {
-    MapRemove(m_VirtualMachineMap, pLuaMain->GetVirtualMachine());
+    MapRemove(m_luaStateToLuaContext, luaContext->GetLuaState());
 }
 
 void CLuaManager::DoPulse()
 {
-    list<CLuaMain*>::iterator iter;
-    for (iter = m_virtualMachines.begin(); iter != m_virtualMachines.end(); ++iter)
-    {
-        (*iter)->DoPulse();
-    }
+    for (CLuaMain* luaContext : m_luaContexts)
+        luaContext->DoPulse();
+
     m_pLuaModuleManager->DoPulse();
 }
 
-CLuaMain* CLuaManager::GetVirtualMachine(lua_State* luaVM)
+CLuaMain* CLuaManager::GetLuaContext(lua_State* luaState)
 {
-    if (!luaVM)
-        return NULL;
+    if (luaState == nullptr)
+        return nullptr;
 
     // Grab the main virtual state because the one we've got passed might be a coroutine state
     // and only the main state is in our list.
-    lua_State* main = lua_getmainstate(luaVM);
-    if (main)
+    if (lua_State* mainLuaState = lua_getmainstate(luaState); mainLuaState != nullptr)
+        luaState = mainLuaState;
+
+    // Find a matching Lua context in our map
+    if (CLuaMain* luaContext = MapFindRef(m_luaStateToLuaContext, luaState); luaContext != nullptr)
+        return luaContext;
+
+    // Find a matching Lua context in our list
+    auto iter =
+        std::find_if(m_luaContexts.begin(), m_luaContexts.end(), [luaState](const CLuaMain* luaContext) { return luaContext->GetLuaState() == luaState; });
+
+    if (iter != m_luaContexts.end())
     {
-        luaVM = main;
+        dassert(0);             // Why not in map?
+        return *iter;
     }
 
-    // Find a matching VM in our map
-    CLuaMain* pLuaMain = MapFindRef(m_VirtualMachineMap, luaVM);
-    if (pLuaMain)
-        return pLuaMain;
-
-    // Find a matching VM in our list
-    list<CLuaMain*>::const_iterator iter = m_virtualMachines.begin();
-    for (; iter != m_virtualMachines.end(); ++iter)
-    {
-        if (luaVM == (*iter)->GetVirtualMachine())
-        {
-            dassert(0);            // Why not in map?
-            return *iter;
-        }
-    }
-
-    // Doesn't exist
-    return NULL;
+    return nullptr;
 }
 
 // Return resource associated with a lua state
-CResource* CLuaManager::GetVirtualMachineResource(lua_State* luaVM)
+Resource* CLuaManager::GetResourceFromLuaState(lua_State* luaVM)
 {
-    CLuaMain* pLuaMain = GetVirtualMachine(luaVM);
-    if (pLuaMain)
-        return pLuaMain->GetResource();
-    return NULL;
+    if (CLuaMain* luaContext = GetLuaContext(luaVM); luaContext != nullptr)
+        return &luaContext->GetResource();
+
+    return nullptr;
 }
 
 void CLuaManager::LoadCFunctions()

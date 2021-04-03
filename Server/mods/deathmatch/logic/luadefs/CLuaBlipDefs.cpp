@@ -10,7 +10,9 @@
  *****************************************************************************/
 
 #include "StdInc.h"
-#include "CResource.h"
+#include "Resource.h"
+
+using namespace mtasa;
 
 void CLuaBlipDefs::LoadFunctions()
 {
@@ -99,28 +101,22 @@ int CLuaBlipDefs::CreateBlip(lua_State* luaVM)
 
     if (!argStream.HasErrors())
     {
-        CLuaMain* pLuaMain = g_pGame->GetLuaManager()->GetVirtualMachine(luaVM);
-        if (pLuaMain)
+        if (Resource* resource = m_pLuaManager->GetResourceFromLuaState(luaVM); resource != nullptr)
         {
-            CResource* pResource = pLuaMain->GetResource();
-            if (pResource)
-            {
-                unsigned char  ucSize = Clamp(0, iSize, 25);
-                short          sOrdering = Clamp(-32768, iOrdering, 32767);
-                unsigned short usVisibleDistance = Clamp(0, iVisibleDistance, 65535);
+            unsigned char  ucSize = Clamp(0, iSize, 25);
+            short          sOrdering = Clamp(-32768, iOrdering, 32767);
+            unsigned short usVisibleDistance = Clamp(0, iVisibleDistance, 65535);
 
-                // Create the blip
-                CBlip* pBlip = CStaticFunctionDefinitions::CreateBlip(pResource, vecPosition, ucIcon, ucSize, color, sOrdering, usVisibleDistance, pVisibleTo);
-                if (pBlip)
-                {
-                    CElementGroup* pGroup = pResource->GetElementGroup();
-                    if (pGroup)
-                    {
-                        pGroup->Add(pBlip);
-                    }
-                    lua_pushelement(luaVM, pBlip);
-                    return 1;
-                }
+            // Create the blip
+            CBlip* blip = CStaticFunctionDefinitions::CreateBlip(resource, vecPosition, ucIcon, ucSize, color, sOrdering, usVisibleDistance, pVisibleTo);
+
+            if (blip)
+            {
+                if (CElementGroup* elementGroup = resource->GetElementGroup(); elementGroup != nullptr)
+                    elementGroup->Add(blip);
+
+                lua_pushelement(luaVM, blip);
+                return 1;
             }
         }
     }
@@ -163,24 +159,21 @@ int CLuaBlipDefs::CreateBlipAttachedTo(lua_State* luaVM)
 
     if (!argStream.HasErrors())
     {
-        CResource* resource = m_pLuaManager->GetVirtualMachineResource(luaVM);
-        if (resource)
+        if (Resource* resource = m_pLuaManager->GetResourceFromLuaState(luaVM); resource != nullptr)
         {
             unsigned char  ucSize = Clamp(0, iSize, 25);
             short          sOrdering = Clamp(-32768, iOrdering, 32767);
             unsigned short usVisibleDistance = Clamp(0, iVisibleDistance, 65535);
 
             // Create the blip
-            CBlip* pBlip =
-                CStaticFunctionDefinitions::CreateBlipAttachedTo(resource, pElement, ucIcon, ucSize, color, sOrdering, usVisibleDistance, pVisibleTo);
-            if (pBlip)
+            CBlip* blip = CStaticFunctionDefinitions::CreateBlipAttachedTo(resource, pElement, ucIcon, ucSize, color, sOrdering, usVisibleDistance, pVisibleTo);
+
+            if (blip)
             {
-                CElementGroup* group = resource->GetElementGroup();
-                if (group)
-                {
-                    group->Add(pBlip);
-                }
-                lua_pushelement(luaVM, pBlip);
+                if (CElementGroup* elementGroup = resource->GetElementGroup(); elementGroup != nullptr)
+                    elementGroup->Add(blip);
+
+                lua_pushelement(luaVM, blip);
                 return 1;
             }
         }

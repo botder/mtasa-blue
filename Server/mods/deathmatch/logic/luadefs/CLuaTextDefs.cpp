@@ -90,12 +90,10 @@ void CLuaTextDefs::AddClass(lua_State* luaVM)
 
 int CLuaTextDefs::textCreateDisplay(lua_State* luaVM)
 {
-    // Get our current VM
-    CLuaMain* luaMain = m_pLuaManager->GetVirtualMachine(luaVM);
-    if (luaMain)
+    if (CLuaMain* luaContext = m_pLuaManager->GetLuaContext(luaVM); luaContext != nullptr)
     {
         // Create a text display and return it
-        CTextDisplay* textDisplay = luaMain->CreateDisplay();
+        CTextDisplay* textDisplay = luaContext->CreateDisplay();
         lua_pushtextdisplay(luaVM, textDisplay);
         return 1;
     }
@@ -113,11 +111,9 @@ int CLuaTextDefs::textDestroyDisplay(lua_State* luaVM)
 
     if (!argStream.HasErrors())
     {
-        CLuaMain* luaMain = m_pLuaManager->GetVirtualMachine(luaVM);
-        if (luaMain)
+        if (CLuaMain* luaContext = m_pLuaManager->GetLuaContext(luaVM); luaContext != nullptr)
         {
-            luaMain->DestroyDisplay(pTextDisplay);
-
+            luaContext->DestroyDisplay(pTextDisplay);
             lua_pushboolean(luaVM, true);
             return 1;
         }
@@ -181,11 +177,9 @@ int CLuaTextDefs::textCreateTextItem(lua_State* luaVM)
         else if (strVertAlign == "bottom")
             ucFormat |= 0x00000008;            // DT_BOTTOM
 
-        // Grab our virtual machine
-        CLuaMain* luaMain = m_pLuaManager->GetVirtualMachine(luaVM);
-        if (luaMain)
+        if (CLuaMain* luaContext = m_pLuaManager->GetLuaContext(luaVM); luaContext != nullptr)
         {
-            CTextItem* pTextItem = luaMain->CreateTextItem(strText, fX, fY, (eTextPriority)iPriority, color, fScale, ucFormat, ucShadowAlpha);
+            CTextItem* pTextItem = luaContext->CreateTextItem(strText, fX, fY, (eTextPriority)iPriority, color, fScale, ucFormat, ucShadowAlpha);
             lua_pushtextitem(luaVM, pTextItem);
             return 1;
         }
@@ -206,11 +200,9 @@ int CLuaTextDefs::textDestroyTextItem(lua_State* luaVM)
 
     if (!argStream.HasErrors())
     {
-        CLuaMain* luaMain = m_pLuaManager->GetVirtualMachine(luaVM);
-        if (luaMain)
+        if (CLuaMain* luaContext = m_pLuaManager->GetLuaContext(luaVM); luaContext != nullptr)
         {
-            luaMain->DestroyTextItem(pTextItem);
-
+            luaContext->DestroyTextItem(pTextItem);
             lua_pushboolean(luaVM, true);
             return 1;
         }

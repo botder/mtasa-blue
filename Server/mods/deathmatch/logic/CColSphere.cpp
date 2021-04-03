@@ -11,7 +11,7 @@
 
 #include "StdInc.h"
 
-using namespace std;
+using namespace mtasa;
 
 CColSphere::CColSphere(CColManager* pManager, CElement* pParent, const CVector& vecPosition, float fRadius, bool bIsPartnered)
     : CColShape(pManager, pParent, bIsPartnered)
@@ -21,7 +21,7 @@ CColSphere::CColSphere(CColManager* pManager, CElement* pParent, const CVector& 
     UpdateSpatialData();
 }
 
-CElement* CColSphere::Clone(bool* bAddEntity, CResource* pResource)
+CElement* CColSphere::Clone(bool* bAddEntity, Resource* resource)
 {
     CColSphere* pColSphere = new CColSphere(m_pManager, GetParentEntity(), m_vecPosition, m_fRadius, IsPartnered());
     return pColSphere;

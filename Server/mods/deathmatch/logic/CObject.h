@@ -27,7 +27,7 @@ public:
     explicit CObject(CElement* pParent, class CObjectManager* pObjectManager, bool bIsLowLod);
     explicit CObject(const CObject& Copy);
     ~CObject();
-    CElement* Clone(bool* bAddEntity, CResource* pResource) override;
+    CElement* Clone(bool* bAddEntity, mtasa::Resource* resource) override;
 
     bool IsEntity() { return true; }
 

@@ -10,7 +10,10 @@
  *****************************************************************************/
 
 #include "StdInc.h"
-#include "CResource.h"
+#include "Resource.h"
+#include "ResourceFilePath.h"
+
+using namespace mtasa;
 
 void CLuaDatabaseDefs::LoadFunctions()
 {
@@ -238,8 +241,7 @@ int CLuaDatabaseDefs::DbConnect(lua_State* luaVM)
 
     if (!argStream.HasErrors())
     {
-        CResource* pThisResource = m_pLuaManager->GetVirtualMachineResource(luaVM);
-        if (pThisResource)
+        if (Resource* resource = m_pLuaManager->GetResourceFromLuaState(luaVM); resource != nullptr)
         {
             // If type is sqlite, and has a host, try to resolve path
             if (strType == "sqlite" && !strHost.empty())
@@ -259,14 +261,12 @@ int CLuaDatabaseDefs::DbConnect(lua_State* luaVM)
                 }
                 else
                 {
-                    std::string strAbsPath;
+                    std::optional<ResourceFilePath> file = ParseResourceFilePath(strHost, resource);
 
-                    // Parse path
-                    CResource* pPathResource = pThisResource;
-                    if (CResourceManager::ParseResourcePathInput(strHost, pPathResource, &strAbsPath))
+                    if (file.has_value())
                     {
-                        strHost = strAbsPath;
-                        CheckCanModifyOtherResource(argStream, pThisResource, pPathResource);
+                        CheckCanModifyOtherResource(argStream, resource, file->resource);
+                        strHost = file->absolutePath.generic_string();
                     }
                     else
                     {
@@ -277,8 +277,9 @@ int CLuaDatabaseDefs::DbConnect(lua_State* luaVM)
 
             if (!argStream.HasErrors())
             {
-                if (strType == "mysql")
-                    pThisResource->SetUsingDbConnectMysql(true);
+                // TODO:
+                // if (strType == "mysql")
+                //     resource->SetUsingDbConnectMysql(true);
 
                 // Add logging options
                 bool    bLoggingEnabled;
@@ -302,11 +303,9 @@ int CLuaDatabaseDefs::DbConnect(lua_State* luaVM)
                     // Use an element to wrap the connection for auto disconnected when the resource stops
                     // Don't set a parent because the element should not be accessible from other resources
                     CDatabaseConnectionElement* pElement = new CDatabaseConnectionElement(NULL, connection);
-                    CElementGroup*              pGroup = pThisResource->GetElementGroup();
-                    if (pGroup)
-                    {
-                        pGroup->Add(pElement);
-                    }
+
+                    if (CElementGroup* elementGroup = resource->GetElementGroup(); elementGroup != nullptr)
+                        elementGroup->Add(pElement);
 
                     lua_pushelement(luaVM, pElement);
                     return 1;
@@ -361,13 +360,12 @@ int CLuaDatabaseDefs::DbQuery(lua_State* luaVM)
         // Make callback function if required
         if (VERIFY_FUNCTION(iLuaFunction))
         {
-            CLuaMain* pLuaMain = m_pLuaManager->GetVirtualMachine(luaVM);
-            if (pLuaMain)
+            if (CLuaMain* luaContext = m_pLuaManager->GetLuaContext(luaVM); luaContext != nullptr)
             {
                 CLuaArguments Arguments;
                 Arguments.PushDbQuery(pJobData);
                 Arguments.PushArguments(callbackArgs);
-                pJobData->SetCallback(DbQueryCallback, g_pGame->GetLuaCallbackManager()->CreateCallback(pLuaMain, iLuaFunction, Arguments));
+                pJobData->SetCallback(DbQueryCallback, g_pGame->GetLuaCallbackManager()->CreateCallback(luaContext, iLuaFunction, Arguments));
             }
         }
         // Add debug info incase query result does not get collected
@@ -421,13 +419,12 @@ int CLuaDatabaseDefs::OOP_DbQuery(lua_State* luaVM)
         // Make callback function if required
         if (VERIFY_FUNCTION(iLuaFunction))
         {
-            CLuaMain* pLuaMain = m_pLuaManager->GetVirtualMachine(luaVM);
-            if (pLuaMain)
+            if (CLuaMain* luaContext = m_pLuaManager->GetLuaContext(luaVM); luaContext != nullptr)
             {
                 CLuaArguments Arguments;
                 Arguments.PushDbQuery(pJobData);
                 Arguments.PushArguments(callbackArgs);
-                pJobData->SetCallback(CLuaDatabaseDefs::DbQueryCallback, g_pGame->GetLuaCallbackManager()->CreateCallback(pLuaMain, iLuaFunction, Arguments));
+                pJobData->SetCallback(CLuaDatabaseDefs::DbQueryCallback, g_pGame->GetLuaCallbackManager()->CreateCallback(luaContext, iLuaFunction, Arguments));
             }
         }
         // Add debug info incase query result does not get collected

@@ -10,7 +10,9 @@
  *****************************************************************************/
 
 #include "StdInc.h"
-#include "CResource.h"
+#include "Resource.h"
+
+using namespace mtasa;
 
 void CLuaWaterDefs::LoadFunctions()
 {
@@ -54,13 +56,6 @@ void CLuaWaterDefs::AddClass(lua_State* luaVM)
 
 int CLuaWaterDefs::CreateWater(lua_State* luaVM)
 {
-    CLuaMain* pLuaMain = g_pGame->GetLuaManager()->GetVirtualMachine(luaVM);
-    if (!pLuaMain)
-    {
-        lua_pushboolean(luaVM, false);
-        return 1;
-    }
-
     CVector          v1, v2, v3, v4;
     CVector*         pv4 = NULL;
     bool             bShallow;
@@ -79,16 +74,18 @@ int CLuaWaterDefs::CreateWater(lua_State* luaVM)
 
     if (!argStream.HasErrors())
     {
-        CWater* pWater = CStaticFunctionDefinitions::CreateWater(pLuaMain->GetResource(), &v1, &v2, &v3, pv4, bShallow);
-        if (pWater)
+        if (Resource* resource = m_pLuaManager->GetResourceFromLuaState(luaVM); resource != nullptr)
         {
-            CElementGroup* pGroup = pLuaMain->GetResource()->GetElementGroup();
-            if (pGroup)
+            CWater* water = CStaticFunctionDefinitions::CreateWater(resource, &v1, &v2, &v3, pv4, bShallow);
+
+            if (water != nullptr)
             {
-                pGroup->Add(pWater);
+                if (CElementGroup* elementGroup = resource->GetElementGroup(); elementGroup != nullptr)
+                    elementGroup->Add(water);
+
+                lua_pushelement(luaVM, water);
+                return 1;
             }
-            lua_pushelement(luaVM, pWater);
-            return 1;
         }
     }
     else
@@ -100,14 +97,6 @@ int CLuaWaterDefs::CreateWater(lua_State* luaVM)
 
 int CLuaWaterDefs::SetWaterLevel(lua_State* luaVM)
 {
-    CLuaMain*  pLuaMain = m_pLuaManager->GetVirtualMachine(luaVM);
-    CResource* pResource = pLuaMain ? pLuaMain->GetResource() : NULL;
-    if (!pResource)
-    {
-        lua_pushboolean(luaVM, false);
-        return 1;
-    }
-
     CScriptArgReader argStream(luaVM);
     if (argStream.NextIsUserData())
     {

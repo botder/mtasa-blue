@@ -46,7 +46,7 @@ public:
     void ReadString(const std::string& strString);
     void ReadElement(CElement* pElement);
     void ReadElementID(ElementID ID);
-    void ReadScriptID(uint uiScriptID);
+    void ReadScriptID(std::intptr_t id);
     void ReadTable(class CLuaArguments* table);
 
     int GetType() const { return m_iType; };

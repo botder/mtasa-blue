@@ -11,6 +11,8 @@
 
 #include "StdInc.h"
 
+using namespace mtasa;
+
 CColPolygon::CColPolygon(CColManager* pManager, CElement* pParent, const CVector& vecPosition) : CColShape(pManager, pParent)
 {
     m_vecPosition = vecPosition;
@@ -20,7 +22,7 @@ CColPolygon::CColPolygon(CColManager* pManager, CElement* pParent, const CVector
     m_fRadius = 0.0f;
 }
 
-CElement* CColPolygon::Clone(bool* bAddEntity, CResource* pResource)
+CElement* CColPolygon::Clone(bool* bAddEntity, Resource* resource)
 {
     CColPolygon* pColPolygon = new CColPolygon(m_pManager, GetParentEntity(), m_vecPosition);
     pColPolygon->m_Points = m_Points;

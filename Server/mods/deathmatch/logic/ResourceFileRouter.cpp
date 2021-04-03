@@ -291,11 +291,11 @@ namespace mtasa
                             }
                             case 'R':            // resource
                             {
-                                CResource* pResource = g_pGame->GetResourceManager()->GetResource(szArg + 3);
+                                Resource* resource = g_pGame->GetResourceManager().GetResourceFromName(szArg + 3);
 
-                                if (pResource)
+                                if (resource != nullptr)
                                 {
-                                    Arguments.PushResource(pResource);
+                                    Arguments.PushResource(resource);
                                 }
                                 else
                                 {
@@ -340,77 +340,75 @@ namespace mtasa
                 Headers.PushString(pair.second.c_str());
             }
 
-            // TODO: Remove later
-            CLuaMain* m_pVM = m_resource.m_pVM;
+            lua_State* luaState = m_resource.m_luaContext->GetLuaState();
 
-            LUA_CHECKSTACK(m_pVM->GetVM(), 1);            // Ensure some room
+            LUA_CHECKSTACK(luaState, 1);            // Ensure some room
 
             // cache old data
-            lua_getglobal(m_pVM->GetVM(), "form");
-            CLuaArgument OldForm(m_pVM->GetVM(), -1);
-            lua_pop(m_pVM->GetVM(), 1);
+            lua_getglobal(luaState, "form");
+            CLuaArgument OldForm(luaState, -1);
+            lua_pop(luaState, 1);
 
-            lua_getglobal(m_pVM->GetVM(), "cookies");
-            CLuaArgument OldCookies(m_pVM->GetVM(), -1);
-            lua_pop(m_pVM->GetVM(), 1);
+            lua_getglobal(luaState, "cookies");
+            CLuaArgument OldCookies(luaState, -1);
+            lua_pop(luaState, 1);
 
-            lua_getglobal(m_pVM->GetVM(), "requestHeaders");
-            CLuaArgument OldHeaders(m_pVM->GetVM(), -1);
-            lua_pop(m_pVM->GetVM(), 1);
+            lua_getglobal(luaState, "requestHeaders");
+            CLuaArgument OldHeaders(luaState, -1);
+            lua_pop(luaState, 1);
 
-            lua_getglobal(m_pVM->GetVM(), "hostname");
-            CLuaArgument OldHostname(m_pVM->GetVM(), -1);
-            lua_pop(m_pVM->GetVM(), 1);
+            lua_getglobal(luaState, "hostname");
+            CLuaArgument OldHostname(luaState, -1);
+            lua_pop(luaState, 1);
 
-            lua_getglobal(m_pVM->GetVM(), "url");
-            CLuaArgument OldURL(m_pVM->GetVM(), -1);
-            lua_pop(m_pVM->GetVM(), 1);
+            lua_getglobal(luaState, "url");
+            CLuaArgument OldURL(luaState, -1);
+            lua_pop(luaState, 1);
 
-            lua_getglobal(m_pVM->GetVM(), "user");
-            CLuaArgument OldUser(m_pVM->GetVM(), -1);
-            lua_pop(m_pVM->GetVM(), 1);
+            lua_getglobal(luaState, "user");
+            CLuaArgument OldUser(luaState, -1);
+            lua_pop(luaState, 1);
 
             // push new data
-            FormData.PushAsTable(m_pVM->GetVM());
-            lua_setglobal(m_pVM->GetVM(), "form");
+            FormData.PushAsTable(luaState);
+            lua_setglobal(luaState, "form");
 
-            Cookies.PushAsTable(m_pVM->GetVM());
-            lua_setglobal(m_pVM->GetVM(), "cookies");
+            Cookies.PushAsTable(luaState);
+            lua_setglobal(luaState, "cookies");
 
-            Headers.PushAsTable(m_pVM->GetVM());
-            lua_setglobal(m_pVM->GetVM(), "requestHeaders");
+            Headers.PushAsTable(luaState);
+            lua_setglobal(luaState, "requestHeaders");
 
-            lua_pushstring(m_pVM->GetVM(), ipoHttpRequest->GetAddress().c_str());
-            lua_setglobal(m_pVM->GetVM(), "hostname");
+            lua_pushstring(luaState, ipoHttpRequest->GetAddress().c_str());
+            lua_setglobal(luaState, "hostname");
 
-            lua_pushstring(m_pVM->GetVM(), ipoHttpRequest->sOriginalUri.c_str());
-            lua_setglobal(m_pVM->GetVM(), "url");
+            lua_pushstring(luaState, ipoHttpRequest->sOriginalUri.c_str());
+            lua_setglobal(luaState, "url");
 
-            lua_pushaccount(m_pVM->GetVM(), account);
-            lua_setglobal(m_pVM->GetVM(), "user");
+            lua_pushaccount(luaState, account);
+            lua_setglobal(luaState, "user");
 
             CLuaArguments Returns;
-            Arguments.CallGlobal(m_pVM, strFuncName.c_str(), &Returns);
-            // g_pGame->Unlock(); // release the mutex
+            Arguments.CallGlobal(m_resource.m_luaContext, strFuncName.c_str(), &Returns);
 
             // restore old data
-            OldForm.Push(m_pVM->GetVM());
-            lua_setglobal(m_pVM->GetVM(), "form");
+            OldForm.Push(luaState);
+            lua_setglobal(luaState, "form");
 
-            OldCookies.Push(m_pVM->GetVM());
-            lua_setglobal(m_pVM->GetVM(), "cookies");
+            OldCookies.Push(luaState);
+            lua_setglobal(luaState, "cookies");
 
-            OldHeaders.Push(m_pVM->GetVM());
-            lua_setglobal(m_pVM->GetVM(), "requestHeaders");
+            OldHeaders.Push(luaState);
+            lua_setglobal(luaState, "requestHeaders");
 
-            OldHostname.Push(m_pVM->GetVM());
-            lua_setglobal(m_pVM->GetVM(), "hostname");
+            OldHostname.Push(luaState);
+            lua_setglobal(luaState, "hostname");
 
-            OldURL.Push(m_pVM->GetVM());
-            lua_setglobal(m_pVM->GetVM(), "url");
+            OldURL.Push(luaState);
+            lua_setglobal(luaState, "url");
 
-            OldUser.Push(m_pVM->GetVM());
-            lua_setglobal(m_pVM->GetVM(), "user");
+            OldUser.Push(luaState);
+            lua_setglobal(luaState, "user");
 
             // Set debug info in case error occurs in WriteToJSONString
             g_pGame->GetScriptDebugging()->SaveLuaDebugInfo(

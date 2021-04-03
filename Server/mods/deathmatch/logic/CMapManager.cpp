@@ -10,16 +10,17 @@
  *****************************************************************************/
 
 #include "StdInc.h"
-#include "CResource.h"
+#include "Resource.h"
+
+using namespace mtasa;
 
 extern CGame* g_pGame;
 
 CMapManager::CMapManager(CBlipManager* pBlipManager, CObjectManager* pObjectManager, CPickupManager* pPickupManager, CPlayerManager* pPlayerManager,
                          CRadarAreaManager* pRadarAreaManager, CMarkerManager* pMarkerManager, CVehicleManager* pVehicleManager, CTeamManager* pTeamManager,
                          CPedManager* pPedManager, CColManager* pColManager, CWaterManager* pWaterManager, CClock* pClock,
-                         CGroups* pGroups, CEvents* pEvents, class CScriptDebugging* pScriptDebugging, CElementDeleter* pElementDeleter)
+                         CGroups* pGroups, CEvents* pEvents, CScriptDebugging* pScriptDebugging, CElementDeleter* pElementDeleter)
 {
-    // Init
     m_pBlipManager = pBlipManager;
     m_pObjectManager = pObjectManager;
     m_pPickupManager = pPickupManager;
@@ -40,9 +41,6 @@ CMapManager::CMapManager(CBlipManager* pBlipManager, CObjectManager* pObjectMana
     m_pRootElement = new CDummy(nullptr, nullptr);
     m_pRootElement->SetTypeName("root");
 
-    m_llLastRespawnTime = 0;
-
-    // Create the weather manager
     m_pBlendedWeather = new CBlendedWeather(m_pServerClock);
 }
 
@@ -60,16 +58,16 @@ void CMapManager::DoPulse()
     DoRespawning();
 }
 
-CElement* CMapManager::LoadMapData(CResource& Loader, CElement& Parent, CXMLNode& Node)
+CElement* CMapManager::LoadMapData(Resource& resource, CElement& Parent, CXMLNode& Node)
 {
     // Load the elements
-    vector<CElement*> ElementsAdded;
-    CElement*         pLoadedRoot = LoadNode(Loader, Node, &Parent, &ElementsAdded, false);
+    std::vector<CElement*> ElementsAdded;
+    CElement*         pLoadedRoot = LoadNode(resource, Node, &Parent, &ElementsAdded, false);
     if (pLoadedRoot)
     {
         // Add all the elements that are entities to a sync packet
-        CEntityAddPacket                  AddPacket;
-        vector<CElement*>::const_iterator iter = ElementsAdded.begin();
+        CEntityAddPacket                       AddPacket;
+        std::vector<CElement*>::const_iterator iter = ElementsAdded.begin();
         for (; iter != ElementsAdded.end(); iter++)
         {
             // Is it a per-player entity? Sync it. Otherwize add it to the packet.
@@ -89,8 +87,8 @@ CElement* CMapManager::LoadMapData(CResource& Loader, CElement& Parent, CXMLNode
     }
 
     // If unsuccessfull, destroy the new elements. Remember removing it from our element group.
-    CElementGroup*                    pElementGroup = Loader.GetElementGroup();
-    vector<CElement*>::const_iterator iter = ElementsAdded.begin();
+    CElementGroup*                         pElementGroup = resource.GetElementGroup();
+    std::vector<CElement*>::const_iterator iter = ElementsAdded.begin();
     for (; iter != ElementsAdded.end(); iter++)
     {
         pElementGroup->Remove(*iter);
@@ -153,7 +151,7 @@ void CMapManager::BroadcastMapInformation()
     }
 
     // Add the colshapes to the packet
-    vector<CColShape*>::const_iterator iterColShapes = m_pColManager->IterBegin();
+    std::vector<CColShape*>::const_iterator iterColShapes = m_pColManager->IterBegin();
     for (; iterColShapes != m_pColManager->IterEnd(); iterColShapes++)
     {
         CColShape* pColShape = *iterColShapes;
@@ -241,7 +239,7 @@ void CMapManager::SendMapInformation(CPlayer& Player)
     marker.Set("Peds");
 
     // Add the colshapes to the packet
-    vector<CColShape*>::const_iterator iterColShapes = m_pColManager->IterBegin();
+    std::vector<CColShape*>::const_iterator iterColShapes = m_pColManager->IterBegin();
     for (; iterColShapes != m_pColManager->IterEnd(); iterColShapes++)
     {
         CColShape* pColShape = *iterColShapes;
@@ -810,16 +808,16 @@ void CMapManager::DoVehicleRespawning()
     m_pPlayerManager->BroadcastOnlyJoined(VehicleSpawnPacket);
 }
 
-CElement* CMapManager::LoadNode(CResource& Loader, CXMLNode& Node, CElement* pParent, vector<CElement*>* pAdded, bool bIsDuringStart)
+CElement* CMapManager::LoadNode(Resource& resource, CXMLNode& Node, CElement* pParent, std::vector<CElement*>* pAdded, bool bIsDuringStart)
 {
     // Load the given node and its children
     CElement* pLoadedRoot;
-    HandleNode(Loader, Node, pParent, pAdded, bIsDuringStart, &pLoadedRoot);
+    HandleNode(resource, Node, pParent, pAdded, bIsDuringStart, &pLoadedRoot);
     LinkupElements();
     return pLoadedRoot;
 }
 
-bool CMapManager::LoadSubNodes(CResource& Loader, CXMLNode& Node, CElement* pParent, vector<CElement*>* pAdded, bool bIsDuringStart)
+bool CMapManager::LoadSubNodes(Resource& resource, CXMLNode& Node, CElement* pParent, std::vector<CElement*>* pAdded, bool bIsDuringStart)
 {
     // Iterate the nodes
     CXMLNode*    pNode = NULL;
@@ -831,7 +829,7 @@ bool CMapManager::LoadSubNodes(CResource& Loader, CXMLNode& Node, CElement* pPar
         if (pNode)
         {
             // Handle it
-            if (!HandleNode(Loader, *pNode, pParent, pAdded, bIsDuringStart, NULL))
+            if (!HandleNode(resource, *pNode, pParent, pAdded, bIsDuringStart, NULL))
             {
                 return false;
             }
@@ -842,7 +840,8 @@ bool CMapManager::LoadSubNodes(CResource& Loader, CXMLNode& Node, CElement* pPar
     return true;
 }
 
-bool CMapManager::HandleNode(CResource& Loader, CXMLNode& Node, CElement* pParent, vector<CElement*>* pAdded, bool bIsDuringStart, CElement** pCreated)
+bool CMapManager::HandleNode(Resource& resource, CXMLNode& Node, CElement* pParent, std::vector<CElement*>* pAdded, bool bIsDuringStart,
+                             CElement** pCreated)
 {
     // Grab the name
     std::string strBuffer = Node.GetTagName();
@@ -933,12 +932,12 @@ bool CMapManager::HandleNode(CResource& Loader, CXMLNode& Node, CElement* pParen
         }
 
         // Add this element to the resource's element group so it's deleted with it
-        CElementGroup* pElementGroup = Loader.GetElementGroup();
+        CElementGroup* pElementGroup = resource.GetElementGroup();
         if (pElementGroup)
             pElementGroup->Add(pNode);
 
         // Load the elements below it
-        return LoadSubNodes(Loader, Node, pNode, pAdded, bIsDuringStart);
+        return LoadSubNodes(resource, Node, pNode, pAdded, bIsDuringStart);
     }
     return false;
 }

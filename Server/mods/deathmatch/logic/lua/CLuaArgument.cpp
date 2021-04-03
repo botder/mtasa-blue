@@ -10,15 +10,18 @@
  *****************************************************************************/
 
 #include "StdInc.h"
-#include "CResource.h"
+#include "Resource.h"
 
-extern CGame* g_pGame;
+#define MAX_RESOURCE_NAME_LENGTH 255
 
 #ifndef VERIFY_ELEMENT
 #define VERIFY_ELEMENT(element) (g_pGame->GetMapManager()->GetRootElement ()->IsMyChild(element,true)&&!element->IsBeingDeleted())
 #endif
 
 using namespace std;
+using namespace mtasa;
+
+extern CGame* g_pGame;
 
 CLuaArgument::CLuaArgument()
 {
@@ -347,12 +350,12 @@ void CLuaArgument::ReadElementID(ElementID ID)
     m_pUserData = (void*)reinterpret_cast<unsigned int*>(ID.Value());
 }
 
-void CLuaArgument::ReadScriptID(uint uiScriptID)
+void CLuaArgument::ReadScriptID(std::intptr_t id)
 {
     m_strString = "";
     DeleteTableData();
     m_iType = LUA_TUSERDATA;
-    m_pUserData = reinterpret_cast<void*>(uiScriptID);
+    m_pUserData = reinterpret_cast<void*>(id);
 }
 
 CElement* CLuaArgument::GetElement() const
@@ -803,8 +806,10 @@ json_object* CLuaArgument::WriteToJSONObject(bool bSerialize, CFastHashMap<CLuaA
         case LUA_TLIGHTUSERDATA:
         case LUA_TUSERDATA:
         {
-            CElement*  pElement = GetElement();
-            CResource* pResource = g_pGame->GetResourceManager()->GetResourceFromScriptID(reinterpret_cast<unsigned long>(GetUserData()));
+            CElement* pElement = GetElement();
+
+            auto      resourceIdentifier = reinterpret_cast<SArrayId>(GetUserData());
+            Resource* resource = g_pGame->GetResourceManager().GetResourceFromUniqueIdentifier(resourceIdentifier);
 
             // Elements are dynamic, so storing them is potentially unsafe
             if (pElement && bSerialize)
@@ -813,10 +818,10 @@ json_object* CLuaArgument::WriteToJSONObject(bool bSerialize, CFastHashMap<CLuaA
                 snprintf(szElementID, 9, "^E^%d", (int)pElement->GetID().Value());
                 return json_object_new_string(szElementID);
             }
-            else if (pResource)
+            else if (resource != nullptr)
             {
                 char szElementID[MAX_RESOURCE_NAME_LENGTH + 4] = {0};
-                snprintf(szElementID, MAX_RESOURCE_NAME_LENGTH + 3, "^R^%s", pResource->GetName().c_str());
+                snprintf(szElementID, MAX_RESOURCE_NAME_LENGTH + 3, "^R^%s", resource->GetName().c_str());
                 return json_object_new_string(szElementID);
             }
             else
@@ -900,16 +905,19 @@ char* CLuaArgument::WriteToString(char* szBuffer, int length)
         case LUA_TLIGHTUSERDATA:
         case LUA_TUSERDATA:
         {
-            CElement*  pElement = GetElement();
-            CResource* pResource = g_pGame->GetResourceManager()->GetResourceFromScriptID(reinterpret_cast<unsigned long>(GetUserData()));
+            CElement* pElement = GetElement();
+
+            auto      resourceIdentifier = reinterpret_cast<SArrayId>(GetUserData());
+            Resource* resource = g_pGame->GetResourceManager().GetResourceFromUniqueIdentifier(resourceIdentifier);
+
             if (pElement)
             {
                 snprintf(szBuffer, length, "#E#%d", (int)pElement->GetID().Value());
                 return szBuffer;
             }
-            else if (pResource)
+            else if (resource != nullptr)
             {
-                snprintf(szBuffer, length, "#R#%s", pResource->GetName().c_str());
+                snprintf(szBuffer, length, "#R#%s", resource->GetName().c_str());
                 return szBuffer;
             }
             else
@@ -1026,10 +1034,14 @@ bool CLuaArgument::ReadFromJSONObject(json_object* object, std::vector<CLuaArgum
                         }
                         case 'R':            // resource
                         {
-                            CResource* resource = g_pGame->GetResourceManager()->GetResource(strString.c_str() + 3);
-                            if (resource)
+                            std::string_view resourceName{strString};
+                            resourceName.substr(3);
+
+                            Resource* resource = g_pGame->GetResourceManager().GetResourceFromName(resourceName);
+
+                            if (resource != nullptr)
                             {
-                                ReadScriptID(resource->GetScriptID());
+                                ReadScriptID(resource->GetUniqueIdentifier());
                             }
                             else
                             {

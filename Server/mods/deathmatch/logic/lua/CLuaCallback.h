@@ -16,8 +16,8 @@
 class CLuaCallback
 {
 public:
-    CLuaCallback(CLuaMain* pLuaMain, CLuaFunctionRef iLuaFunction, const CLuaArguments& Args)
-        : m_pLuaMain(pLuaMain), m_iLuaFunction(iLuaFunction), m_Arguments(Args)
+    CLuaCallback(CLuaMain* luaContext, CLuaFunctionRef iLuaFunction, const CLuaArguments& Args)
+        : m_pLuaMain(luaContext), m_iLuaFunction(iLuaFunction), m_Arguments(Args)
     {
     }
 
@@ -27,9 +27,9 @@ public:
             m_Arguments.Call(m_pLuaMain, m_iLuaFunction);
     }
 
-    void OnLuaMainDestroy(CLuaMain* pLuaMain)
+    void OnLuaMainDestroy(CLuaMain* luaContext)
     {
-        if (pLuaMain == m_pLuaMain)
+        if (luaContext == m_pLuaMain)
         {
             m_pLuaMain = NULL;
             m_iLuaFunction = CLuaFunctionRef();
@@ -51,9 +51,9 @@ protected:
 class CLuaCallbackManager
 {
 public:
-    CLuaCallback* CreateCallback(CLuaMain* pLuaMain, CLuaFunctionRef iLuaFunction, const CLuaArguments& Args)
+    CLuaCallback* CreateCallback(CLuaMain* luaContext, CLuaFunctionRef iLuaFunction, const CLuaArguments& Args)
     {
-        m_CallbackList.push_back(new CLuaCallback(pLuaMain, iLuaFunction, Args));
+        m_CallbackList.push_back(new CLuaCallback(luaContext, iLuaFunction, Args));
         return m_CallbackList.back();
     }
 
@@ -63,10 +63,10 @@ public:
         delete pCallback;
     }
 
-    void OnLuaMainDestroy(CLuaMain* pLuaMain)
+    void OnLuaMainDestroy(CLuaMain* luaContext)
     {
         for (uint i = 0; i < m_CallbackList.size(); i++)
-            m_CallbackList[i]->OnLuaMainDestroy(pLuaMain);
+            m_CallbackList[i]->OnLuaMainDestroy(luaContext);
     }
 
 protected:

@@ -15,8 +15,8 @@
 // Helper function
 static const char* GetResourceName(lua_State* luaVM)
 {
-    CLuaMain* luaMain = g_pGame->GetLuaManager()->GetVirtualMachine(luaVM);
-    return luaMain ? luaMain->GetScriptName() : "";
+    CLuaMain* luaContext = g_pGame->GetLuaManager()->GetLuaContext(luaVM);
+    return luaContext != nullptr ? luaContext->GetScriptName() : "";
 }
 
 void CLuaACLDefs::LoadFunctions()
@@ -888,13 +888,14 @@ int CLuaACLDefs::hasObjectPermissionTo(lua_State* luaVM)
     bool                                       bDefault;
     CAccessControlListGroupObject::EObjectType eObjectType;
 
+    // TODO: !!!!!
     CScriptArgReader argStream(luaVM);
-    if (argStream.NextIsUserDataOfType<CResource>())
-        argStream.ReadUserData(pResource);
-    else if (argStream.NextIsUserDataOfType<CElement>())
-        argStream.ReadUserData(pElement);
-    else
-        argStream.ReadString(strObject);
+    // if (argStream.NextIsUserDataOfType<CResource>())
+    //     argStream.ReadUserData(pResource);
+    // else if (argStream.NextIsUserDataOfType<CElement>())
+    //     argStream.ReadUserData(pElement);
+    // else
+    //     argStream.ReadString(strObject);
 
     argStream.ReadString(strRightName);
     argStream.ReadBool(bDefault, true);

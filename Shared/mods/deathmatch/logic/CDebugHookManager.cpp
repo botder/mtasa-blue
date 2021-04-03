@@ -9,13 +9,17 @@
  *****************************************************************************/
 
 #include "StdInc.h"
+
 #ifdef MTA_CLIENT
     #define DECLARE_PROFILER_SECTION_CDebugHookManager
     #include "profiler/SharedUtil.Profiler.h"
     #define g_pGame g_pClientGame
 #else
     #define DECLARE_PROFILER_SECTION(tag)
+    #include "Resource.h"
 #endif
+
+using namespace mtasa;
 
 ///////////////////////////////////////////////////////////////
 //
@@ -110,8 +114,8 @@ bool CDebugHookManager::AddDebugHook(EDebugHookType hookType, const CLuaFunction
 
     SDebugHookCallInfo info;
     info.functionRef = functionRef;
-    info.pLuaMain = g_pGame->GetLuaManager()->GetVirtualMachine(functionRef.GetLuaVM());
-    if (!info.pLuaMain)
+    info.luaContext = g_pGame->GetLuaManager()->GetLuaContext(functionRef.GetLuaVM());
+    if (!info.luaContext)
         return false;
 
     for (uint i = 0; i < allowedNameList.size(); i++)
@@ -130,12 +134,12 @@ bool CDebugHookManager::AddDebugHook(EDebugHookType hookType, const CLuaFunction
 ///////////////////////////////////////////////////////////////
 bool CDebugHookManager::RemoveDebugHook(EDebugHookType hookType, const CLuaFunctionRef& functionRef)
 {
-    CLuaMain* pLuaMain = g_pGame->GetLuaManager()->GetVirtualMachine(functionRef.GetLuaVM());
+    CLuaMain* luaContext = g_pGame->GetLuaManager()->GetLuaContext(functionRef.GetLuaVM());
 
     std::vector<SDebugHookCallInfo>& hookInfoList = GetHookInfoListForType(hookType);
     for (std::vector<SDebugHookCallInfo>::iterator iter = hookInfoList.begin(); iter != hookInfoList.end(); ++iter)
     {
-        if ((*iter).pLuaMain == pLuaMain && (*iter).functionRef == functionRef)
+        if ((*iter).luaContext == luaContext && (*iter).functionRef == functionRef)
         {
             hookInfoList.erase(iter);
             return true;
@@ -152,14 +156,14 @@ bool CDebugHookManager::RemoveDebugHook(EDebugHookType hookType, const CLuaFunct
 // When a Lua VM is stopped
 //
 ///////////////////////////////////////////////////////////////
-void CDebugHookManager::OnLuaMainDestroy(CLuaMain* pLuaMain)
+void CDebugHookManager::OnLuaMainDestroy(CLuaMain* luaContext)
 {
     for (uint hookType = EDebugHook::PRE_EVENT; hookType < EDebugHook::MAX_DEBUG_HOOK_TYPE; hookType++)
     {
         std::vector<SDebugHookCallInfo>& hookInfoList = GetHookInfoListForType((EDebugHookType)hookType);
         for (uint i = 0; i < hookInfoList.size();)
         {
-            if (hookInfoList[i].pLuaMain == pLuaMain)
+            if (hookInfoList[i].luaContext == luaContext)
                 ListRemoveIndex(hookInfoList, i);
             else
                 i++;
@@ -208,21 +212,21 @@ void GetDebugInfo(lua_State* luaVM, lua_Debug& debugInfo, const char*& szFilenam
 ///////////////////////////////////////////////////////////////
 void GetMapEventDebugInfo(CMapEvent* pMapEvent, const char*& szFilename, int& iLineNumber)
 {
-    CLuaMain* pLuaMain = pMapEvent->GetVM();
+    CLuaMain* luaContext = pMapEvent->GetVM();
 
-    if (!pLuaMain)
+    if (!luaContext)
         return;
 
-    lua_State* luaVM = pLuaMain->GetVirtualMachine();
+    lua_State* luaState = luaContext->GetLuaState();
 
-    if (!luaVM)
+    if (!luaState)
         return;
 
     const CLuaFunctionRef& iLuaFunction = pMapEvent->GetLuaFunction();
     lua_Debug              debugInfo;
-    lua_getref(luaVM, iLuaFunction.ToInt());
+    lua_getref(luaState, iLuaFunction.ToInt());
 
-    if (lua_getinfo(luaVM, ">lS", &debugInfo))
+    if (lua_getinfo(luaState, ">lS", &debugInfo))
     {
         // Make sure this function isn't defined in a string
         if (debugInfo.source[0] == '@')
@@ -322,11 +326,11 @@ void CDebugHookManager::GetFunctionCallHookArguments(CLuaArguments& NewArguments
     lua_Debug   debugInfo;
     GetDebugInfo(luaVM, debugInfo, szFilename, iLineNumber);
 
-    CLuaMain*  pSourceLuaMain = g_pGame->GetScriptDebugging()->GetTopLuaMain();
-    CResource* pSourceResource = pSourceLuaMain ? pSourceLuaMain->GetResource() : NULL;
+    CLuaMain* sourceLuaContext = g_pGame->GetScriptDebugging()->GetTopLuaMain();
+    Resource* sourceResource = sourceLuaContext ? &sourceLuaContext->GetResource() : nullptr;
 
-    if (pSourceResource)
-        NewArguments.PushResource(pSourceResource);
+    if (sourceResource != nullptr)
+        NewArguments.PushResource(sourceResource);
     else
         NewArguments.PushNil();
     NewArguments.PushString(strName);
@@ -394,19 +398,19 @@ void CDebugHookManager::OnPostEvent(const char* szName, const CLuaArguments& Arg
 ///////////////////////////////////////////////////////////////
 void CDebugHookManager::GetEventCallHookArguments(CLuaArguments& NewArguments, const SString& strName, const CLuaArguments& Arguments, CElement* pSource, CPlayer* pCaller)
 {
-    CLuaMain*  pSourceLuaMain = g_pGame->GetScriptDebugging()->GetTopLuaMain();
-    CResource* pSourceResource = pSourceLuaMain ? pSourceLuaMain->GetResource() : NULL;
+    CLuaMain* sourceLuaContext = g_pGame->GetScriptDebugging()->GetTopLuaMain();
+    Resource* sourceResource = sourceLuaContext ? &sourceLuaContext->GetResource() : nullptr;
 
     // Get file/line number
     const char* szFilename = "";
     int         iLineNumber = 0;
     lua_Debug   debugInfo;
-    lua_State*  luaVM = pSourceLuaMain ? pSourceLuaMain->GetVM() : NULL;
-    if (luaVM)
-        GetDebugInfo(luaVM, debugInfo, szFilename, iLineNumber);
+    lua_State*  luaState = sourceLuaContext ? sourceLuaContext->GetLuaState() : nullptr;
+    if (luaState)
+        GetDebugInfo(luaState, debugInfo, szFilename, iLineNumber);
 
-    if (pSourceResource)
-        NewArguments.PushResource(pSourceResource);
+    if (sourceResource != nullptr)
+        NewArguments.PushResource(sourceResource);
     else
         NewArguments.PushNil();
     NewArguments.PushString(strName);
@@ -471,28 +475,28 @@ void CDebugHookManager::OnPostEventFunction(const char* szName, const CLuaArgume
 ///////////////////////////////////////////////////////////////
 void CDebugHookManager::GetEventFunctionCallHookArguments(CLuaArguments& NewArguments, const SString& strName, const CLuaArguments& Arguments, CElement* pSource, CPlayer* pCaller, CMapEvent* pMapEvent)
 {
-    CLuaMain*  pEventLuaMain = g_pGame->GetScriptDebugging()->GetTopLuaMain();
-    CResource* pEventResource = pEventLuaMain ? pEventLuaMain->GetResource() : NULL;
+    CLuaMain* eventLuaContext = g_pGame->GetScriptDebugging()->GetTopLuaMain();
+    Resource* eventResource = eventLuaContext ? &eventLuaContext->GetResource() : nullptr;
 
     // Get file/line number for event
     const char* szEventFilename = "";
     int         iEventLineNumber = 0;
     lua_Debug   eventDebugInfo;
-    lua_State*  eventLuaVM = pEventLuaMain ? pEventLuaMain->GetVM() : NULL;
-    if (eventLuaVM)
-        GetDebugInfo(eventLuaVM, eventDebugInfo, szEventFilename, iEventLineNumber);
+    lua_State*  eventLuaState = eventLuaContext ? eventLuaContext->GetLuaState() : NULL;
+    if (eventLuaState)
+        GetDebugInfo(eventLuaState, eventDebugInfo, szEventFilename, iEventLineNumber);
 
     // Get file/line number for function
     const char* szFunctionFilename = "";
     int         iFunctionLineNumber = 0;
     GetMapEventDebugInfo(pMapEvent, szFunctionFilename, iFunctionLineNumber);
 
-    CLuaMain*  pFunctionLuaMain = pMapEvent->GetVM();
-    CResource* pFunctionResource = pFunctionLuaMain ? pFunctionLuaMain->GetResource() : NULL;
+    CLuaMain* functionLuaContext = pMapEvent->GetVM();
+    Resource* functionResource = functionLuaContext ? &functionLuaContext->GetResource() : nullptr;
 
     // resource eventResource, string eventName, element eventSource, element eventClient, string eventFilename, int eventLineNumber,
-    if (pEventResource)
-        NewArguments.PushResource(pEventResource);
+    if (eventResource != nullptr)
+        NewArguments.PushResource(eventResource);
     else
         NewArguments.PushNil();
 
@@ -503,8 +507,8 @@ void CDebugHookManager::GetEventFunctionCallHookArguments(CLuaArguments& NewArgu
     NewArguments.PushNumber(iEventLineNumber);
 
     // resource functionResource, string functionFilename, int functionLineNumber, ...args
-    if (pFunctionResource)
-        NewArguments.PushResource(pFunctionResource);
+    if (functionResource != nullptr)
+        NewArguments.PushResource(functionResource);
     else
         NewArguments.PushNil();
 
@@ -612,7 +616,7 @@ bool CDebugHookManager::CallHook(const char* szName, const std::vector<SDebugHoo
                 continue;
         }
 
-        lua_State* pState = info.pLuaMain->GetVirtualMachine();
+        lua_State* pState = info.luaContext->GetLuaState();
 
         if (!pState)
             continue;
@@ -643,7 +647,7 @@ bool CDebugHookManager::CallHook(const char* szName, const std::vector<SDebugHoo
         lua_pop(pState, 1);
 
         CLuaArguments returnValues;
-        Arguments.Call(info.pLuaMain, info.functionRef, &returnValues);
+        Arguments.Call(info.luaContext, info.functionRef, &returnValues);
         // Note: info could be invalid now
 
         // Check for skip option

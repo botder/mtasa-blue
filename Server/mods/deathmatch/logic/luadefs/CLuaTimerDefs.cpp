@@ -60,8 +60,7 @@ int CLuaTimerDefs::SetTimer(lua_State* luaVM)
 
     if (!argStream.HasErrors())
     {
-        CLuaMain* luaMain = m_pLuaManager->GetVirtualMachine(luaVM);
-        if (luaMain)
+        if (CLuaMain* luaContext = m_pLuaManager->GetLuaContext(luaVM); luaContext != nullptr)
         {
             // Check for the minimum interval
             if (dTimeInterval < LUA_TIMER_MIN_INTERVAL)
@@ -70,7 +69,7 @@ int CLuaTimerDefs::SetTimer(lua_State* luaVM)
             }
             else
             {
-                CLuaTimer* pLuaTimer = luaMain->GetTimerManager()->AddTimer(iLuaFunction, CTickCount(dTimeInterval), uiTimesToExecute, Arguments);
+                CLuaTimer* pLuaTimer = luaContext->GetTimerManager()->AddTimer(iLuaFunction, CTickCount(dTimeInterval), uiTimesToExecute, Arguments);
 
                 if (pLuaTimer)
                 {
@@ -100,10 +99,9 @@ int CLuaTimerDefs::KillTimer(lua_State* luaVM)
 
     if (!argStream.HasErrors())
     {
-        CLuaMain* luaMain = m_pLuaManager->GetVirtualMachine(luaVM);
-        if (luaMain)
+        if (CLuaMain* luaContext = m_pLuaManager->GetLuaContext(luaVM); luaContext != nullptr)
         {
-            luaMain->GetTimerManager()->RemoveTimer(pLuaTimer);
+            luaContext->GetTimerManager()->RemoveTimer(pLuaTimer);
 
             lua_pushboolean(luaVM, true);
             return 1;
@@ -126,10 +124,9 @@ int CLuaTimerDefs::ResetTimer(lua_State* luaVM)
 
     if (!argStream.HasErrors())
     {
-        CLuaMain* luaMain = m_pLuaManager->GetVirtualMachine(luaVM);
-        if (luaMain)
+        if (CLuaMain* luaContext = m_pLuaManager->GetLuaContext(luaVM); luaContext != nullptr)
         {
-            luaMain->GetTimerManager()->ResetTimer(pLuaTimer);
+            luaContext->GetTimerManager()->ResetTimer(pLuaTimer);
 
             lua_pushboolean(luaVM, true);
             return 1;
@@ -170,15 +167,13 @@ int CLuaTimerDefs::GetTimers(lua_State* luaVM)
 
     if (!argStream.HasErrors())
     {
-        // Find our VM
-        CLuaMain* pLuaMain = m_pLuaManager->GetVirtualMachine(luaVM);
-        if (pLuaMain)
+        if (CLuaMain* luaContext = m_pLuaManager->GetLuaContext(luaVM); luaContext != nullptr)
         {
             // Create a new table
             lua_newtable(luaVM);
 
             // Add all the timers with less than ulTime left
-            CLuaTimerManager*                     pLuaTimerManager = pLuaMain->GetTimerManager();
+            CLuaTimerManager*                     pLuaTimerManager = luaContext->GetTimerManager();
             CTickCount                            llCurrentTime = CTickCount::Now();
             unsigned int                          uiIndex = 0;
             CFastList<CLuaTimer*>::const_iterator iter = pLuaTimerManager->IterBegin();

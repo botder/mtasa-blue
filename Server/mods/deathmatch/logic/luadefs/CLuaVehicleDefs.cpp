@@ -10,7 +10,9 @@
  *****************************************************************************/
 
 #include "StdInc.h"
-#include "CResource.h"
+#include "Resource.h"
+
+using namespace mtasa;
 
 void CLuaVehicleDefs::LoadFunctions()
 {
@@ -299,30 +301,17 @@ int CLuaVehicleDefs::CreateVehicle(lua_State* luaVM)
 
     if (!argStream.HasErrors())
     {
-        CLuaMain* pLuaMain = g_pGame->GetLuaManager()->GetVirtualMachine(luaVM);
-        if (pLuaMain)
+        if (Resource* resource = m_pLuaManager->GetResourceFromLuaState(luaVM); resource != nullptr)
         {
-            CResource* pResource = pLuaMain->GetResource();
-            if (pResource)
+            CVehicle* vehicle = CStaticFunctionDefinitions::CreateVehicle(resource, usModel, vecPosition, vecRotation, strNumberPlate, ucVariant, ucVariant2);
+
+            if (vehicle != nullptr)
             {
-                // if ( usModel != 570 || m_pResourceManager->GetMinClientRequirement () > "1.3.2-xx" ) // Todo: On merge: Please insert the revision
-                {
-                    // Create the vehicle and return its handle
-                    CVehicle* pVehicle =
-                        CStaticFunctionDefinitions::CreateVehicle(pResource, usModel, vecPosition, vecRotation, strNumberPlate, ucVariant, ucVariant2);
-                    if (pVehicle)
-                    {
-                        CElementGroup* pGroup = pResource->GetElementGroup();
-                        if (pGroup)
-                        {
-                            pGroup->Add(pVehicle);
-                        }
-                        lua_pushelement(luaVM, pVehicle);
-                        return 1;
-                    }
-                }
-                /*else
-                m_pScriptDebugging->LogCustom ( luaVM, "Please set min_mta_version to xxx" ); // Todo*/
+                if (CElementGroup* elementGroup = resource->GetElementGroup(); elementGroup != nullptr)
+                    elementGroup->Add(vehicle);
+
+                lua_pushelement(luaVM, vehicle);
+                return 1;
             }
         }
     }

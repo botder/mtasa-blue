@@ -17,8 +17,10 @@
 #include "SResourceStartOptions.h"
 #include "CElement.h"
 #include <list>
+#include <filesystem>
 
 class CResource;
+
 #define INVALID_RESOURCE_NET_ID     0xFFFF
 
 class CResourceManager
@@ -66,8 +68,6 @@ public:
     unsigned int GetResourceFailedCount() { return m_uiResourceFailedCount; }
     void         OnPlayerJoin(CPlayer& Player);
 
-    const char* GetResourceDirectory();
-
     bool StartResource(CResource* pResource, std::list<CResource*>* pDependents = nullptr, bool bManualStart = false,
                        const SResourceStartOptions& StartOptions = SResourceStartOptions());
     bool Reload(CResource* pResource);
@@ -91,14 +91,13 @@ public:
     CResource* RenameResource(CResource* pSourceResource, const SString& strNewResourceName, const SString& strNewOrganizationalPath, SString& strOutStatus);
     bool       DeleteResource(const SString& strResourceName, SString& strOutStatus);
 
-    SString GetResourceTrashDir();
     bool    MoveDirToTrash(const SString& strPathDirName);
     SString GetResourceOrganizationalPath(CResource* pResource);
 
     static bool ParseResourcePathInput(std::string strInput, CResource*& pResource, std::string* pStrPath, std::string* pStrMetaPath = nullptr);
 
-    void NotifyResourceVMOpen(CResource* pResource, CLuaMain* pVM);
-    void NotifyResourceVMClose(CResource* pResource, CLuaMain* pVM);
+    void NotifyResourceVMOpen(CResource* pResource, CLuaMain* luaContext);
+    void NotifyResourceVMClose(CResource* pResource, CLuaMain* luaContext);
 
     void AddResourceToLists(CResource* pResource);
     void RemoveResourceFromLists(CResource* pResource);
@@ -120,6 +119,13 @@ public:
 
     void OnResourceStart(CResource* resource);
     void OnResourceStop(CResource* resource);
+
+private:
+    std::filesystem::path m_resourcesDirectory;
+    std::filesystem::path m_tempDirectory;
+    std::filesystem::path m_trashDirectory;
+    std::filesystem::path m_decompressionDirectory;
+    std::filesystem::path m_httpDirectory;
 
 private:
     SString                 m_strResourceDirectory;

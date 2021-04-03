@@ -45,7 +45,7 @@ private:
 
     bool        m_bIsBeingRequested;            // crude mutex
     bool        m_bIsRaw;
-    CLuaMain*   m_pVM;
+    CLuaMain*   m_luaContext;
     std::string m_strPageBuffer;            // contains what we're sending
     bool        m_bDefault;                 // is this the default page for this resource?
     std::string m_strMime;

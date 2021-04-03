@@ -10,8 +10,11 @@
  *****************************************************************************/
 
 #include "StdInc.h"
-#include "CResource.h"
+#include "Resource.h"
+
 #define MIN_SERVER_REQ_WEAPON_PROPERTY_FLAG                 "1.3.5-9.06139"
+
+using namespace mtasa;
 
 int CLuaFunctionDefs::SetWeaponAmmo(lua_State* luaVM)
 {
@@ -124,24 +127,17 @@ int CLuaFunctionDefs::CreateWeapon(lua_State* luaVM)
 
     if (!argStream.HasErrors())
     {
-        CLuaMain* pLuaMain = m_pLuaManager->GetVirtualMachine(luaVM);
-        if (pLuaMain)
+        if (Resource* resource = m_pLuaManager->GetResourceFromLuaState(luaVM); resource != nullptr)
         {
-            CResource* pResource = pLuaMain->GetResource();
-            if (pResource)
-            {
-                CCustomWeapon* pWeapon = CStaticFunctionDefinitions::CreateWeapon(pResource, weaponType, vecPos);
-                if (pWeapon)
-                {
-                    CElementGroup* pGroup = pResource->GetElementGroup();
-                    if (pGroup)
-                    {
-                        pGroup->Add((CElement*)pWeapon);
-                    }
+            CCustomWeapon* weapon = CStaticFunctionDefinitions::CreateWeapon(resource, weaponType, vecPos);
 
-                    lua_pushelement(luaVM, pWeapon);
-                    return 1;
-                }
+            if (weapon != nullptr)
+            {
+                if (CElementGroup* elementGroup = resource->GetElementGroup(); elementGroup != nullptr)
+                    elementGroup->Add(weapon);
+
+                lua_pushelement(luaVM, weapon);
+                return 1;
             }
         }
     }

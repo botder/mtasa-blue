@@ -13,25 +13,32 @@
 // new resources on demand
 
 #include "StdInc.h"
+#include "CResourceManager.h"
 #include "CResource.h"
+#include "CResourceMapItem.h"
+
 #define BLOCKED_DB_FILE_NAME    "fileblock.db"
 #define BLOCKED_DB_TABLE_NAME   "`block_reasons`"
 
-// SResInfo - Item in list of potential resources - Used in Refresh()
-struct SResInfo
-{
-    SString strAbsPath;
-    SString strName;
-    bool    bIsDir;
-    bool    bPathIssue;
-    SString strAbsPathDup;
-};
+namespace fs = std::filesystem;
 
 CResourceManager::CResourceManager()
 {
     m_bResourceListChanged = false;
     m_uiResourceLoadedCount = 0;
     m_uiResourceFailedCount = 0;
+
+    fs::path moduleDirectory{g_pServerInterface->GetServerModPath(), fs::path::format::generic_format};
+    moduleDirectory.make_preferred();
+
+    m_resourcesDirectory = moduleDirectory / "resources";
+
+    fs::path cacheDirectory{moduleDirectory / "resource-cache"};
+
+    m_tempDirectory = cacheDirectory / "temp";
+    m_trashDirectory = cacheDirectory / "trash";
+    m_decompressionDirectory = cacheDirectory / "unzipped";
+    m_httpDirectory = cacheDirectory / "http-client-files";
 
     m_strResourceDirectory.Format("%s/resources", g_pServerInterface->GetServerModPath());
     LoadBlockedFileReasons();
@@ -54,6 +61,91 @@ CResourceManager::~CResourceManager()
     }
 }
 
+struct ResourceLocation
+{
+    bool     isDirectory = false;
+    fs::path absolutePath;
+};
+
+using ResourceLocations = std::vector<ResourceLocation>;
+
+using ResourceToLocations = std::unordered_map<std::string, ResourceLocations>;
+
+ResourceToLocations LocateResources(const fs::path& resourcesDirectory)
+{
+    std::error_code     ec;
+    ResourceToLocations result;
+
+    for (auto i = fs::recursive_directory_iterator{resourcesDirectory, ec}; i != fs::recursive_directory_iterator{} && !ec; i.increment(ec))
+    {
+        const fs::path& path = i->path();
+        std::string     name = path.filename().string();
+
+        if (name.front() == '.')
+        {
+            i.disable_recursion_pending();
+            continue;
+        }
+
+        if (i->is_directory(ec))
+        {
+            bool isResourceGroupDirectory = (name.front() == '#' || (name.front() == '[' && name.back() == ']'));
+
+            if (isResourceGroupDirectory)
+                continue;
+
+            i.disable_recursion_pending();
+
+            if (fs::is_regular_file(path / "meta.xml", ec))
+            {
+                result[name].push_back(ResourceLocation{true, path});
+            }
+        }
+        else if (i->is_regular_file(ec) && path.has_extension())
+        {
+            if (stricmp(".zip", path.extension().string().c_str()) != 0)
+                continue;
+
+            name = path.stem().string();
+            result[name].push_back(ResourceLocation{false, path});
+        }
+    }
+
+    return result;
+}
+
+ResourceLocations FilterForUniqueResources(const fs::path& resourcesDirectory, const ResourceToLocations& resourceCandidates)
+{
+    ResourceLocations result;
+    result.reserve(resourceCandidates.size());
+
+    for (const auto& [name, sources] : resourceCandidates)
+    {
+        if (name.find_first_of(" .") != std::string::npos)
+        {
+            CLogger::LogPrintf("WARNING: Not loading resource '%.*s' as it contains illegal characters\n", name.size(), name.c_str());
+            continue;
+        }
+
+        if (sources.size() == 1)
+        {
+            result.push_back(sources[0]);
+        }
+        else
+        {
+            CLogger::ErrorPrintf("Not processing resource '%.*s' as it has duplicates on different paths:\n", name.size(), name.c_str());
+
+            for (std::size_t i = 0; i < sources.size(); i++)
+            {
+                std::string relativePath = sources[i].absolutePath.lexically_relative(resourcesDirectory).generic_string();
+                CLogger::LogPrintfNoStamp("                  Path #%zu: \"%.*s\"\n", i + 1, relativePath.size(), relativePath.c_str());
+            }
+        }
+    }
+
+    return result;
+}
+
 // Load the complete list of resources and create their objects
 // DOES NOT reload already loaded resources, we need a special function for lua for that (e.g. reloadResource)
 // Talidan: yes it did, noob.  Not as of r897 - use bRefreshAll to do already loaded resources.
@@ -62,93 +154,19 @@ bool CResourceManager::Refresh(bool bRefreshAll, const SString strJustThisResour
     CTimeUsMarker<20> marker;
     marker.Set("Start");
 
-    // Make list of potential active resources
-    std::map<SString, SResInfo> resInfoMap;
+    ResourceToLocations resourceCandidates = LocateResources(m_resourcesDirectory);
 
-    // Initial search dir
-    std::vector<SString> resourcesPathList;
-    resourcesPathList.push_back("resources");
-
-    SString strModPath = g_pServerInterface->GetModManager()->GetModPath();
-    for (uint i = 0; i < resourcesPathList.size(); i++)
+    if (!strJustThisResource.empty())
     {
-        // Enumerate all files and directories
-        SString              strResourcesRelPath = resourcesPathList[i];
-        SString              strResourcesAbsPath = PathJoin(strModPath, strResourcesRelPath, "/");
-        std::vector<SString> itemList = FindFiles(strResourcesAbsPath, true, true);
+        ResourceToLocations copy = std::exchange(resourceCandidates, {});
 
-        // Check each item
-        for (uint i = 0; i < itemList.size(); i++)
+        if (auto iter = copy.find(strJustThisResource); iter != copy.end())
         {
-            SString strName = itemList[i];
-
-            // Ignore items that start with a dot
-            if (strName[0] == '.')
-                continue;
-
-            bool bIsDir = DirectoryExists(PathJoin(strResourcesAbsPath, strName));
-
-            // Recurse into [directories]
-            if (bIsDir && (strName.BeginsWith("#") || (strName.BeginsWith("[") && strName.EndsWith("]"))))
-            {
-                resourcesPathList.push_back(PathJoin(strResourcesRelPath, strName));
-            }
-
-            // Extract file extension
-            SString strExt;
-            if (!bIsDir)
-                ExtractExtension(strName, &strName, &strExt);
-
-            // Ignore files that are not .zip
-            if (!bIsDir && strExt != "zip")
-                continue;
-
-            // Ignore items that have dot or space in the name
-            if (strName.Contains(".") || strName.Contains(" "))
-            {
-                if (!bIsDir && strJustThisResource.empty())
-                    CLogger::LogPrintf("WARNING: Not loading resource '%s' as it contains illegal characters\n", *strName);
-                continue;
-            }
-
-            // Ignore dir items with no meta.xml
-            if (bIsDir && !FileExists(PathJoin(strResourcesAbsPath, strName, "meta.xml")))
-                continue;
-
-            // Add potential resource to list
-            SResInfo newInfo;
-            newInfo.strAbsPath = strResourcesAbsPath;
-            newInfo.strName = strName;
-            newInfo.bIsDir = bIsDir;
-            newInfo.bPathIssue = false;
-
-            // Check for duplicate
-            if (SResInfo* pDup = MapFind(resInfoMap, strName))
-            {
-                // Is path the same?
-                if (newInfo.strAbsPath == pDup->strAbsPath)
-                {
-                    if (newInfo.bIsDir)
-                    {
-                        // If non-zipped item, replace already existing zipped item on the same path
-                        assert(!pDup->bIsDir);
-                        *pDup = newInfo;
-                    }
-                }
-                else
-                {
-                    // Don't load resource if there are duplicates on different paths
-                    pDup->bPathIssue = true;
-                    pDup->strAbsPathDup = newInfo.strAbsPath;
-                }
-            }
-            else
-            {
-                // No duplicate found
-                MapSet(resInfoMap, strName, newInfo);
-            }
+            resourceCandidates.insert(std::move(*iter));
         }
     }
+
+    ResourceLocations resourceLocations = FilterForUniqueResources(m_resourcesDirectory, resourceCandidates);
 
     marker.Set("SearchDir");
 
@@ -156,24 +174,24 @@ bool CResourceManager::Refresh(bool bRefreshAll, const SString strJustThisResour
 
     marker.Set("UnloadRemoved");
 
-    // Process potential resource list
-    for (std::map<SString, SResInfo>::const_iterator iter = resInfoMap.begin(); iter != resInfoMap.end(); ++iter)
+    std::vector<CResource*> startableResources;
+    startableResources.reserve(resourceLocations.size());
+
+    for (const ResourceLocation& location : resourceLocations)
     {
-        const SResInfo& info = iter->second;
-        if (!strJustThisResource.empty() && strJustThisResource != info.strName)
-            continue;
+        std::string resourceName = (location.isDirectory ? location.absolutePath.filename().string() : location.absolutePath.stem().string());
+        CResource*  resource = GetResource(resourceName.c_str());
 
-        if (!info.bPathIssue)
+        if (bRefreshAll || resource == nullptr || resource->CheckIfStartable())
         {
-            CResource* pResource = GetResource(info.strName);
+            if (g_pServerInterface->IsRequestingExit())
+                return false;
 
-            if (bRefreshAll || !pResource || !pResource->CheckIfStartable())
+            resource = Load(!location.isDirectory, location.absolutePath.parent_path().generic_string().c_str(), resourceName.c_str());
+
+            if (resource != nullptr)
             {
-                if (g_pServerInterface->IsRequestingExit())
-                    return false;
-
-                // Add the resource
-                Load(!info.bIsDir, info.strAbsPath, info.strName);
+                startableResources.push_back(resource);
             }
         }
     }
@@ -184,26 +202,11 @@ bool CResourceManager::Refresh(bool bRefreshAll, const SString strJustThisResour
 
     marker.Set("CheckDep");
 
-    // Print important errors
-    for (std::map<SString, SResInfo>::const_iterator iter = resInfoMap.begin(); iter != resInfoMap.end(); ++iter)
+    for (CResource* resource : startableResources)
     {
-        const SResInfo& info = iter->second;
-        if (!strJustThisResource.empty() && strJustThisResource != info.strName)
-            continue;
-
-        if (info.bPathIssue)
+        if (!resource->CheckIfStartable())
         {
-            CLogger::ErrorPrintf("Not processing resource '%s' as it has duplicates on different paths:\n", *info.strName);
-            CLogger::LogPrintfNoStamp("                  Path #1: \"%s\"\n", *PathJoin(PathMakeRelative(strModPath, info.strAbsPath), info.strName));
-            CLogger::LogPrintfNoStamp("                  Path #2: \"%s\"\n", *PathJoin(PathMakeRelative(strModPath, info.strAbsPathDup), info.strName));
-        }
-        else
-        {
-            CResource* pResource = GetResource(info.strName);
-            if (pResource && !pResource->CheckIfStartable())
-            {
-                CLogger::ErrorPrintf("Problem with resource: %s; %s\n", *info.strName, pResource->GetFailureReason().c_str());
-            }
+            CLogger::ErrorPrintf("Problem with resource: %s; %s\n", resource->GetName().c_str(), resource->GetFailureReason().c_str());
         }
     }
 
@@ -264,7 +267,7 @@ void CResourceManager::OnResourceLoadStateChange(CResource* pResource, const cha
     if (!pResource) return;
 
     CLuaArguments Arguments;
-    Arguments.PushResource(pResource);
+    // Arguments.PushResource(pResource);
 
     if (szOldState)
         Arguments.PushString(szOldState);
@@ -277,11 +280,6 @@ void CResourceManager::OnResourceLoadStateChange(CResource* pResource, const cha
         Arguments.PushNil();
 
     g_pGame->GetMapManager()->GetRootElement()->CallEvent("onResourceLoadStateChange", Arguments);
-}
-
-const char* CResourceManager::GetResourceDirectory()
-{
-    return m_strResourceDirectory;
 }
 
 // first, go through each resource then link up to other resources, any that fail are noted
@@ -535,27 +533,27 @@ void CResourceManager::OnPlayerJoin(CPlayer& Player)
 //
 // Add resource <-> luaVM lookup mapping
 //
-void CResourceManager::NotifyResourceVMOpen(CResource* pResource, CLuaMain* pVM)
+void CResourceManager::NotifyResourceVMOpen(CResource* pResource, CLuaMain* luaContext)
 {
-    lua_State* luaVM = pVM->GetVirtualMachine();
-    assert(luaVM);
+    lua_State* luaState = luaContext->GetLuaState();
+    assert(luaState);
     assert(!MapContains(m_ResourceLuaStateMap, pResource));
-    assert(!MapContains(m_LuaStateResourceMap, luaVM));
-    MapSet(m_ResourceLuaStateMap, pResource, luaVM);
-    MapSet(m_LuaStateResourceMap, luaVM, pResource);
+    assert(!MapContains(m_LuaStateResourceMap, luaState));
+    MapSet(m_ResourceLuaStateMap, pResource, luaState);
+    MapSet(m_LuaStateResourceMap, luaState, pResource);
 }
 
 //
 // Remove resource <-> luaVM lookup mapping
 //
-void CResourceManager::NotifyResourceVMClose(CResource* pResource, CLuaMain* pVM)
+void CResourceManager::NotifyResourceVMClose(CResource* pResource, CLuaMain* luaContext)
 {
-    lua_State* luaVM = pVM->GetVirtualMachine();
-    assert(luaVM);
+    lua_State* luaState = luaContext->GetLuaState();
+    assert(luaState);
     assert(MapContains(m_ResourceLuaStateMap, pResource));
-    assert(MapContains(m_LuaStateResourceMap, luaVM));
+    assert(MapContains(m_LuaStateResourceMap, luaState));
     MapRemove(m_ResourceLuaStateMap, pResource);
-    MapRemove(m_LuaStateResourceMap, luaVM);
+    MapRemove(m_LuaStateResourceMap, luaState);
 }
 
 //
@@ -572,8 +570,8 @@ void CResourceManager::AddResourceToLists(CResource* pResource)
 
     m_resources.push_back(pResource);
 
-    CLuaMain* pLuaMain = pResource->GetVirtualMachine();
-    assert(!pLuaMain);
+    CLuaMain* luaContext = pResource->GetLuaContext();
+    assert(!luaContext);
     MapSet(m_NameResourceMap, strResourceNameKey, pResource);
     MapSet(m_NetIdResourceMap, pResource->GetNetID(), pResource);
     m_bResourceListChanged = true;
@@ -604,10 +602,10 @@ CResource* CResourceManager::GetResourceFromLuaState(lua_State* luaVM)
     if (ppResource)
     {
         CResource* pResource = *ppResource;
-        CLuaMain*  pLuaMain = pResource->GetVirtualMachine();
-        if (pLuaMain)
+        CLuaMain*  luaContext = pResource->GetLuaContext();
+        if (luaContext)
         {
-            assert(luaVM == pLuaMain->GetVirtualMachine());
+            assert(luaVM == luaContext->GetLuaState());
             return pResource;
         }
     }
@@ -1104,7 +1102,7 @@ CResource* CResourceManager::RenameResource(CResource* pSourceResource, const SS
 bool CResourceManager::DeleteResource(const SString& strResourceName, SString& strOutStatus)
 {
     // See if it's a known resource first
-    CResource* pSourceResource = g_pGame->GetResourceManager()->GetResource(strResourceName);
+    CResource* pSourceResource = nullptr;            // g_pGame->OLD_GetResourceManager()->GetResource(strResourceName);
 
     // Is the source resource present
     if (!pSourceResource)
@@ -1136,25 +1134,23 @@ bool CResourceManager::DeleteResource(const SString& strResourceName, SString& s
 
 /////////////////////////////////
 //
-// CResourceManager::GetResourceTrashDir
-//
-/////////////////////////////////
-SString CResourceManager::GetResourceTrashDir()
-{
-    return PathJoin(g_pServerInterface->GetServerModPath(), "resource-cache", "trash");
-}
-
-/////////////////////////////////
-//
 // CResourceManager::MoveDirToTrash
 //
 /////////////////////////////////
 bool CResourceManager::MoveDirToTrash(const SString& strPathDirName)
 {
+    std::error_code ec;
+    fs::create_directories(m_trashDirectory, ec);
+
+    if (ec)
+        return false;
+
     // Get path to unique trash sub-directory
-    SString strDestPathDirName = MakeUniquePath(PathJoin(GetResourceTrashDir(), ExtractFilename(strPathDirName.TrimEnd("\\").TrimEnd("/"))));
-    // Make sure the trash directory exists and create if it does not
-    MakeSureDirExists(GetResourceTrashDir() + "/");
+    fs::path relativeDestination = fs::path{std::string_view{strPathDirName.c_str(), strPathDirName.size()}}.filename();
+
+    // TODO: Tries to create a unique file with `stem()_N.extension()` where N = 1,2,3,...
+    SString strDestPathDirName = MakeUniquePath((m_trashDirectory / relativeDestination).generic_string());
+
     // Try move
     return FileRename(strPathDirName, strDestPathDirName);
 }
@@ -1196,7 +1192,7 @@ bool CResourceManager::ParseResourcePathInput(std::string strInput, CResource*& 
         if (iEnd)
         {
             std::string strResourceName = strInput.substr(1, iEnd - 1);
-            pResource = g_pGame->GetResourceManager()->GetResource(strResourceName.c_str());
+            pResource = nullptr; // g_pGame->OLD_GetResourceManager()->GetResource(strResourceName.c_str());
             if (pResource && strInput[iEnd + 1])
             {
                 strMetaPath = strInput.substr(iEnd + 1);

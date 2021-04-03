@@ -10,7 +10,13 @@
  *****************************************************************************/
 
 #pragma once
+
 #include "CLuaDefs.h"
+
+namespace mtasa
+{
+    class Resource;
+}
 
 class CLuaResourceDefs : public CLuaDefs
 {
@@ -54,7 +60,7 @@ public:
     LUA_DECLARE(getResourceExportedFunctions);
     LUA_DECLARE(getResourceOrganizationalPath);
     LUA_DECLARE(isResourceArchived);
-    static bool isResourceProtected(CResource* const resource);
+    static bool isResourceProtected(mtasa::Resource* resource);
 
     // Set stuff
     LUA_DECLARE(setResourceInfo);

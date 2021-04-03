@@ -10,7 +10,7 @@
  *****************************************************************************/
 
 #include "StdInc.h"
-#include "CResource.h"
+#include "Resource.h"
 
 CMapEventManager::CMapEventManager()
 {
@@ -30,14 +30,14 @@ CMapEventManager::~CMapEventManager()
     DeleteAll();
 }
 
-bool CMapEventManager::Add(CLuaMain* pLuaMain, const char* szName, const CLuaFunctionRef& iLuaFunction, bool bPropagated, EEventPriorityType eventPriority,
+bool CMapEventManager::Add(CLuaMain* luaContext, const char* szName, const CLuaFunctionRef& iLuaFunction, bool bPropagated, EEventPriorityType eventPriority,
                            float fPriorityMod)
 {
     // Check for max name length
     if (strlen(szName) <= MAPEVENT_MAX_LENGTH_NAME)
     {
         // Make a new event
-        CMapEvent* pEvent = new CMapEvent(pLuaMain, szName, iLuaFunction, bPropagated, eventPriority, fPriorityMod);
+        CMapEvent* pEvent = new CMapEvent(luaContext, szName, iLuaFunction, bPropagated, eventPriority, fPriorityMod);
 
         // Add now
         AddInternal(pEvent);
@@ -48,7 +48,7 @@ bool CMapEventManager::Add(CLuaMain* pLuaMain, const char* szName, const CLuaFun
     return false;
 }
 
-bool CMapEventManager::Delete(CLuaMain* pLuaMain, const char* szName, const CLuaFunctionRef& iLuaFunction)
+bool CMapEventManager::Delete(CLuaMain* luaContext, const char* szName, const CLuaFunctionRef& iLuaFunction)
 {
     // Delete all the events with matching names
     bool bRemovedSomeone = false;
@@ -59,7 +59,7 @@ bool CMapEventManager::Delete(CLuaMain* pLuaMain, const char* szName, const CLua
         CMapEvent* pMapEvent = iter->second;
 
         // Matching VM?
-        if (pLuaMain == pMapEvent->GetVM())
+        if (luaContext == pMapEvent->GetVM())
         {
             // If name supplied, check name and function
             if (!szName || ((strcmp(pMapEvent->GetName(), szName) == 0) && (pMapEvent->GetLuaFunction() == iLuaFunction)))
@@ -156,7 +156,7 @@ bool CMapEventManager::Call(const char* szName, const CLuaArguments& Arguments, 
                 if (pSource == pThis || pMapEvent->IsPropagated())
                 {
                     // Grab the current VM
-                    lua_State* pState = pMapEvent->GetVM()->GetVM();
+                    lua_State* pState = pMapEvent->GetVM()->GetLuaState();
 
                     LUA_CHECKSTACK(pState, 1);            // Ensure some room
 
@@ -201,14 +201,12 @@ bool CMapEventManager::Call(const char* szName, const CLuaArguments& Arguments, 
                     lua_pushelement(pState, pThis);
                     lua_setglobal(pState, "this");
 
-                    CLuaMain*  pLuaMain = g_pGame->GetScriptDebugging()->GetTopLuaMain();
-                    CResource* pSourceResource = pLuaMain ? pLuaMain->GetResource() : NULL;
-                    if (pSourceResource)
+                    if (CLuaMain* luaState = g_pGame->GetScriptDebugging()->GetTopLuaMain(); luaState != nullptr)
                     {
-                        lua_pushresource(pState, pSourceResource);
+                        lua_pushresource(pState, &luaState->GetResource());
                         lua_setglobal(pState, "sourceResource");
 
-                        lua_pushelement(pState, pSourceResource->GetResourceRootElement());
+                        lua_pushelement(pState, luaState->GetResource().GetElement());
                         lua_setglobal(pState, "sourceResourceRoot");
                     }
                     else
@@ -310,7 +308,7 @@ void CMapEventManager::TakeOutTheTrash()
     m_TrashCan.clear();
 }
 
-bool CMapEventManager::HandleExists(CLuaMain* pLuaMain, const char* szName, const CLuaFunctionRef& iLuaFunction)
+bool CMapEventManager::HandleExists(CLuaMain* luaContext, const char* szName, const CLuaFunctionRef& iLuaFunction)
 {
     // Return true if we find an event which matches the handle
     EventsIterPair itPair = m_EventsMap.equal_range(szName);
@@ -322,7 +320,7 @@ bool CMapEventManager::HandleExists(CLuaMain* pLuaMain, const char* szName, cons
         if (!pMapEvent->IsBeingDestroyed())
         {
             // Same lua main?
-            if (pMapEvent->GetVM() == pLuaMain)
+            if (pMapEvent->GetVM() == luaContext)
             {
                 // Same name?
                 dassert(strcmp(pMapEvent->GetName(), szName) == 0);
@@ -356,7 +354,7 @@ void CMapEventManager::AddInternal(CMapEvent* pEvent)
     m_EventsMap.insert(iter, std::pair<SString, CMapEvent*>(pEvent->GetName(), pEvent));
 }
 
-void CMapEventManager::GetHandles(CLuaMain* pLuaMain, const char* szName, lua_State* luaVM)
+void CMapEventManager::GetHandles(CLuaMain* luaContext, const char* szName, lua_State* luaVM)
 {
     unsigned int   uiIndex = 0;
     EventsIterPair itPair = m_EventsMap.equal_range(szName);
@@ -368,7 +366,7 @@ void CMapEventManager::GetHandles(CLuaMain* pLuaMain, const char* szName, lua_St
         if (!pMapEvent->IsBeingDestroyed())
         {
             // Same lua main?
-            if (pMapEvent->GetVM() == pLuaMain)
+            if (pMapEvent->GetVM() == luaContext)
             {
                 // Same name?
                 dassert(strcmp(pMapEvent->GetName(), szName) == 0);

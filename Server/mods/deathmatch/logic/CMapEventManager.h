@@ -21,13 +21,13 @@ public:
     CMapEventManager();
     ~CMapEventManager();
 
-    bool Add(CLuaMain* pLuaMain, const char* szName, const CLuaFunctionRef& iLuaFunction, bool bPropagated, EEventPriorityType eventPriority,
+    bool Add(CLuaMain* luaContext, const char* szName, const CLuaFunctionRef& iLuaFunction, bool bPropagated, EEventPriorityType eventPriority,
              float fPriorityMod);
-    bool Delete(CLuaMain* pLuaMain, const char* szName = NULL, const CLuaFunctionRef& iLuaFunction = CLuaFunctionRef());
+    bool Delete(CLuaMain* luaContext, const char* szName = NULL, const CLuaFunctionRef& iLuaFunction = CLuaFunctionRef());
     void DeleteAll();
-    bool HandleExists(CLuaMain* pLuaMain, const char* szName, const CLuaFunctionRef& iLuaFunction);
+    bool HandleExists(CLuaMain* luaContext, const char* szName, const CLuaFunctionRef& iLuaFunction);
     bool HasEvents() const { return m_bHasEvents; }
-    void GetHandles(CLuaMain* pLuaMain, const char* szName, lua_State* luaVM);
+    void GetHandles(CLuaMain* luaContext, const char* szName, lua_State* luaVM);
 
     bool Call(const char* szName, const CLuaArguments& Arguments, class CElement* pSource, class CElement* pThis, class CPlayer* pCaller = NULL);
 

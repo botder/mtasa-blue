@@ -10,7 +10,9 @@
  *****************************************************************************/
 
 #include "StdInc.h"
-#include "CResource.h"
+#include "Resource.h"
+
+using namespace mtasa;
 
 extern uint g_uiNetSentByteCounter;
 
@@ -48,7 +50,6 @@ CVehicleManager*           CLuaDefs::m_pVehicleManager = NULL;
 CTeamManager*              CLuaDefs::m_pTeamManager = NULL;
 CAccountManager*           CLuaDefs::m_pAccountManager = NULL;
 CColManager*               CLuaDefs::m_pColManager = NULL;
-CResourceManager*          CLuaDefs::m_pResourceManager = NULL;
 CAccessControlListManager* CLuaDefs::m_pACLManager = NULL;
 CMainConfig*               CLuaDefs::m_pMainConfig = NULL;
 
@@ -70,33 +71,36 @@ void CLuaDefs::Initialize(CGame* pGame)
     m_pTeamManager = pGame->GetTeamManager();
     m_pAccountManager = pGame->GetAccountManager();
     m_pColManager = pGame->GetColManager();
-    m_pResourceManager = pGame->GetResourceManager();
     m_pACLManager = pGame->GetACLManager();
     m_pMainConfig = pGame->GetConfig();
+
+    m_resourceManager = &pGame->GetResourceManager();
 }
 
-bool CLuaDefs::CanUseFunction(const char* szFunction, lua_State* luaVM, bool bRestricted)
+bool CLuaDefs::CanUseFunction(const char* szFunction, lua_State* luaVM, bool isRestricted)
 {
-    // Get the belonging resource of the lua state
-    CResource* pResource = m_pResourceManager->GetResourceFromLuaState(luaVM);
-    if (pResource)
-    {
-        // Can we use the function? Return true so LUA can execute it
-        if (m_pACLManager->CanObjectUseRight(pResource->GetName().c_str(), CAccessControlListGroupObject::OBJECT_TYPE_RESOURCE, szFunction,
-                                             CAccessControlListRight::RIGHT_TYPE_FUNCTION, !bRestricted))
-        {
-            return true;
-        }
-        else
-        {
-            // Otherwise just return false
-            m_pScriptDebugging->LogBadAccess(luaVM);
-            return false;
-        }
-    }
+    Resource* resource = m_resourceManager->GetResourceFromLuaState(luaVM);
 
-    // Heh this should never happen
-    return true;
+    if (resource != nullptr)
+        return CanUseFunction(szFunction, resource, isRestricted);
+
+    return false;
+}
+
+bool CLuaDefs::CanUseFunction(const char* szFunction, const Resource* resource, bool isRestricted)
+{
+    // Can we use the function? Return true so LUA can execute it
+    if (m_pACLManager->CanObjectUseRight(resource->GetName().c_str(), CAccessControlListGroupObject::OBJECT_TYPE_RESOURCE, szFunction,
+                                         CAccessControlListRight::RIGHT_TYPE_FUNCTION, !isRestricted))
+    {
+        return true;
+    }
+    else
+    {
+        // Otherwise just return false
+        m_pScriptDebugging->LogBadAccess(resource->GetLuaContext()->GetLuaState());
+        return false;
+    }
 }
 
 int CLuaDefs::CanUseFunction(lua_CFunction f, lua_State* luaVM)
@@ -117,18 +121,19 @@ int CLuaDefs::CanUseFunction(lua_CFunction f, lua_State* luaVM)
     }
 
     // Get associated resource
-    CResource* pResource = m_pResourceManager->GetResourceFromLuaState(luaVM);
-    if (!pResource)
+    Resource* resource = m_resourceManager->GetResourceFromLuaState(luaVM);
+
+    if (resource == nullptr)
         return true;
 
     // Update execution time check
-    pResource->GetVirtualMachine()->CheckExecutionTime();
+    resource->GetLuaContext()->CheckExecutionTime();
 
     // Check function right cache in resource
     bool bAllowed;
 
     // Check cached ACL rights
-    if (pResource->CheckFunctionRightCache(f, &bAllowed))
+    if (resource->CheckFunctionRightCache(f, &bAllowed))
     {
         // If in cache, and not allowed, do warning here
         if (!bAllowed)
@@ -170,7 +175,7 @@ int CLuaDefs::CanUseFunction(lua_CFunction f, lua_State* luaVM)
             }
         }
         // Update cache in resource
-        pResource->UpdateFunctionRightCache(f, bAllowed);
+        resource->UpdateFunctionRightCache(f, bAllowed);
     }
 
     if (!g_pGame->GetDebugHookManager()->OnPreFunction(f, luaVM, bAllowed))
@@ -220,8 +225,8 @@ void CLuaDefs::DidUseFunction(lua_CFunction f, lua_State* luaVM)
                 CLuaCFunction* pFunction = CLuaCFunctions::GetFunction(info.f);
                 if (pFunction)
                 {
-                    CResource* pResource = g_pGame->GetResourceManager()->GetResourceFromLuaState(info.luaVM);
-                    SString    strResourceName = pResource ? pResource->GetName() : "unknown";
+                    Resource* resource = m_resourceManager->GetResourceFromLuaState(info.luaVM);
+                    SString   strResourceName = (resource != nullptr ? resource->GetName() : "unknown"s);
                     CPerfStatFunctionTiming::GetSingleton()->UpdateTiming(strResourceName, pFunction->GetName().c_str(), elapsedTime, uiDeltaBytes);
                 }
             }

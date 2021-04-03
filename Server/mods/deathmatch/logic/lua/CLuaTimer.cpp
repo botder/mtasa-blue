@@ -33,11 +33,11 @@ void CLuaTimer::RemoveScriptID()
     }
 }
 
-void CLuaTimer::ExecuteTimer(CLuaMain* pLuaMain)
+void CLuaTimer::ExecuteTimer(CLuaMain* luaContext)
 {
     if (VERIFY_FUNCTION(m_iLuaFunction))
     {
-        lua_State* pState = pLuaMain->GetVM();
+        lua_State* pState = luaContext->GetLuaState();
 
         LUA_CHECKSTACK(pState, 1);            // Ensure some room
 
@@ -50,7 +50,7 @@ void CLuaTimer::ExecuteTimer(CLuaMain* pLuaMain)
         lua_pushtimer(pState, this);
         lua_setglobal(pState, "sourceTimer");
 
-        m_Arguments.Call(pLuaMain, m_iLuaFunction);
+        m_Arguments.Call(luaContext, m_iLuaFunction);
 
         // Reset the globals on that VM
         OldSource.Push(pState);

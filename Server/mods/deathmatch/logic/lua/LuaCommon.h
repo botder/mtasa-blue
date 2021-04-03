@@ -18,6 +18,11 @@ extern "C"
     #include "lauxlib.h"
 }
 
+namespace mtasa
+{
+    class Resource;
+}
+
 CLuaFunctionRef luaM_toref(lua_State* luaVM, int iArgument);
 
 #define TO_ELEMENTID(x) ((ElementID) reinterpret_cast < unsigned long > (x) )
@@ -30,7 +35,7 @@ void lua_pushelement(lua_State* luaVM, class CElement* pElement);
 void lua_pushacl(lua_State* luaVM, class CAccessControlList* pACL);
 void lua_pushaclgroup(lua_State* luaVM, class CAccessControlListGroup* pACL);
 void lua_pushaccount(lua_State* luaVM, class CAccount* pAccount);
-void lua_pushresource(lua_State* luaVM, class CResource* pResource);
+void lua_pushresource(lua_State* luaVM, mtasa::Resource* resource);
 void lua_pushtextdisplay(lua_State* luaVM, class CTextDisplay* pDisplay);
 void lua_pushtextitem(lua_State* luaVM, class CTextItem* pItem);
 void lua_pushtimer(lua_State* luaVM, class CLuaTimer* pTimer);

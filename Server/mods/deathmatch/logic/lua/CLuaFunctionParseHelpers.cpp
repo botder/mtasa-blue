@@ -9,7 +9,10 @@
  *****************************************************************************/
 
 #include "StdInc.h"
-#include "CResource.h"
+#include "Resource.h"
+#include "ResourceManager.h"
+
+using namespace mtasa;
 
 //
 // enum values <-> script strings
@@ -285,7 +288,7 @@ SString GetUserDataClassName(void* ptr, lua_State* luaVM, bool bFindElementType)
 {
     if (CElement* pVar = UserDataCast<CElement>((CElement*)NULL, ptr, luaVM))            // Try element
         return bFindElementType ? pVar->GetTypeName() : GetClassTypeName(pVar);
-    if (auto* pVar = UserDataCast<CResource>((CResource*)NULL, ptr, luaVM))            // Try resource
+    if (auto* pVar = UserDataCast<Resource>(static_cast<Resource*>(nullptr), ptr, luaVM))
         return GetClassTypeName(pVar);
     if (auto* pVar = UserDataCast<CXMLNode>((CXMLNode*)NULL, ptr, luaVM))            // Try xml node
         return GetClassTypeName(pVar);
@@ -320,71 +323,17 @@ SString GetUserDataClassName(void* ptr, lua_State* luaVM, bool bFindElementType)
 }
 
 //
-// Read next as resource or resource name.  Result output as string
-//
-void MixedReadResourceString(CScriptArgReader& argStream, SString& strOutResourceName)
-{
-    if (!argStream.NextIsString())
-    {
-        CResource* pResource;
-        argStream.ReadUserData(pResource);
-        if (pResource)
-            strOutResourceName = pResource->GetName();
-    }
-    else
-        argStream.ReadString(strOutResourceName);
-}
-
-//
-// Read next as resource or resource name.  Result output as resource
-//
-void MixedReadResourceString(CScriptArgReader& argStream, CResource*& pOutResource)
-{
-    if (!argStream.NextIsString())
-    {
-        argStream.ReadUserData(pOutResource);
-    }
-    else
-    {
-        SString strResourceName;
-        argStream.ReadString(strResourceName);
-        pOutResource = g_pGame->GetResourceManager()->GetResource(strResourceName);
-
-        if (!pOutResource)
-            argStream.SetTypeError("resource", argStream.m_iIndex - 1);
-    }
-}
-
-///////////////////////////////////////////////////////////////
-//
-// StringToBool
-//
-// Convert a string into a best guess bool equivalent
-//
-///////////////////////////////////////////////////////////////
-bool StringToBool(const SString& strText)
-{
-    return (strText == "true" || strText == "1" || strText == "yes");
-}
-
-//
 // Check min server is correct
 //
 void MinServerReqCheck(CScriptArgReader& argStream, const char* szVersionReq, const char* szReason)
 {
-    CLuaMain* pLuaMain = g_pGame->GetLuaManager()->GetVirtualMachine(argStream.m_luaVM);
-    if (pLuaMain)
+    Resource* resource = g_pGame->GetLuaManager()->GetResourceFromLuaState(argStream.m_luaVM);
+
+    if (resource != nullptr && resource->GetMinServerVersion() < szVersionReq)
     {
-        CResource* pResource = pLuaMain->GetResource();
-        if (pResource)
-        {
-            if (pResource->GetMinServerRequirement() < szVersionReq)
-            {
-                #if MTASA_VERSION_TYPE == VERSION_TYPE_RELEASE
-                argStream.SetVersionWarning(szVersionReq, "server", szReason);
-                #endif
-            }
-        }
+#if MTASA_VERSION_TYPE == VERSION_TYPE_RELEASE
+        argStream.SetVersionWarning(szVersionReq, "server", szReason);
+#endif
     }
 }
 
@@ -504,49 +453,53 @@ uint GetWeaponPropertyFlagBit(eWeaponProperty weaponProperty)
 }
 
 //
-// Returns the permission level of pThisResource to modify pOtherResource
+// Returns the permission level of `self` to modify `other`
 //
-eResourceModifyScope GetResourceModifyScope(CResource* pThisResource, CResource* pOtherResource)
+eResourceModifyScope GetResourceModifyScope(const Resource* self, const Resource* other)
 {
-    if (pThisResource == pOtherResource)
+    if (self == other)
         return eResourceModifyScope::SINGLE_RESOURCE;
 
     CAccessControlListManager* const pACLManager = g_pGame->GetACLManager();
-    const SString& strResourceName = pThisResource->GetName();
 
     // Check if resource has right to modify any resource
-    if (pACLManager->CanObjectUseRight(strResourceName.c_str(), CAccessControlListGroupObject::OBJECT_TYPE_RESOURCE, "ModifyOtherObjects", CAccessControlListRight::RIGHT_TYPE_GENERAL, false))
+    if (pACLManager->CanObjectUseRight(self->GetName().c_str(), CAccessControlListGroupObject::OBJECT_TYPE_RESOURCE, "ModifyOtherObjects",
+                                       CAccessControlListRight::RIGHT_TYPE_GENERAL, false))
         return eResourceModifyScope::EVERY_RESOURCE;
 
     // Check if resource has right to modify only pOtherResource
-    const SString strRightName("ModifyOtherObjects.%s", pOtherResource->GetName().c_str());
+    const SString strRightName("ModifyOtherObjects.%s", other->GetName().c_str());
 
-    if (pACLManager->CanObjectUseRight(strResourceName.c_str(), CAccessControlListGroupObject::OBJECT_TYPE_RESOURCE, strRightName.c_str(), CAccessControlListRight::RIGHT_TYPE_GENERAL, false))
+    if (pACLManager->CanObjectUseRight(self->GetName().c_str(), CAccessControlListGroupObject::OBJECT_TYPE_RESOURCE, strRightName.c_str(),
+                                       CAccessControlListRight::RIGHT_TYPE_GENERAL, false))
         return eResourceModifyScope::SINGLE_RESOURCE;
 
     return eResourceModifyScope::NONE;
 }
 
 //
-// Set error if pThisResource does not have permission to modify pOtherResource
+// Set error if `self` does not have permission to modify `other`
 //
-void CheckCanModifyOtherResource(CScriptArgReader& argStream, CResource* pThisResource, CResource* pOtherResource)
+void CheckCanModifyOtherResource(CScriptArgReader& argStream, const Resource* self, const Resource* other)
 {
-    if (GetResourceModifyScope(pThisResource, pOtherResource) == eResourceModifyScope::NONE)
-        argStream.SetCustomError(SString("ModifyOtherObjects in ACL denied resource %s to access %s", pThisResource->GetName().c_str(), pOtherResource->GetName().c_str()), "Access denied");
+    if (GetResourceModifyScope(self, other) == eResourceModifyScope::NONE)
+    {
+        argStream.SetCustomError(SString("ModifyOtherObjects in ACL denied resource %s to access %s", self->GetName().c_str(), other->GetName().c_str()),
+                                 "Access denied");
+    }
 }
 
 //
-// Set error if pThisResource does not have permission to modify every resource in resourceList
+// Set error if `self` does not have permission to modify every resource in `others`
 //
-void CheckCanModifyOtherResources(CScriptArgReader& argStream, CResource* pThisResource, std::initializer_list<CResource*> resourceList)
+void CheckCanModifyOtherResources(CScriptArgReader& argStream, const Resource* self, std::initializer_list<const Resource*> others)
 {
     // std::unordered_set only allows unique values and resourceList can contain duplicates
-    std::unordered_set<CResource*> setNoPermissionResources;
+    std::unordered_set<const Resource*> setNoPermissionResources;
 
-    for (CResource* pOtherResource : resourceList)
+    for (const Resource* other : others)
     {
-        eResourceModifyScope modifyScope = GetResourceModifyScope(pThisResource, pOtherResource);
+        eResourceModifyScope modifyScope = GetResourceModifyScope(self, other);
 
         if (modifyScope == eResourceModifyScope::SINGLE_RESOURCE)
             continue;
@@ -554,7 +507,7 @@ void CheckCanModifyOtherResources(CScriptArgReader& argStream, CResource* pThisR
         if (modifyScope == eResourceModifyScope::EVERY_RESOURCE)
             return;
 
-        setNoPermissionResources.emplace(pOtherResource);
+        setNoPermissionResources.emplace(other);
     }
 
     if (setNoPermissionResources.empty())
@@ -563,9 +516,9 @@ void CheckCanModifyOtherResources(CScriptArgReader& argStream, CResource* pThisR
     std::stringstream ssResourceNames;
     size_t remainingElements = setNoPermissionResources.size();
 
-    for (CResource* pResource : setNoPermissionResources)
+    for (const Resource* resource : setNoPermissionResources)
     {
-        ssResourceNames << pResource->GetName();
+        ssResourceNames << resource->GetName();
 
         if (remainingElements > 1)
             ssResourceNames << ", ";
@@ -573,32 +526,34 @@ void CheckCanModifyOtherResources(CScriptArgReader& argStream, CResource* pThisR
         --remainingElements;
     }
 
-    argStream.SetCustomError(SString("ModifyOtherObjects in ACL denied resource %s to access %s", pThisResource->GetName().c_str(), ssResourceNames.str().c_str()), "Access denied");
+    argStream.SetCustomError(SString("ModifyOtherObjects in ACL denied resource %s to access %s", self->GetName().c_str(), ssResourceNames.str().c_str()), "Access denied");
 }
 
 //
 // Set error if resource file access is blocked due to reasons
 //
-void CheckCanAccessOtherResourceFile(CScriptArgReader& argStream, CResource* pThisResource, CResource* pOtherResource, const SString& strAbsPath,
-    bool* pbReadOnly)
+void CheckCanAccessOtherResourceFile(CScriptArgReader& argStream, const Resource* self, const Resource* other, const std::filesystem::path& absoluteFilePath,
+                                     bool* pbReadOnly)
 {
     if (!g_pGame->GetConfig()->IsDatabaseCredentialsProtectionEnabled())
         return;
 
-    // Is other resource different and requested access denied
-    if ((pThisResource != pOtherResource) && pOtherResource->IsFileDbConnectMysqlProtected(strAbsPath, pbReadOnly ? *pbReadOnly : false))
-    {
-        // No access - See if we can change to readonly
-        if (pbReadOnly && *pbReadOnly == false)
-        {
-            if (!pOtherResource->IsFileDbConnectMysqlProtected(strAbsPath, true))
-            {
-                // Yes readonly access
-                *pbReadOnly = true;
-                return;
-            }
-        }
-        argStream.SetCustomError(
-            SString("Database credentials protection denied resource %s to access %s", *pThisResource->GetName(), *pOtherResource->GetName()), "Access denied");
-    }
+    // TODO:
+//     // Is other resource different and requested access denied
+//     if ((self != other) && other->IsFileDbConnectMysqlProtected(strAbsPath, pbReadOnly ? *pbReadOnly : false))
+//     {
+//         // No access - See if we can change to readonly
+//         if (pbReadOnly && *pbReadOnly == false)
+//         {
+//             if (!other->IsFileDbConnectMysqlProtected(strAbsPath, true))
+//             {
+//                 // Yes readonly access
+//                 *pbReadOnly = true;
+//                 return;
+//             }
+//         }
+// 
+//         argStream.SetCustomError(
+//             SString("Database credentials protection denied resource %s to access %s", self->GetName().c_str(), other->GetName().c_str()), "Access denied");
+//     }
 }

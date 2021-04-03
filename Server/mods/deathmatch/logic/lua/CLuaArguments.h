@@ -34,12 +34,16 @@ class CAccount;
 class CBan;
 class CElement;
 class CLuaTimer;
-class CResource;
 class CTextDisplay;
 class CTextItem;
 class CDbJobData;
 
 class CLuaArguments;
+
+namespace mtasa
+{
+    class Resource;
+}
 
 class CLuaArguments
 {
@@ -58,8 +62,8 @@ public:
     void ReadArguments(lua_State* luaVM, signed int uiIndexBegin = 1);
     void PushArguments(lua_State* luaVM) const;
     void PushArguments(const CLuaArguments& Arguments);
-    bool Call(class CLuaMain* pLuaMain, const CLuaFunctionRef& iLuaFunction, CLuaArguments* returnValues = NULL) const;
-    bool CallGlobal(class CLuaMain* pLuaMain, const char* szFunction, CLuaArguments* returnValues = NULL) const;
+    bool Call(class CLuaMain* luaContext, const CLuaFunctionRef& iLuaFunction, CLuaArguments* returnValues = NULL) const;
+    bool CallGlobal(class CLuaMain* luaContext, const char* szFunction, CLuaArguments* returnValues = NULL) const;
 
     void ReadTable(lua_State* luaVM, int iIndexBegin, CFastHashMap<const void*, CLuaArguments*>* pKnownTables = NULL);
     void PushAsTable(lua_State* luaVM, CFastHashMap<CLuaArguments*, int>* pKnownTables = nullptr) const;
@@ -73,7 +77,7 @@ public:
     CLuaArgument* PushACL(CAccessControlList* pACL);
     CLuaArgument* PushACLGroup(CAccessControlListGroup* pACLGroup);
     CLuaArgument* PushAccount(CAccount* pAccount);
-    CLuaArgument* PushResource(CResource* pResource);
+    CLuaArgument* PushResource(mtasa::Resource* resource);
     CLuaArgument* PushTextDisplay(CTextDisplay* pTextDisplay);
     CLuaArgument* PushTextItem(CTextItem* pTextItem);
     CLuaArgument* PushTimer(CLuaTimer* pLuaTimer);

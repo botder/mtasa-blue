@@ -11,7 +11,7 @@
 
 #include "StdInc.h"
 
-using namespace std;
+using namespace mtasa;
 
 CColCircle::CColCircle(CColManager* pManager, CElement* pParent, const CVector2D& vecPosition, float fRadius, bool bIsPartnered)
     : CColShape(pManager, pParent, bIsPartnered)
@@ -23,7 +23,7 @@ CColCircle::CColCircle(CColManager* pManager, CElement* pParent, const CVector2D
     UpdateSpatialData();
 }
 
-CElement* CColCircle::Clone(bool* bAddEntity, CResource* pResource)
+CElement* CColCircle::Clone(bool* bAddEntity, Resource* resource)
 {
     CColCircle* pColCircle = new CColCircle(m_pManager, GetParentEntity(), m_vecPosition, m_fRadius);
     return pColCircle;

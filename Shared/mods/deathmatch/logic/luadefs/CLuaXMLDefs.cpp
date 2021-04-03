@@ -9,6 +9,12 @@
  *****************************************************************************/
 
 #include "StdInc.h"
+#include "Resource.h"
+#include "ResourceFilePath.h"
+
+namespace fs = std::filesystem;
+
+using namespace mtasa;
 
 void CLuaXMLDefs::LoadFunctions()
 {
@@ -85,53 +91,58 @@ int CLuaXMLDefs::xmlCreateFile(lua_State* luaVM)
         m_pScriptDebugging->LogCustom(luaVM, "xmlCreateFile may be using an outdated syntax. Please check and update.");
 #endif // !MTA_CLIENT
 
-    // Grab our resource
-    CLuaMain* pLuaMain = m_pLuaManager->GetVirtualMachine(luaVM);
-    if (pLuaMain)
+    std::string_view filePath;
+    std::string_view rootNodeName;
+
+    CScriptArgReader argStream(luaVM);
+    argStream.ReadStringView(filePath);
+    argStream.ReadStringView(rootNodeName);
+
+    if (argStream.HasErrors())
     {
-        SString strInputPath, strRootNodeName;
+        m_pScriptDebugging->LogCustom(luaVM, argStream.GetFullErrorMessage());
+        lua_pushboolean(luaVM, false);
+        return 1;
+    }
 
-        CScriptArgReader argStream(luaVM);
-        argStream.ReadString(strInputPath);
-        argStream.ReadString(strRootNodeName);
+    CLuaMain* luaContext = m_pLuaManager->GetLuaContext(luaVM);
 
-        if (!argStream.HasErrors())
+    if (luaContext != nullptr)
+    {
+        Resource*                       self = &luaContext->GetResource();
+        std::optional<ResourceFilePath> file = ParseResourceFilePath(filePath, self);
+
+        if (file.has_value())
         {
-            SString    strPath;
-            CResource* pThisResource = pLuaMain->GetResource();
-            CResource* pOtherResource = pThisResource;            // clientside, this variable will always be pThisResource
+            CheckCanModifyOtherResource(argStream, self, file->resource);
+            CheckCanAccessOtherResourceFile(argStream, self, file->resource, file->absolutePath);
 
-            // Resolve other resource from name
-            if (CResourceManager::ParseResourcePathInput(strInputPath, pOtherResource, &strPath, nullptr))
+            if (!argStream.HasErrors())
             {
-                CheckCanModifyOtherResource(argStream, pThisResource, pOtherResource);
-                CheckCanAccessOtherResourceFile(argStream, pThisResource, pOtherResource, strPath);
-                if (!argStream.HasErrors())
-                {
-                    // Make sure the dir exists so we can successfully make the file
-                    MakeSureDirExists(strPath);
+                std::error_code errorCode;
+                fs::create_directories(file->absolutePath.parent_path(), errorCode);
 
-                    // Create the XML file
-                    CXMLFile* xmlFile = pLuaMain->CreateXML(strPath);
-                    if (xmlFile)
+                CXMLFile* xmlFile = luaContext->CreateXML(file->absolutePath.generic_string().c_str());
+
+                if (xmlFile != nullptr)
+                {
+                    // Create its root node
+                    CXMLNode* rootNode = xmlFile->CreateRootNode(std::string{rootNodeName});
+
+                    if (rootNode != nullptr)
                     {
-                        // Create its root node
-                        CXMLNode* pRootNode = xmlFile->CreateRootNode(strRootNodeName);
-                        if (pRootNode)
-                        {
-                            lua_pushxmlnode(luaVM, pRootNode);
-                            return 1;
-                        }
-                        // Destroy it if we failed
-                        pLuaMain->DestroyXML(xmlFile);
+                        lua_pushxmlnode(luaVM, rootNode);
+                        return 1;
                     }
+
+                    luaContext->DestroyXML(xmlFile);
                 }
             }
         }
-
-        if (argStream.HasErrors())
-            m_pScriptDebugging->LogCustom(luaVM, argStream.GetFullErrorMessage());
     }
+
+    if (argStream.HasErrors())
+        m_pScriptDebugging->LogCustom(luaVM, argStream.GetFullErrorMessage());
 
     lua_pushboolean(luaVM, false);
     return 1;
@@ -144,71 +155,77 @@ int CLuaXMLDefs::xmlLoadFile(lua_State* luaVM)
         m_pScriptDebugging->LogCustom(luaVM, "xmlLoadFile may be using an outdated syntax. Please check and update.");
 #endif // !MTA_CLIENT
 
-    // Grab our resource
-    CLuaMain* pLuaMain = m_pLuaManager->GetVirtualMachine(luaVM);
-    if (pLuaMain)
+    std::string_view filePath;
+    bool             readOnly = false;
+
+    CScriptArgReader argStream(luaVM);
+    argStream.ReadStringView(filePath);
+    argStream.ReadIfNextIsBool(readOnly, false);
+
+    if (argStream.HasErrors())
     {
-        SString strFileInput;
-        bool    bReadOnly;
+        m_pScriptDebugging->LogCustom(luaVM, argStream.GetFullErrorMessage());
+        lua_pushboolean(luaVM, false);
+        return 1;
+    }
 
-        CScriptArgReader argStream(luaVM);
-        argStream.ReadString(strFileInput);
-        argStream.ReadIfNextIsBool(bReadOnly, false);
+    CLuaMain* luaContext = m_pLuaManager->GetLuaContext(luaVM);
 
-        if (!argStream.HasErrors())
+    if (luaContext != nullptr)
+    {
+        Resource*                       self = &luaContext->GetResource();
+        std::optional<ResourceFilePath> file = ParseResourceFilePath(filePath, self);
+
+        if (file.has_value())
         {
-            SString    strPath;
-            CResource* pThisResource = pLuaMain->GetResource();
-            CResource* pOtherResource = pThisResource;
+            CheckCanModifyOtherResource(argStream, self, file->resource);
+            CheckCanAccessOtherResourceFile(argStream, self, file->resource, file->absolutePath, &readOnly);
 
-            // Resolve other resource from name
-            if (CResourceManager::ParseResourcePathInput(strFileInput, pOtherResource, &strPath))
+            if (!argStream.HasErrors())
             {
-                CheckCanModifyOtherResource(argStream, pThisResource, pOtherResource);
-                CheckCanAccessOtherResourceFile(argStream, pThisResource, pOtherResource, strPath, &bReadOnly);
-                if (!argStream.HasErrors())
+                std::error_code errorCode;
+                fs::create_directories(file->absolutePath.parent_path(), errorCode);
+
+                CXMLFile* xmlFile = luaContext->CreateXML(file->absolutePath.generic_string().c_str(), true, readOnly);
+
+                if (xmlFile != nullptr)
                 {
-                    // Make sure the dir exists so we can successfully make the file
-                    MakeSureDirExists(strPath);
-
-                    // Create the XML
-                    CXMLFile* xmlFile = pLuaMain->CreateXML(strPath.c_str(), true, bReadOnly);
-                    if (xmlFile)
+                    if (xmlFile->Parse())
                     {
-                        // Try to parse it
-                        if (xmlFile->Parse())
-                        {
-                            // Grab the root node. If it didn't exist, create one
-                            CXMLNode* pRootNode = xmlFile->GetRootNode();
-                            if (!pRootNode)
-                                pRootNode = xmlFile->CreateRootNode("root");
+                        // Grab the root node. If it didn't exist, create one
+                        CXMLNode* rootNode = xmlFile->GetRootNode();
 
-                            // Could we create one?
-                            if (pRootNode)
-                            {
-                                // Return the root node
-                                lua_pushxmlnode(luaVM, pRootNode);
-                                return 1;
-                            }
-                        }
+                        if (rootNode == nullptr)
+                            rootNode = xmlFile->CreateRootNode("root");
 
-                        if (FileExists(strPath))
+                        if (rootNode != nullptr)
                         {
-                            SString strError;
-                            xmlFile->GetLastError(strError);
-                            if (!strError.empty())
-                                argStream.SetCustomError(strError, SString("Unable to read XML file %s", strFileInput.c_str()));
+                            lua_pushxmlnode(luaVM, rootNode);
+                            return 1;
                         }
-                        // Destroy it if we failed
-                        pLuaMain->DestroyXML(xmlFile);
+                        else
+                        {
+                            argStream.SetCustomError("Root node is missing", "XML error");
+                        }
                     }
+                    else
+                    {
+                        SString strError;
+                        xmlFile->GetLastError(strError);
+
+                        if (!strError.empty())
+                            argStream.SetCustomError(strError, SString("Unable to read XML file %.*s", filePath.size(), filePath.data()));
+
+                    }
+                    
+                    luaContext->DestroyXML(xmlFile);
                 }
             }
         }
-
-        if (argStream.HasErrors())
-            m_pScriptDebugging->LogCustom(luaVM, argStream.GetFullErrorMessage());
     }
+
+    if (argStream.HasErrors())
+        m_pScriptDebugging->LogCustom(luaVM, argStream.GetFullErrorMessage());
 
     lua_pushboolean(luaVM, false);
     return 1;
@@ -225,10 +242,11 @@ int CLuaXMLDefs::xmlLoadString(lua_State* luaVM)
         return luaL_error(luaVM, argStream.GetFullErrorMessage());
 
     // Grab our resource
-    CLuaMain* pLuaMain = m_pLuaManager->GetVirtualMachine(luaVM);
-    if (pLuaMain)
+    CLuaMain* luaContext = m_pLuaManager->GetLuaContext(luaVM);
+
+    if (luaContext != nullptr)
     {
-        CXMLNode* rootNode = pLuaMain->ParseString(strXmlContent);
+        CXMLNode* rootNode = luaContext->ParseString(strXmlContent);
 
         if (rootNode && rootNode->IsValid())
         {
@@ -250,81 +268,68 @@ int CLuaXMLDefs::xmlCopyFile(lua_State* luaVM)
         m_pScriptDebugging->LogCustom(luaVM, "xmlCopyFile may be using an outdated syntax. Please check and update.");
 #endif // !MTA_CLIENT
 
-    // Grab our resource
-    CLuaMain* pLUA = m_pLuaManager->GetVirtualMachine(luaVM);
-    if (pLUA)
+    CXMLNode*        sourceNode = nullptr;
+    std::string_view filePath;
+
+    CScriptArgReader argStream(luaVM);
+    argStream.ReadUserData(sourceNode);
+    argStream.ReadStringView(filePath);
+
+    if (argStream.HasErrors())
     {
-        SString   strFile;
-        CXMLNode* pSourceNode;
+        m_pScriptDebugging->LogCustom(luaVM, argStream.GetFullErrorMessage());
+        lua_pushboolean(luaVM, false);
+        return 1;
+    }
 
-        CScriptArgReader argStream(luaVM);
-        argStream.ReadUserData(pSourceNode);
-        argStream.ReadString(strFile);
+    CLuaMain* luaContext = m_pLuaManager->GetLuaContext(luaVM);
 
-        if (!argStream.HasErrors())
+    if (luaContext != nullptr)
+    {
+        Resource*                       self = &luaContext->GetResource();
+        std::optional<ResourceFilePath> file = ParseResourceFilePath(filePath, self);
+
+        if (file.has_value())
         {
-            SString    strPath;
-            CResource* pThisResource = pLUA->GetResource();
-            CResource* pOtherResource = pThisResource;
+            CheckCanModifyOtherResource(argStream, self, file->resource);
+            CheckCanAccessOtherResourceFile(argStream, self, file->resource, file->absolutePath);
 
-            // Resolve other resource from name
-            if (CResourceManager::ParseResourcePathInput(strFile, pOtherResource, &strPath, NULL))
+            if (!argStream.HasErrors())
             {
-                CheckCanModifyOtherResource(argStream, pThisResource, pOtherResource);
-                CheckCanAccessOtherResourceFile(argStream, pThisResource, pOtherResource, strPath);
-                if (!argStream.HasErrors())
+                std::error_code errorCode;
+                fs::create_directories(file->absolutePath.parent_path(), errorCode);
+
+                CXMLFile* xmlFile = luaContext->CreateXML(file->absolutePath.generic_string().c_str());
+
+                if (xmlFile != nullptr)
                 {
-                    if (pSourceNode)
+                    CXMLNode* rootNode = xmlFile->CreateRootNode(sourceNode->GetTagName());
+
+                    if (rootNode != nullptr)
                     {
-                        // Make sure the dir exists so we can successfully make the file
-                        MakeSureDirExists(strPath);
+                        // Copy over the attributes from the root
+                        CXMLAttributes& sourceAttributes = sourceNode->GetAttributes();
+                        CXMLAttributes& rootAttributes = rootNode->GetAttributes();
 
-                        // Grab the roots tag name
-                        std::string strRootTagName;
-                        strRootTagName = pSourceNode->GetTagName();
-
-                        // Create the new XML file and its root node
-                        CXMLFile* pNewXML = pLUA->CreateXML(strPath.c_str());
-                        if (pNewXML)
+                        for (auto iter = sourceAttributes.ListBegin(); iter != sourceAttributes.ListEnd(); ++iter)
                         {
-                            // Grab the root of the new XML
-                            CXMLNode* pNewRoot = pNewXML->CreateRootNode(strRootTagName);
-                            if (pNewRoot)
-                            {
-                                // Copy over the attributes from the root
-                                int            iAttributeCount = pSourceNode->GetAttributes().Count();
-                                int            i = 0;
-                                CXMLAttribute* pAttribute;
-                                for (; i < iAttributeCount; i++)
-                                {
-                                    pAttribute = pSourceNode->GetAttributes().Get(i);
-                                    if (pAttribute)
-                                        pNewRoot->GetAttributes().Create(*pAttribute);
-                                }
+                            rootAttributes.Create(**iter);
+                        }
 
-                                // Copy the stuff from the given source node to the destination root
-                                if (pSourceNode->CopyChildrenInto(pNewRoot, true))
-                                {
-                                    lua_pushxmlnode(luaVM, pNewRoot);
-                                    return 1;
-                                }
-                            }
-
-                            // Delete the XML again
-                            pLUA->DestroyXML(pNewXML);
+                        // Copy the stuff from the given source node to the destination root
+                        if (sourceNode->CopyChildrenInto(rootNode, true))
+                        {
+                            lua_pushxmlnode(luaVM, rootNode);
+                            return 1;
                         }
                     }
-                    else
-                        argStream.SetCustomError(SString("Unable to copy XML file %s", strFile.c_str()), "Bad filepath");
+
+                    luaContext->DestroyXML(xmlFile);
                 }
             }
         }
-
-        if (argStream.HasErrors())
-            m_pScriptDebugging->LogCustom(luaVM, argStream.GetFullErrorMessage());
     }
 
-    // Error
     lua_pushboolean(luaVM, false);
     return 1;
 }
@@ -338,10 +343,9 @@ int CLuaXMLDefs::xmlSaveFile(lua_State* luaVM)
 
     if (!argStream.HasErrors())
     {
-        CLuaMain* luaMain = m_pLuaManager->GetVirtualMachine(luaVM);
-        if (luaMain)
+        if (CLuaMain* luaContext = m_pLuaManager->GetLuaContext(luaVM); luaContext != nullptr)
         {
-            if (luaMain->SaveXML(pNode))
+            if (luaContext->SaveXML(pNode))
             {
                 lua_pushboolean(luaVM, true);
                 return 1;
@@ -364,10 +368,9 @@ int CLuaXMLDefs::xmlUnloadFile(lua_State* luaVM)
 
     if (!argStream.HasErrors())
     {
-        CLuaMain* luaMain = m_pLuaManager->GetVirtualMachine(luaVM);
-        if (luaMain)
+        if (CLuaMain* luaContext = m_pLuaManager->GetLuaContext(luaVM); luaContext != nullptr)
         {
-            if (luaMain->DestroyXML(pNode))
+            if (luaContext->DestroyXML(pNode))
             {
                 lua_pushboolean(luaVM, true);
                 return 1;

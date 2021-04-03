@@ -11,6 +11,8 @@
 
 #include "StdInc.h"
 
+using namespace mtasa;
+
 extern CGame* g_pGame;
 
 CObject::CObject(CElement* pParent, CObjectManager* pObjectManager, bool bIsLowLod) : CElement(pParent), m_bIsLowLod(bIsLowLod), m_pLowLodObject(NULL)
@@ -84,7 +86,7 @@ CObject::~CObject()
     Unlink();
 }
 
-CElement* CObject::Clone(bool* bAddEntity, CResource* pResource)
+CElement* CObject::Clone(bool* bAddEntity, Resource* resource)
 {
     return new CObject(*this);
 }

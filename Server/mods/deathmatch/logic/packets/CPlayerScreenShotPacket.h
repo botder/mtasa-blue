@@ -10,6 +10,11 @@
  *****************************************************************************/
 #pragma once
 
+namespace mtasa
+{
+    class Resource;
+}
+
 class CPlayerScreenShotPacket final : public CPacket
 {
 public:
@@ -26,10 +31,10 @@ public:
     CBuffer m_buffer;
 
     // When uiPartNumber is 0:
-    long long  m_llServerGrabTime;
-    uint       m_uiTotalBytes;
-    ushort     m_usTotalParts;
-    CResource* m_pResource;
-    SString    m_strTag;
-    SString    m_strError;
+    long long        m_llServerGrabTime;
+    uint             m_uiTotalBytes;
+    ushort           m_usTotalParts;
+    mtasa::Resource* m_resource = nullptr;
+    SString          m_strTag;
+    SString          m_strError;
 };

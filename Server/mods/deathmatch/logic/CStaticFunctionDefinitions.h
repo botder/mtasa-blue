@@ -13,6 +13,11 @@ class CStaticFunctionDefinitions;
 
 #pragma once
 
+namespace mtasa
+{
+    class Resource;
+}
+
 class CStaticFunctionDefinitions
 {
 public:
@@ -20,23 +25,23 @@ public:
     ~CStaticFunctionDefinitions();
 
     // Event funcs
-    static bool AddEvent(CLuaMain* pLuaMain, const char* szName, const char* szArguments, bool bAllowRemoteTrigger);
-    static bool AddEventHandler(CLuaMain* pLuaMain, const char* szName, CElement* pElement, const CLuaFunctionRef& iLuaFunction, bool bPropagated,
+    static bool AddEvent(CLuaMain* luaContext, const char* szName, const char* szArguments, bool bAllowRemoteTrigger);
+    static bool AddEventHandler(CLuaMain* luaContext, const char* szName, CElement* pElement, const CLuaFunctionRef& iLuaFunction, bool bPropagated,
                                 EEventPriorityType eventPriority, float fPriorityMod);
-    static bool RemoveEventHandler(CLuaMain* pLuaMain, const char* szName, CElement* pElement, const CLuaFunctionRef& iLuaFunction);
+    static bool RemoveEventHandler(CLuaMain* luaContext, const char* szName, CElement* pElement, const CLuaFunctionRef& iLuaFunction);
     static bool TriggerEvent(const char* szName, CElement* pElement, const CLuaArguments& Arguments, bool& bWasCancelled);
     static bool TriggerClientEvent(const std::vector<CPlayer*>& sendList, const char* szName, CElement* pCallWithElement, CLuaArguments& Arguments);
     static bool TriggerLatentClientEvent(const std::vector<CPlayer*>& sendList, const char* szName, CElement* pCallWithElement, CLuaArguments& Arguments,
-                                         int iBandwidth, CLuaMain* pLuaMain, ushort usResourceNetId);
+                                         int iBandwidth, CLuaMain* luaContext, ushort usResourceNetId);
 
     static bool        CancelEvent(bool bCancel, const char* szReason);
     static const char* GetCancelReason();
     static bool        WasEventCancelled();
 
     // Element create/destroy
-    static CDummy*   CreateElement(CResource* pResource, const char* szTypeName, const char* szID);
+    static CDummy*   CreateElement(mtasa::Resource* resource, const char* szTypeName, const char* szID);
     static bool      DestroyElement(CElement* pElement);
-    static CElement* CloneElement(CResource* pResource, CElement* pElement, const CVector& vecPosition, bool bCloneElement);
+    static CElement* CloneElement(mtasa::Resource* resource, CElement* pElement, const CVector& vecPosition, bool bCloneElement);
 
     // Element get funcs
     static CElement*      GetElementByID(const char* szID, unsigned int uiIndex);
@@ -150,10 +155,10 @@ public:
     static bool SetPlayerName(CElement* pElement, const char* szName);
     static bool DetonateSatchels(CElement* pElement);
     static bool TakePlayerScreenShot(CElement* pElement, uint uiSizeX, uint uiSizeY, const SString& strTag, uint uiQuality, uint uiMaxBandwidth,
-                                     uint uiMaxPacketSize, CResource* pResource);
+                                     uint uiMaxPacketSize, mtasa::Resource* resource);
 
     // Ped get funcs
-    static CPed*     CreatePed(CResource* pResource, unsigned short usModel, const CVector& vecPosition, float fRotation = 0.0f, bool bSynced = true);
+    static CPed*     CreatePed(mtasa::Resource* resource, unsigned short usModel, const CVector& vecPosition, float fRotation = 0.0f, bool bSynced = true);
     static bool      GetPedArmor(CPed* pPed, float& fArmor);
     static bool      GetPedRotation(CPed* pPed, float& fRotation);
     static bool      IsPedDead(CPed* pPed, bool& bDead);
@@ -232,7 +237,7 @@ public:
     static bool SetWeaponAmmo(CElement* pElement, unsigned char ucWeaponID, unsigned short usAmmo, unsigned short usAmmoInClip);
 
     // Vehicle create/destroy functions
-    static CVehicle* CreateVehicle(CResource* pResource, unsigned short usModel, const CVector& vecPosition, const CVector& vecRotation, const char* szRegPlate,
+    static CVehicle* CreateVehicle(mtasa::Resource* resource, unsigned short usModel, const CVector& vecPosition, const CVector& vecRotation, const char* szRegPlate,
                                    unsigned char ucVariant, unsigned char ucVariant2);
 
     // Vehicle get functions
@@ -361,7 +366,7 @@ public:
     static bool RemoveVehicleSirens(CVehicle* pVehicle);
 
     // Marker create/destroy functions
-    static CMarker* CreateMarker(CResource* pResource, const CVector& vecPosition, const char* szType, float fSize, const SColor color, CElement* pVisibleTo);
+    static CMarker* CreateMarker(mtasa::Resource* resource, const CVector& vecPosition, const char* szType, float fSize, const SColor color, CElement* pVisibleTo);
 
     // Marker get functions
     static bool GetMarkerCount(unsigned int& uiCount);
@@ -379,9 +384,9 @@ public:
     static bool SetMarkerIcon(CElement* pElement, const char* szIcon);
 
     // Blip create/destroy functions
-    static CBlip* CreateBlip(CResource* pResource, const CVector& vecPosition, unsigned char ucIcon, unsigned char ucSize, const SColor color, short sOrdering,
+    static CBlip* CreateBlip(mtasa::Resource* resource, const CVector& vecPosition, unsigned char ucIcon, unsigned char ucSize, const SColor color, short sOrdering,
                              unsigned short usVisibleDistance, CElement* pVisibleTo);
-    static CBlip* CreateBlipAttachedTo(CResource* pResource, CElement* pElement, unsigned char ucIcon, unsigned char ucSize, const SColor color,
+    static CBlip* CreateBlipAttachedTo(mtasa::Resource* resource, CElement* pElement, unsigned char ucIcon, unsigned char ucSize, const SColor color,
                                        short sOrdering, unsigned short usVisibleDistance, CElement* pVisibleTo);
 
     // Blip get functions
@@ -399,7 +404,7 @@ public:
     static bool SetBlipVisibleDistance(CElement* pElement, unsigned short usVisibleDistance);
 
     // Object create/destroy functions
-    static CObject* CreateObject(CResource* pResource, unsigned short usModelID, const CVector& vecPosition, const CVector& vecRotation, bool bIsLowLod);
+    static CObject* CreateObject(mtasa::Resource* resource, unsigned short usModelID, const CVector& vecPosition, const CVector& vecRotation, bool bIsLowLod);
 
     // Object get functions
     static bool GetObjectRotation(CObject* pObject, CVector& vecRotation);
@@ -408,13 +413,13 @@ public:
     // Object set functions
     static bool SetObjectRotation(CElement* pElement, const CVector& vecRotation);
     static bool SetObjectScale(CElement* pElement, const CVector& vecScale);
-    static bool MoveObject(CResource* pResource, CElement* pElement, unsigned long ulTime, const CVector& vecPosition, const CVector& vecRotation,
+    static bool MoveObject(mtasa::Resource* resource, CElement* pElement, unsigned long ulTime, const CVector& vecPosition, const CVector& vecRotation,
                            CEasingCurve::eType a_easingType, double a_fEasingPeriod, double a_fEasingAmplitude, double a_fEasingOvershoot);
     static bool StopObject(CElement* pElement);
     static bool SetObjectVisibleInAllDimensions(CElement* pElement, bool bVisible, unsigned short usNewDimension = 0);
 
     // Radar area create/destroy funcs
-    static CRadarArea* CreateRadarArea(CResource* pResource, const CVector2D& vecPosition, const CVector2D& vecSize, const SColor color, CElement* pVisibleTo);
+    static CRadarArea* CreateRadarArea(mtasa::Resource* resource, const CVector2D& vecPosition, const CVector2D& vecSize, const SColor color, CElement* pVisibleTo);
 
     // Radar area get funcs
     static bool GetRadarAreaSize(CRadarArea* pRadarArea, CVector2D& vecSize);
@@ -428,7 +433,7 @@ public:
     static bool SetRadarAreaFlashing(CElement* pElement, bool bFlashing);
 
     // Pickup create/destroy funcs
-    static CPickup* CreatePickup(CResource* pResource, const CVector& vecPosition, unsigned char ucType, double dFive, unsigned long ulRespawnInterval,
+    static CPickup* CreatePickup(mtasa::Resource* resource, const CVector& vecPosition, unsigned char ucType, double dFive, unsigned long ulRespawnInterval,
                                  double dSix);
 
     // Pickup get funcs
@@ -445,12 +450,12 @@ public:
     static bool UsePickup(CElement* pElement, CPlayer* pPlayer);
 
     // Shape create funcs
-    static CColCircle*    CreateColCircle(CResource* pResource, const CVector2D& vecPosition, float fRadius);
-    static CColCuboid*    CreateColCuboid(CResource* pResource, const CVector& vecPosition, const CVector& vecSize);
-    static CColSphere*    CreateColSphere(CResource* pResource, const CVector& vecPosition, float fRadius);
-    static CColRectangle* CreateColRectangle(CResource* pResource, const CVector2D& vecPosition, const CVector2D& vecSize);
-    static CColPolygon*   CreateColPolygon(CResource* pResource, const std::vector<CVector2D>& vecPointList);
-    static CColTube*      CreateColTube(CResource* pResource, const CVector& vecPosition, float fRadius, float fHeight);
+    static CColCircle*    CreateColCircle(mtasa::Resource* resource, const CVector2D& vecPosition, float fRadius);
+    static CColCuboid*    CreateColCuboid(mtasa::Resource* resource, const CVector& vecPosition, const CVector& vecSize);
+    static CColSphere*    CreateColSphere(mtasa::Resource* resource, const CVector& vecPosition, float fRadius);
+    static CColRectangle* CreateColRectangle(mtasa::Resource* resource, const CVector2D& vecPosition, const CVector2D& vecSize);
+    static CColPolygon*   CreateColPolygon(mtasa::Resource* resource, const std::vector<CVector2D>& vecPointList);
+    static CColTube*      CreateColTube(mtasa::Resource* resource, const CVector& vecPosition, float fRadius, float fHeight);
     static bool           IsInsideColShape(CColShape* pColShape, const CVector& vecPosition, bool& inside);
     static void           RefreshColShapeColliders(CColShape* pColShape);
 
@@ -469,7 +474,7 @@ public:
     static bool SetColPolygonHeight(CColPolygon* pColPolygon, float fFloor, float fCeil);
 
     // Weapon funcs
-    static CCustomWeapon* CreateWeapon(CResource* pResource, eWeaponType weaponType, CVector vecPosition);
+    static CCustomWeapon* CreateWeapon(mtasa::Resource* resource, eWeaponType weaponType, CVector vecPosition);
     static bool           GetWeaponNameFromID(unsigned char ucID, char* szName);
     static bool           GetWeaponIDFromName(const char* szName, unsigned char& ucID);
     static bool           FireWeapon(CCustomWeapon* pWeapon);
@@ -514,14 +519,14 @@ public:
     static bool GetClothesTypeName(unsigned char ucType, char* szNameReturn);
 
     // Input funcs
-    static bool BindKey(CPlayer* pPlayer, const char* szKey, const char* szHitState, CLuaMain* pLuaMain, const CLuaFunctionRef& iLuaFunction,
+    static bool BindKey(CPlayer* pPlayer, const char* szKey, const char* szHitState, CLuaMain* luaContext, const CLuaFunctionRef& iLuaFunction,
                         CLuaArguments& Arguments);
     static bool BindKey(CPlayer* pPlayer, const char* szKey, const char* szHitState, const char* szCommandName, const char* szArguments,
                         const char* szResource);
-    static bool UnbindKey(CPlayer* pPlayer, const char* szKey, CLuaMain* pLuaMain, const char* szHitState = NULL,
+    static bool UnbindKey(CPlayer* pPlayer, const char* szKey, CLuaMain* luaContext, const char* szHitState = NULL,
                           const CLuaFunctionRef& iLuaFunction = CLuaFunctionRef());
     static bool UnbindKey(CPlayer* pPlayer, const char* szKey, const char* szHitState, const char* szCommandName, const char* szResource);
-    static bool IsKeyBound(CPlayer* pPlayer, const char* szKey, CLuaMain* pLuaMain, const char* szHitState, const CLuaFunctionRef& iLuaFunction, bool& bBound);
+    static bool IsKeyBound(CPlayer* pPlayer, const char* szKey, CLuaMain* luaContext, const char* szHitState, const CLuaFunctionRef& iLuaFunction, bool& bBound);
     static bool GetControlState(CPlayer* pPlayer, const char* szControl, bool& bState);
     static bool IsControlEnabled(CPlayer* pPlayer, const char* szControl, bool& bEnabled);
 
@@ -530,7 +535,7 @@ public:
     static bool ToggleAllControls(CPlayer* pPlayer, bool bGTAControls, bool bMTAControls, bool bEnabled);
 
     // Team get funcs
-    static CTeam* CreateTeam(CResource* pResource, const char* szTeamName, unsigned char ucRed, unsigned char ucGreen, unsigned char ucBlue);
+    static CTeam* CreateTeam(mtasa::Resource* resource, const char* szTeamName, unsigned char ucRed, unsigned char ucGreen, unsigned char ucBlue);
     static CTeam* GetTeamFromName(const char* szTeamName);
     static bool   GetTeamName(CTeam* pTeam, SString& strOutName);
     static bool   GetTeamColor(CTeam* pTeam, unsigned char& ucRed, unsigned char& ucGreen, unsigned char& ucBlue);
@@ -544,7 +549,7 @@ public:
     static bool SetTeamFriendlyFire(CTeam* pTeam, bool bFriendlyFire);
 
     // Water funcs
-    static CWater* CreateWater(CResource* pResource, CVector* pV1, CVector* pV2, CVector* pV3, CVector* pV4, bool bShallow);
+    static CWater* CreateWater(mtasa::Resource* resource, CVector* pV1, CVector* pV2, CVector* pV3, CVector* pV4, bool bShallow);
     static bool    SetElementWaterLevel(CWater* pWater, float fLevel);
     static bool    SetAllElementWaterLevel(float fLevel);
     static bool    SetWorldWaterLevel(float fLevel, bool bIncludeWorldNonSeaLevel, bool bIncludeWorldSeaLevel, bool bIncludeOutsideWorldLevel);
@@ -559,7 +564,7 @@ public:
     static unsigned int GetMaxPlayers();
     static bool         SetMaxPlayers(unsigned int uiMax);
     static bool OutputChatBox(const char* szText, CElement* pElement, unsigned char ucRed, unsigned char ucGreen, unsigned char ucBlue, bool bColorCoded,
-                              CLuaMain* pLuaMain);
+                              CLuaMain* luaContext);
     static void OutputChatBox(const char* szText, const std::vector<CPlayer*>& sendList, unsigned char ucRed, unsigned char ucGreen, unsigned char ucBlue,
                               bool bColorCoded);
     static bool OutputConsole(const char* szText, CElement* pElement);
@@ -645,7 +650,7 @@ public:
 
     // Loaded Map Functions
     static CElement* GetRootElement();
-    static CElement* LoadMapData(CLuaMain* pLuaMain, CElement* pParent, CXMLNode* pNode);
+    static CElement* LoadMapData(CLuaMain* luaContext, CElement* pParent, CXMLNode* pNode);
     static CXMLNode* SaveMapData(CElement* pElement, CXMLNode* pNode, bool bChildren);
 
     // All-Seeing Eye related Functions
@@ -726,7 +731,7 @@ public:
     static bool IsCursorShowing(CPlayer* pPlayer, bool& bShowing);
 
     // Cursor set funcs
-    static bool ShowCursor(CElement* pElement, CLuaMain* pLuaMain, bool bShow, bool bToggleControls);
+    static bool ShowCursor(CElement* pElement, CLuaMain* luaContext, bool bShow, bool bToggleControls);
 
     // Chat funcs
     static bool ShowChat(CElement* pElement, bool bShow);
@@ -737,10 +742,10 @@ public:
     static bool SetClientTransferBoxVisible(bool visible);
 
     // Resource funcs
-    static CElement* GetResourceMapRootElement(CResource* pResource, const char* szMap);
-    static CXMLNode* AddResourceMap(CResource* pResource, const std::string& strFilePath, const std::string& strMapName, int iDimension, CLuaMain* pLUA);
-    static CXMLNode* AddResourceConfig(CResource* pResource, const std::string& strFilePath, const std::string& strConfigName, int iType, CLuaMain* pLUA);
-    static bool      RemoveResourceFile(CResource* pResource, const char* szFilename);
+    static CElement* GetResourceMapRootElement(mtasa::Resource* resource, std::string_view mapName);
+    static CXMLNode* AddResourceMap(mtasa::Resource* resource, const std::string& strFilePath, const std::string& strMapName, int iDimension, CLuaMain* pLUA);
+    static CXMLNode* AddResourceConfig(mtasa::Resource* resource, const std::string& strFilePath, const std::string& strConfigName, bool isServerSide, CLuaMain* pLUA);
+    static bool      RemoveResourceFile(mtasa::Resource* resource, std::string_view filePath);
 
     // Version funcs
     static unsigned long GetVersion();

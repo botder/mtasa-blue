@@ -40,6 +40,11 @@
 #define IS_WATER(element)    ((element)->GetType()==CElement::WATER)
 #define IS_WEAPON(element)    ((element)->GetType()==CElement::WEAPON)
 
+namespace mtasa
+{
+    class Resource;
+}
+
 typedef CFastList<CElement*> CChildListType;
 typedef CFastList<CElement*> CElementListType;
 
@@ -87,7 +92,7 @@ public:
     CElement(CElement* pParent);
     virtual ~CElement();
 
-    virtual CElement* Clone(bool* bAddEntity, CResource* pResource) { return nullptr; }
+    virtual CElement* Clone(bool* bAddEntity, mtasa::Resource* resource) { return nullptr; }
     bool              IsCloneable();
 
     bool         IsBeingDeleted() { return m_bIsBeingDeleted; };
@@ -126,11 +131,11 @@ public:
 
     CElement* SetParentObject(CElement* pParent, bool bUpdatePerPlayerEntities = true);
 
-    bool AddEvent(CLuaMain* pLuaMain, const char* szName, const CLuaFunctionRef& iLuaFunction, bool bPropagated, EEventPriorityType eventPriority,
+    bool AddEvent(CLuaMain* luaContext, const char* szName, const CLuaFunctionRef& iLuaFunction, bool bPropagated, EEventPriorityType eventPriority,
                   float fPriorityMod);
     bool CallEvent(const char* szName, const CLuaArguments& Arguments, CPlayer* pCaller = NULL);
-    bool DeleteEvent(CLuaMain* pLuaMain, const char* szName, const CLuaFunctionRef& iLuaFunction = CLuaFunctionRef());
-    void DeleteEvents(CLuaMain* pLuaMain, bool bRecursive);
+    bool DeleteEvent(CLuaMain* luaContext, const char* szName, const CLuaFunctionRef& iLuaFunction = CLuaFunctionRef());
+    void DeleteEvents(CLuaMain* luaContext, bool bRecursive);
     void DeleteAllEvents();
 
     void           ReadCustomData(CEvents* pEvents, CXMLNode& Node);
@@ -147,7 +152,7 @@ public:
 
     CXMLNode* OutputToXML(CXMLNode* pNode);
 
-    void CleanUpForVM(CLuaMain* pLuaMain, bool bRecursive);
+    void CleanUpForVM(CLuaMain* luaContext, bool bRecursive);
 
     unsigned int                            CountChildren() { return static_cast<unsigned int>(m_Children.size()); };
     CChildListType ::const_iterator         IterBegin() { return m_Children.begin(); };

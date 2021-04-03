@@ -7,6 +7,11 @@
  *
  *****************************************************************************/
 #pragma once
+
+#include "CLuaVector2.h"
+#include "CLuaVector3.h"
+#include "CLuaVector4.h"
+#include "CLuaMatrix.h"
 #include <optional>
 #include <variant>
 #include <array>
@@ -113,7 +118,7 @@ namespace lua
     inline void Push(lua_State* L, const CTextItem* value) { lua_pushtextitem(L, const_cast<CTextItem*>(value)); }
     inline void Push(lua_State* L, const CDbJobData* value) { lua_pushquery(L, const_cast<CDbJobData*>(value)); }
     #endif
-    inline void Push(lua_State* L, const CResource* value) { lua_pushresource(L, const_cast<CResource*>(value)); }
+    inline void Push(lua_State* L, const mtasa::Resource* value) { lua_pushresource(L, const_cast<mtasa::Resource*>(value)); }
     inline void Push(lua_State* L, const CXMLNode* value) { lua_pushxmlnode(L, const_cast<CXMLNode*>(value)); }
     inline void Push(lua_State* L, const CLuaTimer* value) {lua_pushtimer(L, const_cast<CLuaTimer*>(value)); }
     inline void Push(lua_State* L, const CLuaVector2D* value) { lua_pushvector(L, *value); }

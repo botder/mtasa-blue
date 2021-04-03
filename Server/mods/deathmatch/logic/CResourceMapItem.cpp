@@ -10,6 +10,7 @@
  *****************************************************************************/
 
 #include "StdInc.h"
+#include "CResourceMapItem.h"
 #include "CResource.h"
 
 extern CGame* g_pGame;

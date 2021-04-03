@@ -10,7 +10,9 @@
  *****************************************************************************/
 
 #include "StdInc.h"
-#include "CResource.h"
+#include "Resource.h"
+
+using namespace mtasa;
 
 void CLuaObjectDefs::LoadFunctions()
 {
@@ -68,24 +70,17 @@ int CLuaObjectDefs::CreateObject(lua_State* luaVM)
     {
         if (CObjectManager::IsValidModel(usModelID))
         {
-            CLuaMain* pLuaMain = m_pLuaManager->GetVirtualMachine(luaVM);
-            if (pLuaMain)
+            if (Resource* resource = m_pLuaManager->GetResourceFromLuaState(luaVM); resource != nullptr)
             {
-                CResource* pResource = pLuaMain->GetResource();
-                if (pResource)
-                {
-                    CObject* pObject = CStaticFunctionDefinitions::CreateObject(pResource, usModelID, vecPosition, vecRotation, bIsLowLod);
-                    if (pObject)
-                    {
-                        CElementGroup* pGroup = pResource->GetElementGroup();
-                        if (pGroup)
-                        {
-                            pGroup->Add(pObject);
-                        }
+                CObject* object = CStaticFunctionDefinitions::CreateObject(resource, usModelID, vecPosition, vecRotation, bIsLowLod);
 
-                        lua_pushelement(luaVM, pObject);
-                        return 1;
-                    }
+                if (object != nullptr)
+                {
+                    if (CElementGroup* elementGroup = resource->GetElementGroup(); elementGroup != nullptr)
+                        elementGroup->Add(object);
+
+                    lua_pushelement(luaVM, object);
+                    return 1;
                 }
             }
         }
@@ -237,18 +232,13 @@ int CLuaObjectDefs::MoveObject(lua_State* luaVM)
 
     if (!argStream.HasErrors())
     {
-        CLuaMain* pLuaMain = g_pGame->GetLuaManager()->GetVirtualMachine(luaVM);
-        if (pLuaMain)
+        if (Resource* resource = m_pLuaManager->GetResourceFromLuaState(luaVM); resource != nullptr)
         {
-            CResource* pResource = pLuaMain->GetResource();
-            if (pResource)
+            if (CStaticFunctionDefinitions::MoveObject(resource, pElement, iTime, vecTargetPosition, vecTargetRotation, easingType, fEasingPeriod,
+                                                       fEasingAmplitude, fEasingOvershoot))
             {
-                if (CStaticFunctionDefinitions::MoveObject(pResource, pElement, iTime, vecTargetPosition, vecTargetRotation, easingType, fEasingPeriod,
-                                                           fEasingAmplitude, fEasingOvershoot))
-                {
-                    lua_pushboolean(luaVM, true);
-                    return 1;
-                }
+                lua_pushboolean(luaVM, true);
+                return 1;
             }
         }
     }

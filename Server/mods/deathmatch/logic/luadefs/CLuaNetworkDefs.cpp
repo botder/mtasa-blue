@@ -8,13 +8,15 @@
  *****************************************************************************/
 
 #include "StdInc.h"
-#include "CResource.h"
+#include "Resource.h"
 
 #define MIN_SERVER_REQ_CALLREMOTE_QUEUE_NAME          "1.5.3-9.11270"
 #define MIN_SERVER_REQ_CALLREMOTE_CONNECTION_ATTEMPTS "1.3.0-9.04563"
 #define MIN_SERVER_REQ_CALLREMOTE_CONNECT_TIMEOUT     "1.3.5"
 #define MIN_SERVER_REQ_CALLREMOTE_OPTIONS_TABLE       "1.5.4-9.11342"
 #define MIN_SERVER_REQ_CALLREMOTE_OPTIONS_FORMFIELDS  "1.5.4-9.11413"
+
+using namespace mtasa;
 
 void CLuaNetworkDefs::LoadFunctions()
 {
@@ -84,10 +86,9 @@ int CLuaNetworkDefs::CallRemote(lua_State* luaVM)
 
         if (!argStream.HasErrors())
         {
-            CLuaMain* luaMain = m_pLuaManager->GetVirtualMachine(luaVM);
-            if (luaMain)
+            if (CLuaMain* luaContext = m_pLuaManager->GetLuaContext(luaVM); luaContext != nullptr)
             {
-                CRemoteCall* pRemoteCall = g_pGame->GetRemoteCalls()->Call(strHost, strResourceName, strFunctionName, &args, luaMain, iLuaFunction,
+                CRemoteCall* pRemoteCall = g_pGame->GetRemoteCalls()->Call(strHost, strResourceName, strFunctionName, &args, luaContext, iLuaFunction,
                                                                            strQueueName, uiConnectionAttempts, uiConnectTimeoutMs);
 
                 lua_pushuserdata(luaVM, pRemoteCall);
@@ -103,11 +104,10 @@ int CLuaNetworkDefs::CallRemote(lua_State* luaVM)
 
         if (!argStream.HasErrors())
         {
-            CLuaMain* luaMain = m_pLuaManager->GetVirtualMachine(luaVM);
-            if (luaMain)
+            if (CLuaMain* luaContext = m_pLuaManager->GetLuaContext(luaVM); luaContext != nullptr)
             {
                 CRemoteCall* pRemoteCall =
-                    g_pGame->GetRemoteCalls()->Call(strHost, &args, luaMain, iLuaFunction, strQueueName, uiConnectionAttempts, uiConnectTimeoutMs);
+                    g_pGame->GetRemoteCalls()->Call(strHost, &args, luaContext, iLuaFunction, strQueueName, uiConnectionAttempts, uiConnectTimeoutMs);
 
                 lua_pushuserdata(luaVM, pRemoteCall);
                 return 1;
@@ -158,11 +158,12 @@ int CLuaNetworkDefs::FetchRemote(lua_State* luaVM)
 
         if (!argStream.HasErrors())
         {
-            CLuaMain* luaMain = m_pLuaManager->GetVirtualMachine(luaVM);
-            if (luaMain)
+            if (CLuaMain* luaContext = m_pLuaManager->GetLuaContext(luaVM); luaContext != nullptr)
             {
                 httpRequestOptions.bIsLegacy = true;
-                CRemoteCall* pRemoteCall = g_pGame->GetRemoteCalls()->Call(strURL, &callbackArguments, luaMain, iLuaFunction, strQueueName, httpRequestOptions);
+
+                CRemoteCall* pRemoteCall =
+                    g_pGame->GetRemoteCalls()->Call(strURL, &callbackArguments, luaContext, iLuaFunction, strQueueName, httpRequestOptions);
 
                 lua_pushuserdata(luaVM, pRemoteCall);
                 return 1;
@@ -198,10 +199,10 @@ int CLuaNetworkDefs::FetchRemote(lua_State* luaVM)
 
         if (!argStream.HasErrors())
         {
-            CLuaMain* luaMain = m_pLuaManager->GetVirtualMachine(luaVM);
-            if (luaMain)
+            if (CLuaMain* luaContext = m_pLuaManager->GetLuaContext(luaVM); luaContext != nullptr)
             {
-                CRemoteCall* pRemoteCall = g_pGame->GetRemoteCalls()->Call(strURL, &callbackArguments, luaMain, iLuaFunction, strQueueName, httpRequestOptions);
+                CRemoteCall* pRemoteCall =
+                    g_pGame->GetRemoteCalls()->Call(strURL, &callbackArguments, luaContext, iLuaFunction, strQueueName, httpRequestOptions);
 
                 lua_pushuserdata(luaVM, pRemoteCall);
                 return 1;
@@ -220,14 +221,14 @@ int CLuaNetworkDefs::FetchRemote(lua_State* luaVM)
 int CLuaNetworkDefs::GetRemoteRequests(lua_State* luaVM)
 {
     CScriptArgReader argStream(luaVM);
-    CResource*       pResource = nullptr;
-    CLuaMain*        pLuaMain = nullptr;
+    Resource*        resource = nullptr;
+    CLuaMain*        luaContext = nullptr;
     int              iIndex = 0;
 
-    argStream.ReadUserData(pResource, NULL);
+    argStream.ReadUserData(resource, nullptr);
 
-    if (pResource)
-        pLuaMain = pResource->GetVirtualMachine();
+    if (resource != nullptr)
+        luaContext = resource->GetLuaContext();
 
     if (!argStream.HasErrors())
     {
@@ -235,7 +236,7 @@ int CLuaNetworkDefs::GetRemoteRequests(lua_State* luaVM)
 
         for (const auto& request : g_pGame->GetRemoteCalls()->GetCalls())
         {
-            if (!pResource || request->GetVM() == pLuaMain)
+            if (resource == nullptr || request->GetVM() == luaContext)
             {
                 lua_pushnumber(luaVM, ++iIndex);
                 lua_pushuserdata(luaVM, request);
@@ -260,7 +261,7 @@ int CLuaNetworkDefs::GetRemoteRequestInfo(lua_State* luaVM)
     CScriptArgReader argStream(luaVM);
     CLuaArguments    info, requestedHeaders;
     CRemoteCall*     pRemoteCall = nullptr;
-    CResource*       pThisResource = m_pResourceManager->GetResourceFromLuaState(luaVM);
+    Resource*        self = m_resourceManager->GetResourceFromLuaState(luaVM);
     int              iPostDataLength = 0;
     bool             bIncludeHeaders = false;
 
@@ -270,15 +271,16 @@ int CLuaNetworkDefs::GetRemoteRequestInfo(lua_State* luaVM)
 
     if (!argStream.HasErrors())
     {
-        CResource* pResource = nullptr;
+        Resource* requestResource = nullptr;
+
         if (pRemoteCall->GetVM())
-            pResource = pRemoteCall->GetVM()->GetResource();
+            requestResource = &pRemoteCall->GetVM()->GetResource();
 
         bool bExtendedInfo = false;
 
         // only extend informations when the called resource is the same OR has "general.fullRemoteRequestInfo" acl right
-        if (pThisResource == pResource ||
-            m_pACLManager->CanObjectUseRight(pThisResource->GetName().c_str(), CAccessControlListGroupObject::OBJECT_TYPE_RESOURCE, "fullRemoteRequestInfo",
+        if (self == requestResource ||
+            m_pACLManager->CanObjectUseRight(self->GetName().c_str(), CAccessControlListGroupObject::OBJECT_TYPE_RESOURCE, "fullRemoteRequestInfo",
                                              CAccessControlListRight::RIGHT_TYPE_GENERAL, false))
         {
             bExtendedInfo = true;
@@ -301,9 +303,10 @@ int CLuaNetworkDefs::GetRemoteRequestInfo(lua_State* luaVM)
 
         info.PushString("resource");
 
-        if (pResource)
-            info.PushResource(pResource);
-        else
+        // TODO:
+        // if (pResource)
+        //     info.PushResource(pResource);
+        // else
             info.PushBoolean(false);
 
         info.PushString("start");

@@ -20,7 +20,7 @@
         CAccessControlList      shared array
         CBan                    shared array
         CDbJobData              shared array
-        CResource               shared array
+        Resource                shared array
         CTextItem               shared array
         CTextDisplay            shared array
         CLuaTimer               shared array

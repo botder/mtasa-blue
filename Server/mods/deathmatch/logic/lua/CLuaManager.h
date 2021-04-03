@@ -9,17 +9,10 @@
  *
  *****************************************************************************/
 
-// This class manages all the CLuaMain instances (Virtual Machines)
-class CLuaManager;
-
 #pragma once
 
-#include <list>
-#include "../CEvents.h"
-#include "CLuaMain.h"
-#include "CLuaCFunctions.h"
+#include <vector>
 
-// Predeclarations
 class CBlipManager;
 class CEvents;
 class CMapManager;
@@ -28,6 +21,12 @@ class CPlayerManager;
 class CRadarAreaManager;
 class CRegisteredCommands;
 class CVehicleManager;
+class CLuaModuleManager;
+
+namespace mtasa
+{
+    class Resource;
+}
 
 class CLuaManager
 {
@@ -36,33 +35,36 @@ public:
                 CRadarAreaManager* pRadarAreaManager, CRegisteredCommands* pRegisteredCommands, CMapManager* pMapManager, CEvents* pEvents);
     ~CLuaManager();
 
-    CLuaMain*  CreateVirtualMachine(CResource* pResourceOwner, bool bEnableOOP);
-    bool       RemoveVirtualMachine(CLuaMain* vm);
-    CLuaMain*  GetVirtualMachine(lua_State* luaVM);
-    CResource* GetVirtualMachineResource(lua_State* luaVM);
-    void       OnLuaMainOpenVM(CLuaMain* pLuaMain, lua_State* luaVM);
-    void       OnLuaMainCloseVM(CLuaMain* pLuaMain, lua_State* luaVM);
+    CLuaMain*        CreateLuaContext(mtasa::Resource& ownerResource, bool bEnableOOP);
+    bool             RemoveLuaContext(CLuaMain* luaContext);
+    CLuaMain*        GetLuaContext(lua_State* luaState);
+    mtasa::Resource* GetResourceFromLuaState(lua_State* luaVM);
+    void             OnLuaStateOpen(CLuaMain* luaContext, lua_State* luaVM);
+    void             OnLuaStateClose(CLuaMain* luaContext, lua_State* luaVM);
 
-    CLuaModuleManager* GetLuaModuleManager() const { return m_pLuaModuleManager; };
-
-    list<CLuaMain*>::const_iterator IterBegin() { return m_virtualMachines.begin(); };
-    list<CLuaMain*>::const_iterator IterEnd() { return m_virtualMachines.end(); };
+    CLuaModuleManager* GetLuaModuleManager() const { return m_pLuaModuleManager; }
 
     void DoPulse();
 
     void LoadCFunctions();
 
-private:
-    CBlipManager*              m_pBlipManager;
-    CObjectManager*            m_pObjectManager;
-    CPlayerManager*            m_pPlayerManager;
-    CRadarAreaManager*         m_pRadarAreaManager;
-    class CRegisteredCommands* m_pRegisteredCommands;
-    CVehicleManager*           m_pVehicleManager;
-    CMapManager*               m_pMapManager;
-    CEvents*                   m_pEvents;
-    CLuaModuleManager*         m_pLuaModuleManager;
+    std::vector<CLuaMain*>::iterator       begin() { return m_luaContexts.begin(); }
+    std::vector<CLuaMain*>::const_iterator begin() const { return m_luaContexts.begin(); }
 
-    CFastHashMap<lua_State*, CLuaMain*> m_VirtualMachineMap;
-    list<CLuaMain*>                     m_virtualMachines;
+    std::vector<CLuaMain*>::iterator       end() { return m_luaContexts.end(); }
+    std::vector<CLuaMain*>::const_iterator end() const { return m_luaContexts.end(); }
+
+private:
+    CBlipManager*        m_pBlipManager;
+    CObjectManager*      m_pObjectManager;
+    CPlayerManager*      m_pPlayerManager;
+    CRadarAreaManager*   m_pRadarAreaManager;
+    CRegisteredCommands* m_pRegisteredCommands;
+    CVehicleManager*     m_pVehicleManager;
+    CMapManager*         m_pMapManager;
+    CEvents*             m_pEvents;
+    CLuaModuleManager*   m_pLuaModuleManager;
+
+    CFastHashMap<lua_State*, CLuaMain*> m_luaStateToLuaContext;
+    std::vector<CLuaMain*>              m_luaContexts;
 };

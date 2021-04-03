@@ -40,7 +40,7 @@ CResourceFile::CResourceFile(CResource* resource, const char* szShortName, const
     }
 
     m_resource = resource;
-    m_pVM = NULL;
+    m_luaContext = NULL;
 
     // Create a map of the attributes for later use
     if (xmlAttributes)

@@ -10,12 +10,15 @@
  *****************************************************************************/
 
 #include "StdInc.h"
-#include "CResource.h"
+#include "Resource.h"
+
 #define MIN_SERVER_REQ_CALLREMOTE_QUEUE_NAME                "1.5.3-9.11270"
 #define MIN_SERVER_REQ_CALLREMOTE_CONNECTION_ATTEMPTS       "1.3.0-9.04563"
 #define MIN_SERVER_REQ_CALLREMOTE_CONNECT_TIMEOUT           "1.3.5"
 #define MIN_SERVER_REQ_CALLREMOTE_OPTIONS_TABLE             "1.5.4-9.11342"
 #define MIN_SERVER_REQ_CALLREMOTE_OPTIONS_FORMFIELDS        "1.5.4-9.11413"
+
+using namespace mtasa;
 
 int CLuaFunctionDefs::GetMaxPlayers(lua_State* luaVM)
 {
@@ -79,8 +82,7 @@ int CLuaFunctionDefs::OutputChatBox(lua_State* luaVM)
 
     if (!argStream.HasErrors())
     {
-        CLuaMain* pLuaMain = m_pLuaManager->GetVirtualMachine(luaVM);
-        if (pLuaMain)
+        if (CLuaMain* luaContext = m_pLuaManager->GetLuaContext(luaVM); luaContext != nullptr)
         {
             if (pElement)
             {
@@ -94,7 +96,7 @@ int CLuaFunctionDefs::OutputChatBox(lua_State* luaVM)
                 }
                 else
                 {
-                    CStaticFunctionDefinitions::OutputChatBox((const char*)ssChat, pElement, ucRed, ucGreen, ucBlue, bColorCoded, pLuaMain);
+                    CStaticFunctionDefinitions::OutputChatBox((const char*)ssChat, pElement, ucRed, ucGreen, ucBlue, bColorCoded, luaContext);
                     lua_pushboolean(luaVM, true);
                     return 1;
                 }
@@ -142,10 +144,9 @@ int CLuaFunctionDefs::OOP_OutputChatBox(lua_State* luaVM)
 
     if (!argStream.HasErrors())
     {
-        CLuaMain* pLuaMain = m_pLuaManager->GetVirtualMachine(luaVM);
-        if (pLuaMain)
+        if (CLuaMain* luaContext = m_pLuaManager->GetLuaContext(luaVM); luaContext != nullptr)
         {
-            CStaticFunctionDefinitions::OutputChatBox(strText, pElement, ucRed, ucGreen, ucBlue, bColorCoded, pLuaMain);
+            CStaticFunctionDefinitions::OutputChatBox(strText, pElement, ucRed, ucGreen, ucBlue, bColorCoded, luaContext);
             lua_pushboolean(luaVM, true);
             return 1;
         }
@@ -279,12 +280,10 @@ int CLuaFunctionDefs::AddCommandHandler(lua_State* luaVM)
 
     if (!argStream.HasErrors())
     {
-        // Grab our VM
-        CLuaMain* pLuaMain = m_pLuaManager->GetVirtualMachine(luaVM);
-        if (pLuaMain)
+        if (CLuaMain* luaContext = m_pLuaManager->GetLuaContext(luaVM); luaContext != nullptr)
         {
             // Add them to our list over command handlers
-            if (m_pRegisteredCommands->AddCommand(pLuaMain, strKey, iLuaFunction, bRestricted, bCaseSensitive))
+            if (m_pRegisteredCommands->AddCommand(luaContext, strKey, iLuaFunction, bRestricted, bCaseSensitive))
             {
                 lua_pushboolean(luaVM, true);
                 return 1;
@@ -311,12 +310,10 @@ int CLuaFunctionDefs::RemoveCommandHandler(lua_State* luaVM)
 
     if (!argStream.HasErrors())
     {
-        // Grab our VM
-        CLuaMain* pLuaMain = m_pLuaManager->GetVirtualMachine(luaVM);
-        if (pLuaMain)
+        if (CLuaMain* luaContext = m_pLuaManager->GetLuaContext(luaVM); luaContext != nullptr)
         {
             // Remove it from our list
-            if (m_pRegisteredCommands->RemoveCommand(pLuaMain, strKey, iLuaFunction))
+            if (m_pRegisteredCommands->RemoveCommand(luaContext, strKey, iLuaFunction))
             {
                 lua_pushboolean(luaVM, true);
                 return 1;
@@ -344,9 +341,7 @@ int CLuaFunctionDefs::ExecuteCommandHandler(lua_State* luaVM)
 
     if (!argStream.HasErrors())
     {
-        // Grab our VM
-        CLuaMain* pLuaMain = m_pLuaManager->GetVirtualMachine(luaVM);
-        if (pLuaMain)
+        if (CLuaMain* luaContext = m_pLuaManager->GetLuaContext(luaVM); luaContext != nullptr)
         {
             CClient* pClient = NULL;
             if (pElement->GetType() == CElement::PLAYER)
@@ -373,12 +368,12 @@ int CLuaFunctionDefs::ExecuteCommandHandler(lua_State* luaVM)
 int CLuaFunctionDefs::GetCommandHandlers(lua_State* luaVM)
 {
     // table getCommandHandlers ( [ resource sourceResource ] );
-    CResource* pResource = nullptr;
+    Resource* resource = nullptr;
 
     CScriptArgReader argStream(luaVM);
 
     if (!argStream.NextIsNil() && !argStream.NextIsNone())
-        argStream.ReadUserData(pResource);
+        argStream.ReadUserData(resource);
 
     if (argStream.HasErrors())
     {
@@ -387,12 +382,10 @@ int CLuaFunctionDefs::GetCommandHandlers(lua_State* luaVM)
         return 1;
     }
 
-    if (pResource)
+    if (resource)
     {
-        CLuaMain* pLuaMain = pResource->GetVirtualMachine();
-
-        if (pLuaMain)
-            m_pRegisteredCommands->GetCommands(luaVM, pLuaMain);
+        if (CLuaMain* luaContext = resource->GetLuaContext(); luaContext != nullptr)
+            m_pRegisteredCommands->GetCommands(luaVM, luaContext);
         else
             lua_newtable(luaVM);
     }
@@ -443,14 +436,12 @@ int CLuaFunctionDefs::Set(lua_State* luaVM)
 
     if (!argStream.HasErrors())
     {
-        CResource* pResource = m_pLuaManager->GetVirtualMachineResource(luaVM);
-        if (pResource)
+        if (Resource* resource = m_pLuaManager->GetResourceFromLuaState(luaVM); resource != nullptr)
         {
-            std::string strResourceName = pResource->GetName();
             std::string strJSON;
             Args.WriteToJSONString(strJSON);
 
-            if (g_pGame->GetSettings()->Set(strResourceName.c_str(), strSetting.c_str(), strJSON.c_str()))
+            if (g_pGame->GetSettings()->Set(resource->GetName().c_str(), strSetting.c_str(), strJSON.c_str()))
             {
                 lua_pushboolean(luaVM, true);
                 return 1;
@@ -464,15 +455,6 @@ int CLuaFunctionDefs::Set(lua_State* luaVM)
     return 1;
 }
 
-/* #define PUSH_SETTING(x,buf) \
-pAttributes = &(x->GetAttributes ()); \
-Args.PushString ( pAttributes->Find ( "name" )->GetValue ().c_str () ); \
-buf = const_cast < char* > ( pAttributes->Find ( "value" )->GetValue ().c_str () ); \
-if ( !Args.ReadFromJSONString ( buf ) ) { \
-Args.PushString ( buf ); \
-}
-*/
-
 int CLuaFunctionDefs::Get(lua_State* luaVM)
 {
     SString       strSetting;
@@ -483,8 +465,7 @@ int CLuaFunctionDefs::Get(lua_State* luaVM)
 
     if (!argStream.HasErrors())
     {
-        CResource* pResource = m_pLuaManager->GetVirtualMachineResource(luaVM);
-        if (pResource)
+        if (Resource* resource = m_pLuaManager->GetResourceFromLuaState(luaVM); resource != nullptr)
         {
             unsigned int uiIndex = 0;
             bool         bDeleteNode;
@@ -499,7 +480,7 @@ int CLuaFunctionDefs::Get(lua_State* luaVM)
             }
 
             // Get the setting
-            CXMLNode *pSubNode, *pNode = g_pGame->GetSettings()->Get(pResource->GetName().c_str(), strSetting.c_str(), bDeleteNode);
+            CXMLNode *pSubNode, *pNode = g_pGame->GetSettings()->Get(resource->GetName().c_str(), strSetting.c_str(), bDeleteNode);
 
             // Only proceed if we have a valid node
             if (pNode)
@@ -696,24 +677,17 @@ int CLuaFunctionDefs::shutdown(lua_State* luaVM)
 
     if (!argStream.HasErrors())
     {
-        // Get the VM
-        CLuaMain* pLuaMain = m_pLuaManager->GetVirtualMachine(luaVM);
-        if (pLuaMain)
+        if (Resource* resource = m_pLuaManager->GetResourceFromLuaState(luaVM); resource != nullptr)
         {
-            // Get the resource
-            CResource* pResource = pLuaMain->GetResource();
-            if (pResource)
-            {
-                // Log it
-                CLogger::LogPrintf("Server shutdown as requested by resource %s (%s)\n", pResource->GetName().c_str(), *strReason);
+            // Log it
+            CLogger::LogPrintf("Server shutdown as requested by resource %s (%s)\n", resource->GetName().c_str(), *strReason);
 
-                // Shut it down
-                g_pGame->SetIsFinished(true);
+            // Shut it down
+            g_pGame->SetIsFinished(true);
 
-                // Success
-                lua_pushboolean(luaVM, true);
-                return 1;
-            }
+            // Success
+            lua_pushboolean(luaVM, true);
+            return 1;
         }
     }
     else

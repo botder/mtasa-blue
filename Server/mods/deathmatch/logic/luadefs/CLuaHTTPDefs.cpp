@@ -33,10 +33,9 @@ int CLuaHTTPDefs::httpWrite(lua_State* luaVM)
 
     if (!argStream.HasErrors())
     {
-        CLuaMain* pLuaMain = m_pLuaManager->GetVirtualMachine(luaVM);
-        if (pLuaMain)
+        if (CLuaMain* luaContext = m_pLuaManager->GetLuaContext(luaVM); luaContext != nullptr)
         {
-            CResourceFile* file = pLuaMain->GetResourceFile();
+            CResourceFile* file = luaContext->GetResourceFile();
             if (file && file->GetType() == CResourceHTMLItem::RESOURCE_FILE_TYPE_HTML)
             {
                 CResourceHTMLItem* html = (CResourceHTMLItem*)file;
@@ -75,10 +74,9 @@ int CLuaHTTPDefs::httpSetResponseHeader(lua_State* luaVM)
 
     if (!argStream.HasErrors())
     {
-        CLuaMain* pLuaMain = m_pLuaManager->GetVirtualMachine(luaVM);
-        if (pLuaMain)
+        if (CLuaMain* luaContext = m_pLuaManager->GetLuaContext(luaVM); luaContext != nullptr)
         {
-            CResourceFile* file = pLuaMain->GetResourceFile();
+            CResourceFile* file = luaContext->GetResourceFile();
             if (file && file->GetType() == CResourceHTMLItem::RESOURCE_FILE_TYPE_HTML)
             {
                 CResourceHTMLItem* html = (CResourceHTMLItem*)file;
@@ -111,10 +109,9 @@ int CLuaHTTPDefs::httpSetResponseCookie(lua_State* luaVM)
 
     if (!argStream.HasErrors())
     {
-        CLuaMain* pLuaMain = m_pLuaManager->GetVirtualMachine(luaVM);
-        if (pLuaMain)
+        if (CLuaMain* luaContext = m_pLuaManager->GetLuaContext(luaVM); luaContext != nullptr)
         {
-            CResourceFile* file = pLuaMain->GetResourceFile();
+            CResourceFile* file = luaContext->GetResourceFile();
             if (file && file->GetType() == CResourceHTMLItem::RESOURCE_FILE_TYPE_HTML)
             {
                 CResourceHTMLItem* html = (CResourceHTMLItem*)file;
@@ -145,10 +142,9 @@ int CLuaHTTPDefs::httpSetResponseCode(lua_State* luaVM)
 
     if (!argStream.HasErrors())
     {
-        CLuaMain* pLuaMain = m_pLuaManager->GetVirtualMachine(luaVM);
-        if (pLuaMain)
+        if (CLuaMain* luaContext = m_pLuaManager->GetLuaContext(luaVM); luaContext != nullptr)
         {
-            CResourceFile* file = pLuaMain->GetResourceFile();
+            CResourceFile* file = luaContext->GetResourceFile();
             if (file && file->GetType() == CResourceHTMLItem::RESOURCE_FILE_TYPE_HTML)
             {
                 CResourceHTMLItem* html = (CResourceHTMLItem*)file;
@@ -172,11 +168,9 @@ int CLuaHTTPDefs::httpSetResponseCode(lua_State* luaVM)
 int CLuaHTTPDefs::httpClear(lua_State* luaVM)
 {
     //  bool httpClear ( )
-
-    CLuaMain* pLuaMain = m_pLuaManager->GetVirtualMachine(luaVM);
-    if (pLuaMain)
+    if (CLuaMain* luaContext = m_pLuaManager->GetLuaContext(luaVM); luaContext != nullptr)
     {
-        CResourceFile* file = pLuaMain->GetResourceFile();
+        CResourceFile* file = luaContext->GetResourceFile();
         if (file && file->GetType() == CResourceHTMLItem::RESOURCE_FILE_TYPE_HTML)
         {
             CResourceHTMLItem* html = (CResourceHTMLItem*)file;
@@ -196,10 +190,9 @@ int CLuaHTTPDefs::httpClear(lua_State* luaVM)
 int CLuaHTTPDefs::httpRequestLogin(lua_State* luaVM)
 {
     //  bool httpRequestLogin ( )
-    CLuaMain* pLuaMain = m_pLuaManager->GetVirtualMachine(luaVM);
-    if (pLuaMain)
+    if (CLuaMain* luaContext = m_pLuaManager->GetLuaContext(luaVM); luaContext != nullptr)
     {
-        CResourceFile* file = pLuaMain->GetResourceFile();
+        CResourceFile* file = luaContext->GetResourceFile();
         if (file && file->GetType() == CResourceHTMLItem::RESOURCE_FILE_TYPE_HTML)
         {
             CResourceHTMLItem* html = (CResourceHTMLItem*)file;

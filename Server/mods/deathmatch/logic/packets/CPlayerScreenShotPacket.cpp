@@ -13,7 +13,7 @@
 
 bool CPlayerScreenShotPacket::Read(NetBitStreamInterface& BitStream)
 {
-    m_pResource = NULL;
+    m_resource = nullptr;
 
     CPlayer* pPlayer = GetSourcePlayer();
     if (!pPlayer)
@@ -34,13 +34,13 @@ bool CPlayerScreenShotPacket::Read(NetBitStreamInterface& BitStream)
         {
             ushort usResourceNetId;
             BitStream.Read(usResourceNetId);
-            m_pResource = g_pGame->GetResourceManager()->GetResourceFromNetID(usResourceNetId);
+            m_resource = g_pGame->GetResourceManager().GetResourceFromRemoteIdentifier(usResourceNetId);
         }
         else
         {
             SString strResourceName;
             BitStream.ReadString(strResourceName);
-            m_pResource = g_pGame->GetResourceManager()->GetResource(strResourceName);
+            m_resource = g_pGame->GetResourceManager().GetResourceFromName(strResourceName);
         }
 
         if (!BitStream.ReadString(m_strTag))
@@ -75,13 +75,13 @@ bool CPlayerScreenShotPacket::Read(NetBitStreamInterface& BitStream)
             {
                 ushort usResourceNetId;
                 BitStream.Read(usResourceNetId);
-                m_pResource = g_pGame->GetResourceManager()->GetResourceFromNetID(usResourceNetId);
+                m_resource = g_pGame->GetResourceManager().GetResourceFromRemoteIdentifier(usResourceNetId);
             }
             else
             {
                 SString strResourceName;
                 BitStream.ReadString(strResourceName);
-                m_pResource = g_pGame->GetResourceManager()->GetResource(strResourceName);
+                m_resource = g_pGame->GetResourceManager().GetResourceFromName(strResourceName);
             }
             if (!BitStream.ReadString(m_strTag))
                 return false;

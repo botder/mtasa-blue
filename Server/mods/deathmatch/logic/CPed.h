@@ -133,7 +133,7 @@ public:
 
     CPed(class CPedManager* pPedManager, CElement* pParent, unsigned short usModel);
     ~CPed();
-    CElement* Clone(bool* bAddEntity, CResource* pResource) override;
+    CElement* Clone(bool* bAddEntity, mtasa::Resource* resource) override;
 
     bool IsEntity() { return true; }
 

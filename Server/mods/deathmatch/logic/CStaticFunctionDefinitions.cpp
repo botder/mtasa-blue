@@ -10,7 +10,9 @@
  *****************************************************************************/
 
 #include "StdInc.h"
-#include "CResource.h"
+#include "Resource.h"
+
+using namespace mtasa;
 
 extern CGame* g_pGame;
 
@@ -77,9 +79,9 @@ CStaticFunctionDefinitions::~CStaticFunctionDefinitions()
 {
 }
 
-bool CStaticFunctionDefinitions::AddEvent(CLuaMain* pLuaMain, const char* szName, const char* szArguments, bool bAllowRemoteTrigger)
+bool CStaticFunctionDefinitions::AddEvent(CLuaMain* luaContext, const char* szName, const char* szArguments, bool bAllowRemoteTrigger)
 {
-    assert(pLuaMain);
+    assert(luaContext);
     assert(szName);
     assert(szArguments);
 
@@ -87,16 +89,16 @@ bool CStaticFunctionDefinitions::AddEvent(CLuaMain* pLuaMain, const char* szName
     if (strlen(szName) > 0)
     {
         // Add our event to CEvents
-        return m_pEvents->AddEvent(szName, szArguments, pLuaMain, bAllowRemoteTrigger);
+        return m_pEvents->AddEvent(szName, szArguments, luaContext, bAllowRemoteTrigger);
     }
 
     return false;
 }
 
-bool CStaticFunctionDefinitions::AddEventHandler(CLuaMain* pLuaMain, const char* szName, CElement* pElement, const CLuaFunctionRef& iLuaFunction,
+bool CStaticFunctionDefinitions::AddEventHandler(CLuaMain* luaContext, const char* szName, CElement* pElement, const CLuaFunctionRef& iLuaFunction,
                                                  bool bPropagated, EEventPriorityType eventPriority, float fPriorityMod)
 {
-    assert(pLuaMain);
+    assert(luaContext);
     assert(szName);
     assert(pElement);
 
@@ -104,23 +106,23 @@ bool CStaticFunctionDefinitions::AddEventHandler(CLuaMain* pLuaMain, const char*
     if (m_pEvents->Exists(szName))
     {
         // Add the event handler
-        if (pElement->AddEvent(pLuaMain, szName, iLuaFunction, bPropagated, eventPriority, fPriorityMod))
+        if (pElement->AddEvent(luaContext, szName, iLuaFunction, bPropagated, eventPriority, fPriorityMod))
             return true;
     }
 
     return false;
 }
 
-bool CStaticFunctionDefinitions::RemoveEventHandler(CLuaMain* pLuaMain, const char* szName, CElement* pElement, const CLuaFunctionRef& iLuaFunction)
+bool CStaticFunctionDefinitions::RemoveEventHandler(CLuaMain* luaContext, const char* szName, CElement* pElement, const CLuaFunctionRef& iLuaFunction)
 {
-    assert(pLuaMain);
+    assert(luaContext);
     assert(szName);
     assert(pElement);
 
     // We got an event and handler with that name?
     if (m_pEvents->Exists(szName))
     {
-        if (pElement->DeleteEvent(pLuaMain, szName, iLuaFunction))
+        if (pElement->DeleteEvent(luaContext, szName, iLuaFunction))
         {
             return true;
         }
@@ -161,7 +163,7 @@ bool CStaticFunctionDefinitions::TriggerClientEvent(const std::vector<CPlayer*>&
 }
 
 bool CStaticFunctionDefinitions::TriggerLatentClientEvent(const std::vector<CPlayer*>& sendList, const char* szName, CElement* pCallWithElement,
-                                                          CLuaArguments& Arguments, int iBandwidth, CLuaMain* pLuaMain, ushort usResourceNetId)
+                                                          CLuaArguments& Arguments, int iBandwidth, CLuaMain* luaContext, ushort usResourceNetId)
 {
     assert(szName);
     assert(pCallWithElement);
@@ -172,7 +174,7 @@ bool CStaticFunctionDefinitions::TriggerLatentClientEvent(const std::vector<CPla
     markerLatentEvent.Set("Make packet");
 
     // Send packet to players
-    g_pGame->EnableLatentSends(true, iBandwidth, pLuaMain, usResourceNetId);
+    g_pGame->EnableLatentSends(true, iBandwidth, luaContext, usResourceNetId);
     CPlayerManager::Broadcast(Packet, sendList);
     g_pGame->EnableLatentSends(false);
 
@@ -196,7 +198,7 @@ bool CStaticFunctionDefinitions::WasEventCancelled()
     return m_pEvents->WasEventCancelled();
 }
 
-CDummy* CStaticFunctionDefinitions::CreateElement(CResource* pResource, const char* szTypeName, const char* szID)
+CDummy* CStaticFunctionDefinitions::CreateElement(Resource* resource, const char* szTypeName, const char* szID)
 {
     assert(szTypeName);
     assert(szID);
@@ -224,7 +226,7 @@ CDummy* CStaticFunctionDefinitions::CreateElement(CResource* pResource, const ch
     if (strlen(szTypeName) > 0 && !bIsInternalType)
     {
         // Create the element.
-        CDummy* pDummy = new CDummy(g_pGame->GetGroups(), pResource->GetDynamicElementRoot());
+        CDummy* pDummy = new CDummy(g_pGame->GetGroups(), resource->GetDynamicElementRoot());
 
         // Set the ID
         pDummy->SetName(szID);
@@ -232,7 +234,7 @@ CDummy* CStaticFunctionDefinitions::CreateElement(CResource* pResource, const ch
         // Set the type name
         pDummy->SetTypeName(szTypeName);
 
-        if (pResource->IsClientSynced())
+        if (resource->IsClientSynced())
         {
             CEntityAddPacket Packet;
             Packet.Add(pDummy);
@@ -265,8 +267,8 @@ bool CStaticFunctionDefinitions::DestroyElement(CElement* pElement)
 
     // We can't destroy the root or a player/remote client/console
     int iType = pElement->GetType();
-    if (pElement == m_pMapManager->GetRootElement() || iType == CElement::PLAYER || iType == CElement::CONSOLE ||
-        g_pGame->GetResourceManager()->IsAResourceElement(pElement))
+    // TODO: !!!!
+    if (pElement == m_pMapManager->GetRootElement() || iType == CElement::PLAYER || iType == CElement::CONSOLE) // || g_pGame->OLD_GetResourceManager()->IsAResourceElement(pElement))
     {
         return false;
     }
@@ -289,7 +291,7 @@ bool CStaticFunctionDefinitions::DestroyElement(CElement* pElement)
     return true;
 }
 
-CElement* CStaticFunctionDefinitions::CloneElement(CResource* pResource, CElement* pElement, const CVector& vecPosition, bool bCloneChildren)
+CElement* CStaticFunctionDefinitions::CloneElement(Resource* resource, CElement* pElement, const CVector& vecPosition, bool bCloneChildren)
 {
     // TODO: per-player entity stuff ( visibility )
     assert(pElement);
@@ -307,7 +309,7 @@ CElement* CStaticFunctionDefinitions::CloneElement(CResource* pResource, CElemen
         // Loop through the children list doing this (cloning elements)
         for (std::list<CElement*>::iterator iter = copyList.begin(); iter != copyList.end(); iter++)
         {
-            CloneElement(pResource, *iter, vecPosition, true);
+            CloneElement(resource, *iter, vecPosition, true);
         }
     }
 
@@ -324,7 +326,7 @@ CElement* CStaticFunctionDefinitions::CloneElement(CResource* pResource, CElemen
     }
 
     bool      bAddEntity = true;
-    CElement* pNewElement = pElement->Clone(&bAddEntity, pResource);
+    CElement* pNewElement = pElement->Clone(&bAddEntity, resource);
 
     if (pNewElement)
     {
@@ -340,7 +342,7 @@ CElement* CStaticFunctionDefinitions::CloneElement(CResource* pResource, CElemen
 
         if (bAddEntity)
         {
-            if (pResource->IsClientSynced())
+            if (resource->IsClientSynced())
             {
                 CEntityAddPacket Packet;
                 Packet.Add(pNewElement);
@@ -1992,11 +1994,11 @@ bool CStaticFunctionDefinitions::DetonateSatchels(CElement* pElement)
     return false;
 }
 
-CPed* CStaticFunctionDefinitions::CreatePed(CResource* pResource, unsigned short usModel, const CVector& vecPosition, float fRotation, bool bSynced)
+CPed* CStaticFunctionDefinitions::CreatePed(Resource* resource, unsigned short usModel, const CVector& vecPosition, float fRotation, bool bSynced)
 {
     if (CPlayerManager::IsValidPlayerModel(usModel))
     {
-        CPed* pPed = m_pPedManager->Create(usModel, pResource->GetDynamicElementRoot());
+        CPed* pPed = m_pPedManager->Create(usModel, resource->GetDynamicElementRoot());
         if (pPed)
         {
             // Convert the rotation to radians
@@ -2026,7 +2028,7 @@ CPed* CStaticFunctionDefinitions::CreatePed(CResource* pResource, unsigned short
             pPed->SetRotation(fRotationRadians);
 
             // Only sync if the resource has started on client
-            if (pResource->IsClientSynced())
+            if (resource->IsClientSynced())
             {
                 CEntityAddPacket Packet;
                 Packet.Add(pPed);
@@ -3072,11 +3074,11 @@ bool CStaticFunctionDefinitions::ShowPlayerHudComponent(CElement* pElement, eHud
 }
 
 bool CStaticFunctionDefinitions::TakePlayerScreenShot(CElement* pElement, uint uiSizeX, uint uiSizeY, const SString& strTag, uint uiQuality,
-                                                      uint uiMaxBandwidth, uint uiMaxPacketSize, CResource* pResource)
+                                                      uint uiMaxBandwidth, uint uiMaxPacketSize, Resource* resource)
 {
     assert(pElement);
 
-    RUN_CHILDREN(TakePlayerScreenShot(*iter, uiSizeX, uiSizeY, strTag, uiQuality, uiMaxBandwidth, uiMaxPacketSize, pResource))
+    RUN_CHILDREN(TakePlayerScreenShot(*iter, uiSizeX, uiSizeY, strTag, uiQuality, uiMaxBandwidth, uiMaxPacketSize, resource))
 
     if (IS_PLAYER(pElement))
     {
@@ -3090,9 +3092,9 @@ bool CStaticFunctionDefinitions::TakePlayerScreenShot(CElement* pElement, uint u
         BitStream.pBitStream->Write(uiMaxBandwidth);
         BitStream.pBitStream->Write(static_cast<ushort>(uiMaxPacketSize));
         if (BitStream.pBitStream->Version() >= 0x53)
-            BitStream.pBitStream->Write(pResource->GetNetID());
+            BitStream.pBitStream->Write(resource->GetRemoteIdentifier());
         else
-            BitStream.pBitStream->WriteString(pResource->GetName());
+            BitStream.pBitStream->WriteString(resource->GetName());
         BitStream.pBitStream->Write(GetTickCount32());
         pPlayer->Send(CLuaPacket(TAKE_PLAYER_SCREEN_SHOT, *BitStream.pBitStream));
 
@@ -4766,7 +4768,7 @@ bool CStaticFunctionDefinitions::SetWeaponAmmo(CElement* pElement, unsigned char
     return false;
 }
 
-CVehicle* CStaticFunctionDefinitions::CreateVehicle(CResource* pResource, unsigned short usModel, const CVector& vecPosition, const CVector& vecRotation,
+CVehicle* CStaticFunctionDefinitions::CreateVehicle(Resource* resource, unsigned short usModel, const CVector& vecPosition, const CVector& vecRotation,
                                                     const char* szRegPlate, unsigned char ucVariant, unsigned char ucVariant2)
 {
     unsigned char ucVariation = ucVariant;
@@ -4777,7 +4779,7 @@ CVehicle* CStaticFunctionDefinitions::CreateVehicle(CResource* pResource, unsign
 
     if (CVehicleManager::IsValidModel(usModel) && (ucVariation <= 5 || ucVariation == 255) && (ucVariation2 <= 5 || ucVariation2 == 255))
     {
-        CVehicle* const pVehicle = m_pVehicleManager->Create(pResource->GetDynamicElementRoot(), usModel, ucVariation, ucVariation2);
+        CVehicle* const pVehicle = m_pVehicleManager->Create(resource->GetDynamicElementRoot(), usModel, ucVariation, ucVariation2);
 
         if (!pVehicle)
             return nullptr;
@@ -4791,7 +4793,7 @@ CVehicle* CStaticFunctionDefinitions::CreateVehicle(CResource* pResource, unsign
             pVehicle->SetRegPlate(szRegPlate);
 
         // Only sync if the resource has started on client
-        if (pResource->IsClientSynced())
+        if (resource->IsClientSynced())
         {
             CEntityAddPacket Packet;
             Packet.Add(pVehicle);
@@ -7550,7 +7552,7 @@ bool CStaticFunctionDefinitions::SetVehicleDoorOpenRatio(CElement* pElement, uns
     return false;
 }
 
-CMarker* CStaticFunctionDefinitions::CreateMarker(CResource* pResource, const CVector& vecPosition, const char* szType, float fSize, const SColor color,
+CMarker* CStaticFunctionDefinitions::CreateMarker(Resource* resource, const CVector& vecPosition, const char* szType, float fSize, const SColor color,
                                                   CElement* pVisibleTo)
 {
     assert(szType);
@@ -7561,7 +7563,7 @@ CMarker* CStaticFunctionDefinitions::CreateMarker(CResource* pResource, const CV
     {
         // Create the marker
         // CMarker* pMarker = m_pMarkers->Create ( m_pMapManager->GetRootElement () );
-        CMarker* pMarker = m_pMarkerManager->Create(pResource->GetDynamicElementRoot());
+        CMarker* pMarker = m_pMarkerManager->Create(resource->GetDynamicElementRoot());
         if (pMarker)
         {
             // Set the properties
@@ -7578,7 +7580,7 @@ CMarker* CStaticFunctionDefinitions::CreateMarker(CResource* pResource, const CV
             }
 
             // Tell everyone about it
-            if (pResource->IsClientSynced())
+            if (resource->IsClientSynced())
                 pMarker->Sync(true);
             return pMarker;
         }
@@ -7739,14 +7741,14 @@ bool CStaticFunctionDefinitions::SetMarkerIcon(CElement* pElement, const char* s
     return false;
 }
 
-CBlip* CStaticFunctionDefinitions::CreateBlip(CResource* pResource, const CVector& vecPosition, unsigned char ucIcon, unsigned char ucSize, const SColor color,
+CBlip* CStaticFunctionDefinitions::CreateBlip(Resource* resource, const CVector& vecPosition, unsigned char ucIcon, unsigned char ucSize, const SColor color,
                                               short sOrdering, unsigned short usVisibleDistance, CElement* pVisibleTo)
 {
     // Valid icon and size?
     if (CBlipManager::IsValidIcon(ucIcon) && ucSize <= 25)
     {
         // Create the blip as a child of the resource's dynamic element root item
-        CBlip* pBlip = m_pBlipManager->Create(pResource->GetDynamicElementRoot());
+        CBlip* pBlip = m_pBlipManager->Create(resource->GetDynamicElementRoot());
         if (pBlip)
         {
             // Set the given properties
@@ -7765,7 +7767,7 @@ CBlip* CStaticFunctionDefinitions::CreateBlip(CResource* pResource, const CVecto
             }
 
             // Tell everyone about it
-            if (pResource->IsClientSynced())
+            if (resource->IsClientSynced())
                 pBlip->Sync(true);
             return pBlip;
         }
@@ -7774,7 +7776,7 @@ CBlip* CStaticFunctionDefinitions::CreateBlip(CResource* pResource, const CVecto
     return NULL;
 }
 
-CBlip* CStaticFunctionDefinitions::CreateBlipAttachedTo(CResource* pResource, CElement* pElement, unsigned char ucIcon, unsigned char ucSize,
+CBlip* CStaticFunctionDefinitions::CreateBlipAttachedTo(Resource* resource, CElement* pElement, unsigned char ucIcon, unsigned char ucSize,
                                                         const SColor color, short sOrdering, unsigned short usVisibleDistance, CElement* pVisibleTo)
 {
     assert(pElement);
@@ -7782,7 +7784,7 @@ CBlip* CStaticFunctionDefinitions::CreateBlipAttachedTo(CResource* pResource, CE
     if (CBlipManager::IsValidIcon(ucIcon) && ucSize <= 25)
     {
         // Create the blip as a child of the resource's dynamic element root item
-        CBlip* pBlip = m_pBlipManager->Create(pResource->GetDynamicElementRoot());
+        CBlip* pBlip = m_pBlipManager->Create(resource->GetDynamicElementRoot());
         if (pBlip)
         {
             // Set the properties
@@ -7801,7 +7803,7 @@ CBlip* CStaticFunctionDefinitions::CreateBlipAttachedTo(CResource* pResource, CE
             pBlip->AttachTo(pElement);
 
             // Tell everyone about it
-            if (pResource->IsClientSynced())
+            if (resource->IsClientSynced())
                 pBlip->Sync(true);
 
             return pBlip;
@@ -7985,10 +7987,10 @@ bool CStaticFunctionDefinitions::SetBlipVisibleDistance(CElement* pElement, unsi
     return true;
 }
 
-CObject* CStaticFunctionDefinitions::CreateObject(CResource* pResource, unsigned short usModelID, const CVector& vecPosition, const CVector& vecRotation,
+CObject* CStaticFunctionDefinitions::CreateObject(Resource* resource, unsigned short usModelID, const CVector& vecPosition, const CVector& vecRotation,
                                                   bool bIsLowLod)
 {
-    CObject* const pObject = m_pObjectManager->Create(pResource->GetDynamicElementRoot(), bIsLowLod);
+    CObject* const pObject = m_pObjectManager->Create(resource->GetDynamicElementRoot(), bIsLowLod);
 
     if (!pObject)
         return nullptr;
@@ -8001,7 +8003,7 @@ CObject* CStaticFunctionDefinitions::CreateObject(CResource* pResource, unsigned
     pObject->SetRotation(vecRadians);
     pObject->SetModel(usModelID);
 
-    if (pResource->IsClientSynced())
+    if (resource->IsClientSynced())
     {
         CEntityAddPacket Packet;
         Packet.Add(pObject);
@@ -8063,11 +8065,11 @@ bool CStaticFunctionDefinitions::SetObjectScale(CElement* pElement, const CVecto
     return false;
 }
 
-bool CStaticFunctionDefinitions::MoveObject(CResource* pResource, CElement* pElement, unsigned long ulTime, const CVector& vecPosition,
+bool CStaticFunctionDefinitions::MoveObject(Resource* resource, CElement* pElement, unsigned long ulTime, const CVector& vecPosition,
                                             const CVector& vecRotation, CEasingCurve::eType a_easingType, double a_fEasingPeriod, double a_fEasingAmplitude,
                                             double a_fEasingOvershoot)
 {
-    RUN_CHILDREN(MoveObject(pResource, *iter, ulTime, vecPosition, vecRotation, a_easingType, a_fEasingPeriod, a_fEasingAmplitude, a_fEasingOvershoot))
+    RUN_CHILDREN(MoveObject(resource, *iter, ulTime, vecPosition, vecRotation, a_easingType, a_fEasingPeriod, a_fEasingAmplitude, a_fEasingOvershoot))
 
     if (IS_OBJECT(pElement))
     {
@@ -8097,7 +8099,7 @@ bool CStaticFunctionDefinitions::MoveObject(CResource* pResource, CElement* pEle
         pObject->Move(moveAnimation);
 
         // Has this resource started for the client?
-        if (pResource->IsClientSynced())
+        if (resource->IsClientSynced())
         {
             // Tell the players
             CBitStream BitStream;
@@ -8180,10 +8182,10 @@ bool CStaticFunctionDefinitions::IsObjectVisibleInAllDimensions(CElement* pEleme
     return false;
 }
 
-CRadarArea* CStaticFunctionDefinitions::CreateRadarArea(CResource* pResource, const CVector2D& vecPosition2D, const CVector2D& vecSize, const SColor color,
+CRadarArea* CStaticFunctionDefinitions::CreateRadarArea(Resource* resource, const CVector2D& vecPosition2D, const CVector2D& vecSize, const SColor color,
                                                         CElement* pVisibleTo)
 {
-    CRadarArea* const pRadarArea = m_pRadarAreaManager->Create(pResource->GetDynamicElementRoot());
+    CRadarArea* const pRadarArea = m_pRadarAreaManager->Create(resource->GetDynamicElementRoot());
 
     if (!pRadarArea)
         return nullptr;
@@ -8202,7 +8204,7 @@ CRadarArea* CStaticFunctionDefinitions::CreateRadarArea(CResource* pResource, co
     }
 
     // Tell all the players
-    if (pResource->IsClientSynced())
+    if (resource->IsClientSynced())
         pRadarArea->Sync(true);
 
     return pRadarArea;
@@ -8298,7 +8300,7 @@ bool CStaticFunctionDefinitions::SetRadarAreaFlashing(CElement* pElement, bool b
     return false;
 }
 
-CPickup* CStaticFunctionDefinitions::CreatePickup(CResource* pResource, const CVector& vecPosition, unsigned char ucType, double dFive,
+CPickup* CStaticFunctionDefinitions::CreatePickup(Resource* resource, const CVector& vecPosition, unsigned char ucType, double dFive,
                                                   unsigned long ulRespawnInterval, double dSix)
 {
     // Is the type armor or health?
@@ -8310,7 +8312,7 @@ CPickup* CStaticFunctionDefinitions::CreatePickup(CResource* pResource, const CV
         {
             // Create the pickup
             // pPickup = m_pPickupManager->Create ( m_pMapManager->GetRootElement () );
-            pPickup = m_pPickupManager->Create(pResource->GetDynamicElementRoot());
+            pPickup = m_pPickupManager->Create(resource->GetDynamicElementRoot());
             if (pPickup)
             {
                 // Set the health/armor
@@ -8333,7 +8335,7 @@ CPickup* CStaticFunctionDefinitions::CreatePickup(CResource* pResource, const CV
 
             // Create the pickup
             // pPickup = m_pPickupManager->Create ( m_pMapManager->GetRootElement () );
-            pPickup = m_pPickupManager->Create(pResource->GetDynamicElementRoot());
+            pPickup = m_pPickupManager->Create(resource->GetDynamicElementRoot());
             if (pPickup)
             {
                 // Set the weapon type and ammo
@@ -8350,7 +8352,7 @@ CPickup* CStaticFunctionDefinitions::CreatePickup(CResource* pResource, const CV
         {
             // Create the pickup
             // pPickup = m_pPickupManager->Create ( m_pMapManager->GetRootElement () );
-            pPickup = m_pPickupManager->Create(pResource->GetDynamicElementRoot());
+            pPickup = m_pPickupManager->Create(resource->GetDynamicElementRoot());
             if (pPickup)
             {
                 // Set the model id
@@ -8368,7 +8370,7 @@ CPickup* CStaticFunctionDefinitions::CreatePickup(CResource* pResource, const CV
         pPickup->SetRespawnIntervals(ulRespawnInterval);
         pPickup->SetPosition(vecPosition);
 
-        if (pResource->IsClientSynced())
+        if (resource->IsClientSynced())
         {
             // Tell the clients
             CEntityAddPacket Packet;
@@ -8653,13 +8655,13 @@ bool CStaticFunctionDefinitions::PreloadMissionAudio(CElement* pElement, unsigne
     return false;
 }
 
-bool CStaticFunctionDefinitions::BindKey(CPlayer* pPlayer, const char* szKey, const char* szHitState, CLuaMain* pLuaMain, const CLuaFunctionRef& iLuaFunction,
+bool CStaticFunctionDefinitions::BindKey(CPlayer* pPlayer, const char* szKey, const char* szHitState, CLuaMain* luaContext, const CLuaFunctionRef& iLuaFunction,
                                          CLuaArguments& Arguments)
 {
     assert(pPlayer);
     assert(szKey);
     assert(szHitState);
-    assert(pLuaMain);
+    assert(luaContext);
 
     bool bSuccess = false;
 
@@ -8670,8 +8672,8 @@ bool CStaticFunctionDefinitions::BindKey(CPlayer* pPlayer, const char* szKey, co
 
     if (stricmp(szHitState, "down") == 0 || stricmp(szHitState, "both") == 0)
     {
-        if ((pKey && pKeyBinds->AddKeyFunction(pKey, bHitState, pLuaMain, iLuaFunction, Arguments)) ||
-            (pControl && pKeyBinds->AddControlFunction(pControl, bHitState, pLuaMain, iLuaFunction, Arguments)))
+        if ((pKey && pKeyBinds->AddKeyFunction(pKey, bHitState, luaContext, iLuaFunction, Arguments)) ||
+            (pControl && pKeyBinds->AddControlFunction(pControl, bHitState, luaContext, iLuaFunction, Arguments)))
         {
             unsigned char ucKeyLength = static_cast<unsigned char>(strlen(szKey));
 
@@ -8687,8 +8689,8 @@ bool CStaticFunctionDefinitions::BindKey(CPlayer* pPlayer, const char* szKey, co
     bHitState = false;
     if (stricmp(szHitState, "up") == 0 || stricmp(szHitState, "both") == 0)
     {
-        if ((pKey && pKeyBinds->AddKeyFunction(pKey, bHitState, pLuaMain, iLuaFunction, Arguments)) ||
-            (pControl && pKeyBinds->AddControlFunction(pControl, bHitState, pLuaMain, iLuaFunction, Arguments)))
+        if ((pKey && pKeyBinds->AddKeyFunction(pKey, bHitState, luaContext, iLuaFunction, Arguments)) ||
+            (pControl && pKeyBinds->AddControlFunction(pControl, bHitState, luaContext, iLuaFunction, Arguments)))
         {
             unsigned char ucKeyLength = static_cast<unsigned char>(strlen(szKey));
 
@@ -8753,11 +8755,11 @@ bool CStaticFunctionDefinitions::BindKey(CPlayer* pPlayer, const char* szKey, co
     return false;
 }
 
-bool CStaticFunctionDefinitions::UnbindKey(CPlayer* pPlayer, const char* szKey, CLuaMain* pLuaMain, const char* szHitState, const CLuaFunctionRef& iLuaFunction)
+bool CStaticFunctionDefinitions::UnbindKey(CPlayer* pPlayer, const char* szKey, CLuaMain* luaContext, const char* szHitState, const CLuaFunctionRef& iLuaFunction)
 {
     assert(pPlayer);
     assert(szKey);
-    assert(pLuaMain);
+    assert(luaContext);
 
     CKeyBinds*                 pKeyBinds = pPlayer->GetKeyBinds();
     const SBindableKey*        pKey = pKeyBinds->GetBindableFromKey(szKey);
@@ -8777,9 +8779,9 @@ bool CStaticFunctionDefinitions::UnbindKey(CPlayer* pPlayer, const char* szKey, 
     /* If we have a key or control, removed the bind and dont have ANY other binds to this key,
        remove it */
     bool bSuccess = false;
-    if ((pKey && (bSuccess = pKeyBinds->RemoveKeyFunction(szKey, pLuaMain, bCheckHitState, bHitState, iLuaFunction)) &&
+    if ((pKey && (bSuccess = pKeyBinds->RemoveKeyFunction(szKey, luaContext, bCheckHitState, bHitState, iLuaFunction)) &&
          !pKeyBinds->KeyFunctionExists(szKey, NULL, bCheckHitState, bHitState)) ||
-        (pControl && (bSuccess = pKeyBinds->RemoveControlFunction(szKey, pLuaMain, bCheckHitState, bHitState, iLuaFunction)) &&
+        (pControl && (bSuccess = pKeyBinds->RemoveControlFunction(szKey, luaContext, bCheckHitState, bHitState, iLuaFunction)) &&
          !pKeyBinds->ControlFunctionExists(szKey, NULL, bCheckHitState, bHitState)))
     {
         unsigned char ucKeyLength = static_cast<unsigned char>(strlen(szKey));
@@ -8838,12 +8840,12 @@ bool CStaticFunctionDefinitions::UnbindKey(CPlayer* pPlayer, const char* szKey, 
     return false;
 }
 
-bool CStaticFunctionDefinitions::IsKeyBound(CPlayer* pPlayer, const char* szKey, CLuaMain* pLuaMain, const char* szHitState,
+bool CStaticFunctionDefinitions::IsKeyBound(CPlayer* pPlayer, const char* szKey, CLuaMain* luaContext, const char* szHitState,
                                             const CLuaFunctionRef& iLuaFunction, bool& bBound)
 {
     assert(pPlayer);
     assert(szKey);
-    assert(pLuaMain);
+    assert(luaContext);
 
     CKeyBinds*                 pKeyBinds = pPlayer->GetKeyBinds();
     const SBindableKey*        pKey = pKeyBinds->GetBindableFromKey(szKey);
@@ -8862,8 +8864,8 @@ bool CStaticFunctionDefinitions::IsKeyBound(CPlayer* pPlayer, const char* szKey,
     }
     if (pKey || pControl)
     {
-        if ((pKey && pKeyBinds->KeyFunctionExists(szKey, pLuaMain, bCheckHitState, bHitState, iLuaFunction)) ||
-            (pControl && pKeyBinds->ControlFunctionExists(szKey, pLuaMain, bCheckHitState, bHitState, iLuaFunction)))
+        if ((pKey && pKeyBinds->KeyFunctionExists(szKey, luaContext, bCheckHitState, bHitState, iLuaFunction)) ||
+            (pControl && pKeyBinds->ControlFunctionExists(szKey, luaContext, bCheckHitState, bHitState, iLuaFunction)))
         {
             bBound = true;
 
@@ -8957,7 +8959,7 @@ bool CStaticFunctionDefinitions::ToggleAllControls(CPlayer* pPlayer, bool bGTACo
     return true;
 }
 
-CTeam* CStaticFunctionDefinitions::CreateTeam(CResource* pResource, const char* szTeamName, unsigned char ucRed, unsigned char ucGreen, unsigned char ucBlue)
+CTeam* CStaticFunctionDefinitions::CreateTeam(Resource* resource, const char* szTeamName, unsigned char ucRed, unsigned char ucGreen, unsigned char ucBlue)
 {
     assert(szTeamName);
 
@@ -8966,10 +8968,10 @@ CTeam* CStaticFunctionDefinitions::CreateTeam(CResource* pResource, const char* 
         return nullptr;
 
     // Create the new team
-    CTeam* const pTeam = new CTeam(m_pTeamManager, pResource->GetDynamicElementRoot(), szTeamName, ucRed, ucGreen, ucBlue);
+    CTeam* const pTeam = new CTeam(m_pTeamManager, resource->GetDynamicElementRoot(), szTeamName, ucRed, ucGreen, ucBlue);
 
     // Tell everyone to add this team
-    if (pResource->IsClientSynced())
+    if (resource->IsClientSynced())
     {
         CEntityAddPacket Packet;
         Packet.Add(pTeam);
@@ -9107,12 +9109,12 @@ bool CStaticFunctionDefinitions::SetTeamFriendlyFire(CTeam* pTeam, bool bFriendl
     return false;
 }
 
-CWater* CStaticFunctionDefinitions::CreateWater(CResource* pResource, CVector* pV1, CVector* pV2, CVector* pV3, CVector* pV4, bool bShallow)
+CWater* CStaticFunctionDefinitions::CreateWater(Resource* resource, CVector* pV1, CVector* pV2, CVector* pV3, CVector* pV4, bool bShallow)
 {
     if (!pV1 || !pV2 || !pV3)
         return nullptr;
 
-    CWater* const pWater = m_pWaterManager->Create(pV4 ? CWater::QUAD : CWater::TRIANGLE, pResource->GetDynamicElementRoot(), bShallow);
+    CWater* const pWater = m_pWaterManager->Create(pV4 ? CWater::QUAD : CWater::TRIANGLE, resource->GetDynamicElementRoot(), bShallow);
 
     if (!pWater)
         return nullptr;
@@ -9130,7 +9132,7 @@ CWater* CStaticFunctionDefinitions::CreateWater(CResource* pResource, CVector* p
         return nullptr;
     }
 
-    if (pResource->IsClientSynced())
+    if (resource->IsClientSynced())
     {
         CEntityAddPacket Packet;
         Packet.Add(pWater);
@@ -9254,15 +9256,15 @@ bool CStaticFunctionDefinitions::ResetWaterColor()
     return true;
 }
 
-CColCircle* CStaticFunctionDefinitions::CreateColCircle(CResource* pResource, const CVector2D& vecPosition, float fRadius)
+CColCircle* CStaticFunctionDefinitions::CreateColCircle(Resource* resource, const CVector2D& vecPosition, float fRadius)
 {
-    CColCircle* const pColShape = new CColCircle(m_pColManager, pResource->GetDynamicElementRoot(), vecPosition, fRadius);
+    CColCircle* const pColShape = new CColCircle(m_pColManager, resource->GetDynamicElementRoot(), vecPosition, fRadius);
 
     // Run collision detection
     CElement* pRoot = m_pMapManager->GetRootElement();
     m_pColManager->DoHitDetection(pRoot->GetPosition(), pRoot, pColShape, true);
 
-    if (pResource->IsClientSynced())
+    if (resource->IsClientSynced())
     {
         CEntityAddPacket Packet;
         Packet.Add(pColShape);
@@ -9272,16 +9274,16 @@ CColCircle* CStaticFunctionDefinitions::CreateColCircle(CResource* pResource, co
     return pColShape;
 }
 
-CColCuboid* CStaticFunctionDefinitions::CreateColCuboid(CResource* pResource, const CVector& vecPosition, const CVector& vecSize)
+CColCuboid* CStaticFunctionDefinitions::CreateColCuboid(Resource* resource, const CVector& vecPosition, const CVector& vecSize)
 {
     // CColCuboid * pColShape = new CColCuboid ( m_pColManager, m_pMapManager->GetRootElement (), vecPosition, vecSize );
-    CColCuboid* pColShape = new CColCuboid(m_pColManager, pResource->GetDynamicElementRoot(), vecPosition, vecSize);
+    CColCuboid* pColShape = new CColCuboid(m_pColManager, resource->GetDynamicElementRoot(), vecPosition, vecSize);
 
     // Run collision detection
     CElement* pRoot = m_pMapManager->GetRootElement();
     m_pColManager->DoHitDetection(pRoot->GetPosition(), pRoot, pColShape, true);
 
-    if (pResource->IsClientSynced())
+    if (resource->IsClientSynced())
     {
         CEntityAddPacket Packet;
         Packet.Add(pColShape);
@@ -9291,16 +9293,16 @@ CColCuboid* CStaticFunctionDefinitions::CreateColCuboid(CResource* pResource, co
     return pColShape;
 }
 
-CColSphere* CStaticFunctionDefinitions::CreateColSphere(CResource* pResource, const CVector& vecPosition, float fRadius)
+CColSphere* CStaticFunctionDefinitions::CreateColSphere(Resource* resource, const CVector& vecPosition, float fRadius)
 {
     // CColSphere * pColShape = new CColSphere ( m_pColManager, m_pMapManager->GetRootElement (), vecPosition, fRadius );
-    CColSphere* pColShape = new CColSphere(m_pColManager, pResource->GetDynamicElementRoot(), vecPosition, fRadius);
+    CColSphere* pColShape = new CColSphere(m_pColManager, resource->GetDynamicElementRoot(), vecPosition, fRadius);
 
     // Run collision detection
     CElement* pRoot = m_pMapManager->GetRootElement();
     m_pColManager->DoHitDetection(pRoot->GetPosition(), pRoot, pColShape, true);
 
-    if (pResource->IsClientSynced())
+    if (resource->IsClientSynced())
     {
         CEntityAddPacket Packet;
         Packet.Add(pColShape);
@@ -9310,16 +9312,16 @@ CColSphere* CStaticFunctionDefinitions::CreateColSphere(CResource* pResource, co
     return pColShape;
 }
 
-CColRectangle* CStaticFunctionDefinitions::CreateColRectangle(CResource* pResource, const CVector2D& vecPosition, const CVector2D& vecSize)
+CColRectangle* CStaticFunctionDefinitions::CreateColRectangle(Resource* resource, const CVector2D& vecPosition, const CVector2D& vecSize)
 {
     // CColRectangle * pColShape = new CColRectangle ( m_pColManager, m_pMapManager->GetRootElement(), vecPosition, vecSize );
-    CColRectangle* pColShape = new CColRectangle(m_pColManager, pResource->GetDynamicElementRoot(), vecPosition, vecSize);
+    CColRectangle* pColShape = new CColRectangle(m_pColManager, resource->GetDynamicElementRoot(), vecPosition, vecSize);
 
     // Run collision detection
     CElement* pRoot = m_pMapManager->GetRootElement();
     m_pColManager->DoHitDetection(pRoot->GetPosition(), pRoot, pColShape, true);
 
-    if (pResource->IsClientSynced())
+    if (resource->IsClientSynced())
     {
         CEntityAddPacket Packet;
         Packet.Add(pColShape);
@@ -9329,13 +9331,13 @@ CColRectangle* CStaticFunctionDefinitions::CreateColRectangle(CResource* pResour
     return pColShape;
 }
 
-CColPolygon* CStaticFunctionDefinitions::CreateColPolygon(CResource* pResource, const std::vector<CVector2D>& vecPointList)
+CColPolygon* CStaticFunctionDefinitions::CreateColPolygon(Resource* resource, const std::vector<CVector2D>& vecPointList)
 {
     if (vecPointList.size() < 4)
         return nullptr;
 
     CVector      vecPosition(vecPointList[0].fX, vecPointList[0].fY, 0);
-    CColPolygon* pColShape = new CColPolygon(m_pColManager, pResource->GetDynamicElementRoot(), vecPosition);
+    CColPolygon* pColShape = new CColPolygon(m_pColManager, resource->GetDynamicElementRoot(), vecPosition);
 
     for (uint i = 1; i < vecPointList.size(); i++)
     {
@@ -9346,7 +9348,7 @@ CColPolygon* CStaticFunctionDefinitions::CreateColPolygon(CResource* pResource, 
     CElement* pRoot = m_pMapManager->GetRootElement();
     m_pColManager->DoHitDetection(pRoot->GetPosition(), pRoot, pColShape, true);
 
-    if (pResource->IsClientSynced())
+    if (resource->IsClientSynced())
     {
         CEntityAddPacket Packet;
         Packet.Add(pColShape);
@@ -9356,16 +9358,16 @@ CColPolygon* CStaticFunctionDefinitions::CreateColPolygon(CResource* pResource, 
     return pColShape;
 }
 
-CColTube* CStaticFunctionDefinitions::CreateColTube(CResource* pResource, const CVector& vecPosition, float fRadius, float fHeight)
+CColTube* CStaticFunctionDefinitions::CreateColTube(Resource* resource, const CVector& vecPosition, float fRadius, float fHeight)
 {
     // CColTube * pColShape = new CColTube ( m_pColManager, m_pMapManager->GetRootElement (), vecPosition, fRadius, fHeight );
-    CColTube* pColShape = new CColTube(m_pColManager, pResource->GetDynamicElementRoot(), vecPosition, fRadius, fHeight);
+    CColTube* pColShape = new CColTube(m_pColManager, resource->GetDynamicElementRoot(), vecPosition, fRadius, fHeight);
 
     // Run collision detection
     CElement* pRoot = m_pMapManager->GetRootElement();
     m_pColManager->DoHitDetection(pRoot->GetPosition(), pRoot, pColShape, true);
 
-    if (pResource->IsClientSynced())
+    if (resource->IsClientSynced())
     {
         CEntityAddPacket Packet;
         Packet.Add(pColShape);
@@ -9580,12 +9582,12 @@ bool CStaticFunctionDefinitions::GetWeaponIDFromName(const char* szName, unsigne
     return ucID != 0xFF;
 }
 
-CCustomWeapon* CStaticFunctionDefinitions::CreateWeapon(CResource* pResource, eWeaponType weaponType, CVector vecPosition)
+CCustomWeapon* CStaticFunctionDefinitions::CreateWeapon(Resource* resource, eWeaponType weaponType, CVector vecPosition)
 {
-    CCustomWeapon* const pWeapon = new CCustomWeapon(pResource->GetDynamicElementRoot(), m_pObjectManager, m_pCustomWeaponManager, weaponType);
+    CCustomWeapon* const pWeapon = new CCustomWeapon(resource->GetDynamicElementRoot(), m_pObjectManager, m_pCustomWeaponManager, weaponType);
     pWeapon->SetPosition(vecPosition);
 
-    if (pResource->IsClientSynced())
+    if (resource->IsClientSynced())
     {
         CEntityAddPacket Packet;
         Packet.Add(pWeapon);
@@ -10028,12 +10030,12 @@ bool CStaticFunctionDefinitions::SetMaxPlayers(unsigned int uiMax)
 }
 
 bool CStaticFunctionDefinitions::OutputChatBox(const char* szText, CElement* pElement, unsigned char ucRed, unsigned char ucGreen, unsigned char ucBlue,
-                                               bool bColorCoded, CLuaMain* pLuaMain)
+                                               bool bColorCoded, CLuaMain* luaContext)
 {
     assert(pElement);
     assert(szText);
 
-    RUN_CHILDREN(OutputChatBox(szText, *iter, ucRed, ucGreen, ucBlue, bColorCoded, pLuaMain))
+    RUN_CHILDREN(OutputChatBox(szText, *iter, ucRed, ucGreen, ucBlue, bColorCoded, luaContext))
 
     if (IS_PLAYER(pElement))
     {
@@ -10044,11 +10046,12 @@ bool CStaticFunctionDefinitions::OutputChatBox(const char* szText, CElement* pEl
 
     if (pElement == m_pMapManager->GetRootElement())
     {
-        CResource*    pResource = pLuaMain->GetResource();
+        Resource& resource = luaContext->GetResource();
+
         CLuaArguments Arguments;
         Arguments.PushString(szText);
-        if (pResource)
-            Arguments.PushResource(pResource);
+        Arguments.PushResource(&resource);
+
         m_pMapManager->GetRootElement()->CallEvent("onChatMessage", Arguments);
     }
 
@@ -10942,22 +10945,13 @@ CElement* CStaticFunctionDefinitions::GetRootElement()
     return m_pMapManager->GetRootElement();
 }
 
-CElement* CStaticFunctionDefinitions::LoadMapData(CLuaMain* pLuaMain, CElement* pParent, CXMLNode* pNode)
+CElement* CStaticFunctionDefinitions::LoadMapData(CLuaMain* luaContext, CElement* pParent, CXMLNode* pNode)
 {
-    assert(pLuaMain);
+    assert(luaContext);
     assert(pParent);
     assert(pNode);
 
-    // Grab the VM's resource
-    CResource* pResource = pLuaMain->GetResource();
-    if (pResource)
-    {
-        // Load the map data
-        return m_pMapManager->LoadMapData(*pResource, *pParent, *pNode);
-    }
-
-    // Failed
-    return NULL;
+    return m_pMapManager->LoadMapData(luaContext->GetResource(), *pParent, *pNode);
 }
 
 CXMLNode* CStaticFunctionDefinitions::SaveMapData(CElement* pElement, CXMLNode* pNode, bool bChildren)
@@ -11866,31 +11860,26 @@ bool CStaticFunctionDefinitions::IsCursorShowing(CPlayer* pPlayer, bool& bShowin
     return true;
 }
 
-bool CStaticFunctionDefinitions::ShowCursor(CElement* pElement, CLuaMain* pLuaMain, bool bShow, bool bToggleControls)
+bool CStaticFunctionDefinitions::ShowCursor(CElement* pElement, CLuaMain* luaContext, bool bShow, bool bToggleControls)
 {
     assert(pElement);
-    RUN_CHILDREN(ShowCursor(*iter, pLuaMain, bShow, bToggleControls))
+    RUN_CHILDREN(ShowCursor(*iter, luaContext, bShow, bToggleControls))
 
     if (IS_PLAYER(pElement))
     {
-        // Grab its resource
-        CResource* pResource = pLuaMain->GetResource();
-        if (pResource)
-        {
-            // Update the cursor showing state
-            // TODO: isCursorShowing won't cope with this very well.
-            CPlayer* pPlayer = static_cast<CPlayer*>(pElement);
-            pPlayer->SetCursorShowing(bShow);
+        // Update the cursor showing state
+        // TODO: isCursorShowing won't cope with this very well.
+        CPlayer* pPlayer = static_cast<CPlayer*>(pElement);
+        pPlayer->SetCursorShowing(bShow);
 
-            // Get him to show/hide the cursor
-            CBitStream BitStream;
-            BitStream.pBitStream->Write(static_cast<unsigned char>((bShow) ? 1 : 0));
-            BitStream.pBitStream->Write(static_cast<unsigned short>(pResource->GetNetID()));
-            BitStream.pBitStream->Write(static_cast<unsigned char>((bToggleControls) ? 1 : 0));
-            pPlayer->Send(CLuaPacket(SHOW_CURSOR, *BitStream.pBitStream));
+        // Get him to show/hide the cursor
+        CBitStream BitStream;
+        BitStream.pBitStream->Write(static_cast<unsigned char>((bShow) ? 1 : 0));
+        BitStream.pBitStream->Write(static_cast<unsigned short>(luaContext->GetResource().GetRemoteIdentifier()));
+        BitStream.pBitStream->Write(static_cast<unsigned char>((bToggleControls) ? 1 : 0));
+        pPlayer->Send(CLuaPacket(SHOW_CURSOR, *BitStream.pBitStream));
 
-            return true;
-        }
+        return true;
     }
 
     return false;
@@ -11946,12 +11935,14 @@ bool CStaticFunctionDefinitions::ResetMapInfo(CElement* pElement)
     return false;
 }
 
-CElement* CStaticFunctionDefinitions::GetResourceMapRootElement(CResource* pResource, const char* szMap)
+CElement* CStaticFunctionDefinitions::GetResourceMapRootElement(Resource* resource, std::string_view mapName)
 {
-    if (pResource)
+    // TODO:
+    /*
+    if (resource)
     {
-        list<CResourceFile*>::const_iterator iter = pResource->IterBegin();
-        for (; iter != pResource->IterEnd(); iter++)
+        list<CResourceFile*>::const_iterator iter = resource->IterBegin();
+        for (; iter != resource->IterEnd(); iter++)
         {
             if ((*iter)->GetType() == (*iter)->RESOURCE_FILE_TYPE_MAP)
             {
@@ -11963,24 +11954,27 @@ CElement* CStaticFunctionDefinitions::GetResourceMapRootElement(CResource* pReso
             }
         }
     }
+    */
 
     return NULL;
 }
 
-CXMLNode* CStaticFunctionDefinitions::AddResourceMap(CResource* pResource, const std::string& strFilePath, const std::string& strMapName, int iDimension,
+CXMLNode* CStaticFunctionDefinitions::AddResourceMap(Resource* resource, const std::string& strFilePath, const std::string& strMapName, int iDimension,
                                                      CLuaMain* pLUA)
 {
+    // TODO:
+    /*
     // See if it's loaded
-    if (pResource->IsLoaded())
+    if (resource->IsLoaded())
     {
         // See if it's in use
-        if (!pResource->IsActive())
+        if (!resource->IsActive())
         {
             // Is this a zip resource? We can't modify those
-            if (!pResource->IsResourceZip())
+            if (!resource->IsResourceZip())
             {
                 // Does this file already exist in this resource?
-                if (!pResource->IncludedFileExists(strMapName.c_str(), CResourceFile::RESOURCE_FILE_TYPE_NONE))
+                if (!resource->IncludedFileExists(strMapName.c_str(), CResourceFile::RESOURCE_FILE_TYPE_NONE))
                 {
                     CXMLFile* pXML = pLUA->CreateXML(strFilePath.c_str());
                     if (pXML)
@@ -11992,7 +11986,7 @@ CXMLNode* CStaticFunctionDefinitions::AddResourceMap(CResource* pResource, const
                         if (pRootNode && pXML->Write())
                         {
                             // Add it to the resource's meta file
-                            if (pResource->AddMapFile(strMapName.c_str(), strFilePath.c_str(), iDimension))
+                            if (resource->AddMapFile(strMapName.c_str(), strFilePath.c_str(), iDimension))
                             {
                                 // Return the created XML's root node
                                 return pRootNode;
@@ -12000,13 +11994,13 @@ CXMLNode* CStaticFunctionDefinitions::AddResourceMap(CResource* pResource, const
                             else
                             {
                                 CLogger::ErrorPrintf("Unable to add map %s to resource %s; Unable to alter meta file\n", strMapName.c_str(),
-                                                     pResource->GetName().c_str());
+                                                     resource->GetName().c_str());
                             }
                         }
                         else
                         {
                             CLogger::ErrorPrintf("Unable to add map %s to resource %s; Unable to write XML\n", strMapName.c_str(),
-                                                 pResource->GetName().c_str());
+                                                 resource->GetName().c_str());
                         }
 
                         // Destroy the XML if we failed
@@ -12015,35 +12009,37 @@ CXMLNode* CStaticFunctionDefinitions::AddResourceMap(CResource* pResource, const
                 }
                 else
                     CLogger::ErrorPrintf("Unable to add map %s to resource %s; File already exists in resource\n", strMapName.c_str(),
-                                         pResource->GetName().c_str());
+                                         resource->GetName().c_str());
             }
             else
-                CLogger::ErrorPrintf("Unable to add map %s to resource %s; Resource is in a zip file\n", strMapName.c_str(), pResource->GetName().c_str());
+                CLogger::ErrorPrintf("Unable to add map %s to resource %s; Resource is in a zip file\n", strMapName.c_str(), resource->GetName().c_str());
         }
         else
-            CLogger::ErrorPrintf("Unable to add map %s to resource %s; Resource is in use\n", strMapName.c_str(), pResource->GetName().c_str());
+            CLogger::ErrorPrintf("Unable to add map %s to resource %s; Resource is in use\n", strMapName.c_str(), resource->GetName().c_str());
     }
     else
-        CLogger::ErrorPrintf("Unable to add map %s to resource %s; Resource is not loaded\n", strMapName.c_str(), pResource->GetName().c_str());
+        CLogger::ErrorPrintf("Unable to add map %s to resource %s; Resource is not loaded\n", strMapName.c_str(), resource->GetName().c_str());
+    */
 
-    // Failed
     return NULL;
 }
 
-CXMLNode* CStaticFunctionDefinitions::AddResourceConfig(CResource* pResource, const std::string& strFilePath, const std::string& strConfigName, int iType,
-                                                        CLuaMain* pLUA)
+CXMLNode* CStaticFunctionDefinitions::AddResourceConfig(Resource* resource, const std::string& strFilePath, const std::string& strConfigName,
+                                                        bool isServerSide, CLuaMain* pLUA)
 {
+    // TODO:
+    /*
     // See if it's loaded
-    if (pResource->IsLoaded())
+    if (resource->IsLoaded())
     {
         // See if it's in use
-        if (!pResource->IsActive())
+        if (!resource->IsActive())
         {
             // Is this a zip resource? We can't modify those
-            if (!pResource->IsResourceZip())
+            if (!resource->IsResourceZip())
             {
                 // Does this file already exist in this resource?
-                if (!pResource->IncludedFileExists(strConfigName.c_str(), CResourceFile::RESOURCE_FILE_TYPE_NONE))
+                if (!resource->IncludedFileExists(strConfigName.c_str(), CResourceFile::RESOURCE_FILE_TYPE_NONE))
                 {
                     CXMLFile* pXML = pLUA->CreateXML(strFilePath.c_str());
                     if (pXML)
@@ -12055,7 +12051,7 @@ CXMLNode* CStaticFunctionDefinitions::AddResourceConfig(CResource* pResource, co
                         if (pRootNode && pXML->Write())
                         {
                             // Add it to the resource's meta file
-                            if (pResource->AddConfigFile(strConfigName.c_str(), strFilePath.c_str(), iType))
+                            if (resource->AddConfigFile(strConfigName.c_str(), strFilePath.c_str(), iType))
                             {
                                 // Return the created XML's root node
                                 return pRootNode;
@@ -12063,13 +12059,13 @@ CXMLNode* CStaticFunctionDefinitions::AddResourceConfig(CResource* pResource, co
                             else
                             {
                                 CLogger::ErrorPrintf("Unable to add config %s to resource %s; Unable to alter meta file\n", strConfigName.c_str(),
-                                                     pResource->GetName().c_str());
+                                                     resource->GetName().c_str());
                             }
                         }
                         else
                         {
                             CLogger::ErrorPrintf("Unable to add config %s to resource %s; Unable to write XML\n", strConfigName.c_str(),
-                                                 pResource->GetName().c_str());
+                                                 resource->GetName().c_str());
                         }
 
                         // Destroy the XML if we failed
@@ -12077,36 +12073,38 @@ CXMLNode* CStaticFunctionDefinitions::AddResourceConfig(CResource* pResource, co
                     }
                     else
                         CLogger::ErrorPrintf("Unable to add config %s to resource %s; Unable to create XML\n", strConfigName.c_str(),
-                                             pResource->GetName().c_str());
+                                             resource->GetName().c_str());
                 }
                 else
                     CLogger::ErrorPrintf("Unable to add config %s to resource %s; File already exists in resource\n", strConfigName.c_str(),
-                                         pResource->GetName().c_str());
+                                         resource->GetName().c_str());
             }
             else
                 CLogger::ErrorPrintf("Unable to add config %s to resource %s; Resource is in a zip file\n", strConfigName.c_str(),
-                                     pResource->GetName().c_str());
+                                     resource->GetName().c_str());
         }
         else
-            CLogger::ErrorPrintf("Unable to add config %s to resource %s; Resource is in use\n", strConfigName.c_str(), pResource->GetName().c_str());
+            CLogger::ErrorPrintf("Unable to add config %s to resource %s; Resource is in use\n", strConfigName.c_str(), resource->GetName().c_str());
     }
     else
-        CLogger::ErrorPrintf("Unable to add config %s to resource %s; Resource is not loaded\n", strConfigName.c_str(), pResource->GetName().c_str());
+        CLogger::ErrorPrintf("Unable to add config %s to resource %s; Resource is not loaded\n", strConfigName.c_str(), resource->GetName().c_str());
+    */
 
-    // Failed
     return NULL;
 }
 
-bool CStaticFunctionDefinitions::RemoveResourceFile(CResource* pResource, const char* szFilenameUnmodified)
+bool CStaticFunctionDefinitions::RemoveResourceFile(Resource* resource, std::string_view filePath)
 {
+    // TODO:
+    /*
     // See if it's loaded
-    if (pResource->IsLoaded())
+    if (resource->IsLoaded())
     {
         // See if it's in use
-        if (!pResource->IsActive())
+        if (!resource->IsActive())
         {
             // Is this a zip resource? We can't modify those
-            if (!pResource->IsResourceZip())
+            if (!resource->IsResourceZip())
             {
                 // Check that the filepath is valid
                 if (IsValidFilePath(szFilenameUnmodified))
@@ -12117,27 +12115,27 @@ bool CStaticFunctionDefinitions::RemoveResourceFile(CResource* pResource, const 
                     ReplaceCharactersInString(szFilename, '\\', '/');
 
                     // Try to remove the file
-                    if (pResource->RemoveFile(szFilename))
+                    if (resource->RemoveFile(szFilename))
                     {
                         return true;
                     }
                     else
-                        CLogger::ErrorPrintf("Unable to remove file %s from resource %s; File does not exist\n", szFilename, pResource->GetName().c_str());
+                        CLogger::ErrorPrintf("Unable to remove file %s from resource %s; File does not exist\n", szFilename, resource->GetName().c_str());
                 }
                 else
-                    CLogger::ErrorPrintf("Unable to remove file %s from resource %s; Bad filename\n", szFilenameUnmodified, pResource->GetName().c_str());
+                    CLogger::ErrorPrintf("Unable to remove file %s from resource %s; Bad filename\n", szFilenameUnmodified, resource->GetName().c_str());
             }
             else
                 CLogger::ErrorPrintf("Unable to remove file %s from resource %s; Resource is in a zip file\n", szFilenameUnmodified,
-                                     pResource->GetName().c_str());
+                                     resource->GetName().c_str());
         }
         else
-            CLogger::ErrorPrintf("Unable to remove file %s from resource %s; Resource is in use\n", szFilenameUnmodified, pResource->GetName().c_str());
+            CLogger::ErrorPrintf("Unable to remove file %s from resource %s; Resource is in use\n", szFilenameUnmodified, resource->GetName().c_str());
     }
     else
-        CLogger::ErrorPrintf("Unable to remove file %s from resource %s; Resource is not loaded\n", szFilenameUnmodified, pResource->GetName().c_str());
+        CLogger::ErrorPrintf("Unable to remove file %s from resource %s; Resource is not loaded\n", szFilenameUnmodified, resource->GetName().c_str());
+    */
 
-    // Failed
     return false;
 }
 

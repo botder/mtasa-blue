@@ -17,29 +17,11 @@
 #include "CResourceClientConfigItem.h"
 #include "MetaFileParser.h"
 #include "ResourceFileRouter.h"
-
-extern CServerInterface* g_pServerInterface;
-extern CGame*            g_pGame;
+#include "CResourceManager.h"
 
 namespace fs = std::filesystem;
 
-static bool IsRegularFile(const fs::path& filePath)
-{
-    std::error_code ec;
-    return fs::is_regular_file(filePath, ec) && !ec;
-}
-
-static void unzConvertToEpochTime(const tm_unz& tmu_date, struct tm& calendarTime)
-{
-    memset(&calendarTime, 0, sizeof(calendarTime));
-    calendarTime.tm_sec = tmu_date.tm_sec;
-    calendarTime.tm_min = tmu_date.tm_min;
-    calendarTime.tm_hour = tmu_date.tm_hour;
-    calendarTime.tm_mday = tmu_date.tm_mday;
-    calendarTime.tm_mon = tmu_date.tm_mon;
-    calendarTime.tm_year = tmu_date.tm_year - 1900;
-    calendarTime.tm_isdst = -1;
-}
+using namespace mtasa;
 
 CResource::CResource(CResourceManager* pResourceManager, bool bIsZipped, const char* szAbsPath, const char* szResourceName)
     : m_pResourceManager(pResourceManager), m_bResourceIsZip(bIsZipped), m_strResourceName(SStringX(szResourceName)), m_strAbsPath(SStringX(szAbsPath))
@@ -70,7 +52,7 @@ bool CResource::Load()
 
     m_bOOPEnabledInMetaXml = false;
 
-    m_pVM = nullptr;
+    m_luaContext = nullptr;
     // @@@@@ Set some type of HTTP access here
 
     // Register the time we loaded this resource and zero out the time we started it
@@ -81,57 +63,8 @@ bool CResource::Load()
     m_strResourceDirectoryPath = PathJoin(m_strAbsPath, m_strResourceName, "/");
     m_strResourceCachePath = PathJoin(g_pServerInterface->GetServerModPath(), "resource-cache", "unzipped", m_strResourceName, "/");
 
-    m_rootDirectory = fs::path{m_strAbsPath.c_str(), fs::path::format::generic_format} / m_strResourceName.c_str();
-
-    m_archiveFilePath = m_rootDirectory;
-    m_archiveFilePath += ".zip";
-
-    if (m_bResourceIsZip)
-    {
-        m_staticRootDirectory = fs::path{m_strResourceCachePath, fs::path::format::generic_format};
-
-        if (!UnzipResource())
-        {
-            return false;
-        }
-
-        m_zipHash = CChecksum::GenerateChecksumFromFileUnsafe(m_archiveFilePath.string());
-    }
-    else
-    {
-        m_staticRootDirectory = fs::path{m_strResourceDirectoryPath, fs::path::format::generic_format};
-    }
-
-    // Load the meta.xml file
-    m_metaFilePath = m_staticRootDirectory / "meta.xml";
-
-    if (!IsRegularFile(m_metaFilePath))
-    {
-        m_strFailureReason = "Couldn't find meta.xml file for resource '"s + m_strResourceName + "'\n"s;
-        CLogger::ErrorPrintf(m_strFailureReason.c_str());
-        return false;
-    }
-
-    mtasa::MetaFileParser meta{m_strResourceName};
-    std::string           parserError = meta.Parse(m_metaFilePath);
-
-    if (!parserError.empty())
-    {
-        m_strFailureReason = SString("Couldn't parse meta file for resource '%s' [%s]\n", m_strResourceName.c_str(), parserError.c_str());
-        CLogger::ErrorPrintf(m_strFailureReason.c_str());
-        return false;
-    }
-
-    // Process resource meta information from parser
-    if (!ProcessMeta(meta))
-        return false;
-
-    // Generate a CRC for this resource
-    if (!GenerateChecksums())
-        return false;
-
     // Register this resource name in the embedded http server
-    m_httpRouter = std::make_unique<mtasa::ResourceFileRouter>(*this);
+    m_httpRouter = std::make_unique<ResourceFileRouter>(*this);
 
     m_eState = EResourceState::Loaded;
     m_bDoneUpgradeWarnings = false;
@@ -209,9 +142,6 @@ void CResource::TidyUp()
         pDependent->InvalidateIncludedResourceReference(this);
 
     m_httpRouter.reset();
-
-    std::exchange(m_serverFiles, {});
-    std::exchange(m_clientFiles, {});
 }
 
 bool CResource::GetInfoValue(const char* szKey, std::string& strValue) const
@@ -227,6 +157,7 @@ bool CResource::GetInfoValue(const char* szKey, std::string& strValue) const
 
 void CResource::SetInfoValue(const char* szKey, const char* szValue, bool bSave)
 {
+    /*
     bool bFoundExisting = false;
 
     // Try to find an existing value with a matching key
@@ -287,7 +218,7 @@ void CResource::SetInfoValue(const char* szKey, const char* szValue, bool bSave)
             info->GetAttributes().Create(szKey)->SetValue(szValue);
     }
 
-    document->Write();
+    document->Write();*/
 }
 
 std::future<SString> CResource::GenerateChecksumForFile(CResourceFile* pResourceFile)
@@ -379,7 +310,7 @@ bool CResource::GenerateChecksums()
         }
     }
 
-    m_metaChecksum = CChecksum::GenerateChecksumFromFileUnsafe(m_metaFilePath.string());
+    // m_metaChecksum = CChecksum::GenerateChecksumFromFileUnsafe(m_metaFilePath.string());
     return bOk;
 }
 
@@ -390,10 +321,10 @@ bool CResource::HasResourceChanged()
     if (m_bResourceIsZip)
     {
         // Zip file might have changed
-        CChecksum checksum = CChecksum::GenerateChecksumFromFileUnsafe(m_archiveFilePath.string());
+        // CChecksum checksum = CChecksum::GenerateChecksumFromFileUnsafe(m_archiveFilePath.string());
 
-        if (checksum != m_zipHash)
-            return true;
+        // if (checksum != m_zipHash)
+        //     return true;
     }
 
     std::string strPath;
@@ -429,13 +360,14 @@ bool CResource::HasResourceChanged()
         }
     }
 
-    CChecksum checksum = CChecksum::GenerateChecksumFromFileUnsafe(m_metaFilePath.string());
-    return (checksum != m_metaChecksum);
+    // CChecksum checksum = CChecksum::GenerateChecksumFromFileUnsafe(m_metaFilePath.string());
+    // return (checksum != m_metaChecksum);
+    return false;
 }
 
 void CResource::ApplyUpgradeModifications()
 {
-    CResourceChecker().ApplyUpgradeModifications(this, (m_bResourceIsZip ? m_archiveFilePath.string() : ""s));
+    // CResourceChecker().ApplyUpgradeModifications(this, (m_bResourceIsZip ? m_archiveFilePath.string() : ""s));
 }
 
 //
@@ -443,8 +375,8 @@ void CResource::ApplyUpgradeModifications()
 //
 void CResource::LogUpgradeWarnings()
 {
-    CResourceChecker().LogUpgradeWarnings(this, m_archiveFilePath.string(), m_strMinClientReqFromSource, m_strMinServerReqFromSource, m_strMinClientReason,
-                                          m_strMinServerReason);
+    // CResourceChecker().LogUpgradeWarnings(this, m_archiveFilePath.string(), m_strMinClientReqFromSource, m_strMinServerReqFromSource, m_strMinClientReason,
+    //                                       m_strMinServerReason);
     SString strStatus;
 
     if (!GetCompatibilityStatus(strStatus))
@@ -537,7 +469,7 @@ bool CResource::Start(std::list<CResource*>* pDependents, bool bManualStart, con
     m_eState = EResourceState::Starting;
 
     CLuaArguments PreStartArguments;
-    PreStartArguments.PushResource(this);
+    // PreStartArguments.PushResource(this);
 
     if (!g_pGame->GetMapManager()->GetRootElement()->CallEvent("onResourcePreStart", PreStartArguments))
     {
@@ -551,8 +483,8 @@ bool CResource::Start(std::list<CResource*>* pDependents, bool bManualStart, con
     if (!m_bDoneUpgradeWarnings)
     {
         m_bDoneUpgradeWarnings = true;
-        CResourceChecker().LogUpgradeWarnings(this, m_archiveFilePath.string(), m_strMinClientReqFromSource, m_strMinServerReqFromSource, m_strMinClientReason,
-                                              m_strMinServerReason);
+        // CResourceChecker().LogUpgradeWarnings(this, m_archiveFilePath.string(), m_strMinClientReqFromSource, m_strMinServerReqFromSource, m_strMinClientReason,
+        //                                       m_strMinServerReason);
     }
 
     // MTA version check
@@ -771,7 +703,7 @@ bool CResource::Start(std::list<CResource*>* pDependents, bool bManualStart, con
 
     // Call the onResourceStart event. If it returns false, cancel this script again
     CLuaArguments Arguments;
-    Arguments.PushResource(this);
+    // Arguments.PushResource(this);
 
     if (!m_pResourceElement->CallEvent("onResourceStart", Arguments))
     {
@@ -793,7 +725,7 @@ bool CResource::Start(std::list<CResource*>* pDependents, bool bManualStart, con
 
     // Broadcast new resourceelement that is loaded and tell the players that a new resource was started
     g_pGame->GetMapManager()->BroadcastResourceElements(m_pResourceElement, m_pDefaultElementGroup);
-    g_pGame->GetPlayerManager()->BroadcastOnlyJoined(CResourceStartPacket(m_strResourceName.c_str(), this));
+    // g_pGame->GetPlayerManager()->BroadcastOnlyJoined(CResourceStartPacket(m_strResourceName.c_str(), this));
     SendNoClientCacheScripts();
     m_bClientSync = true;
 
@@ -825,7 +757,7 @@ bool CResource::Stop(bool bManualStop)
     CLogger::LogPrintf(LOGLEVEL_LOW, "Stopping %s\n", m_strResourceName.c_str());
 
     // Tell the modules we are stopping
-    g_pGame->GetLuaManager()->GetLuaModuleManager()->ResourceStopping(m_pVM->GetVirtualMachine());
+    g_pGame->GetLuaManager()->GetLuaModuleManager()->ResourceStopping(m_luaContext->GetLuaState());
 
     // Tell all the players that have joined that this resource is stopped
     g_pGame->GetPlayerManager()->BroadcastOnlyJoined(CResourceStopPacket(m_usNetID));
@@ -833,7 +765,7 @@ bool CResource::Stop(bool bManualStop)
 
     // Call the onResourceStop event on this resource element
     CLuaArguments Arguments;
-    Arguments.PushResource(this);
+    // Arguments.PushResource(this);
     Arguments.PushBoolean(m_bDestroyed);
     m_pResourceElement->CallEvent("onResourceStop", Arguments);
 
@@ -860,7 +792,7 @@ bool CResource::Stop(bool bManualStop)
     }
 
     // Tell the module manager we have stopped
-    g_pGame->GetLuaManager()->GetLuaModuleManager()->ResourceStopped(m_pVM->GetVirtualMachine());
+    g_pGame->GetLuaManager()->GetLuaModuleManager()->ResourceStopped(m_luaContext->GetLuaState());
 
     // Remove the temporary XML storage node
     if (m_pNodeStorage)
@@ -906,16 +838,16 @@ bool CResource::Stop(bool bManualStop)
 
 bool CResource::CreateVM(bool bEnableOOP)
 {
-    if (!m_pVM)
+    if (!m_luaContext)
     {
-        m_pVM = g_pGame->GetLuaManager()->CreateVirtualMachine(this, bEnableOOP);
-        m_pResourceManager->NotifyResourceVMOpen(this, m_pVM);
+        // m_luaContext = g_pGame->GetLuaManager()->CreateLuaContext(this, bEnableOOP);
+        // m_pResourceManager->NotifyResourceVMOpen(this, m_luaContext);
     }
 
-    if (!m_pVM)
+    if (!m_luaContext)
         return false;
 
-    m_pVM->SetScriptName(m_strResourceName.c_str());
+    m_luaContext->SetScriptName(m_strResourceName.c_str());
     return true;
 }
 
@@ -929,22 +861,23 @@ bool CResource::DestroyVM()
         CKeyBinds* pBinds = (*iter)->GetKeyBinds();
 
         if (pBinds)
-            pBinds->RemoveAllKeys(m_pVM);
+            pBinds->RemoveAllKeys(m_luaContext);
     }
 
     // Delete the events on this VM
-    m_pRootElement->DeleteEvents(m_pVM, true);
-    g_pGame->GetElementDeleter()->CleanUpForVM(m_pVM);
+    m_pRootElement->DeleteEvents(m_luaContext, true);
+    g_pGame->GetElementDeleter()->CleanUpForVM(m_luaContext);
 
     // Delete the virtual machine
-    m_pResourceManager->NotifyResourceVMClose(this, m_pVM);
-    g_pGame->GetLuaManager()->RemoveVirtualMachine(m_pVM);
-    m_pVM = nullptr;
+    m_pResourceManager->NotifyResourceVMClose(this, m_luaContext);
+    g_pGame->GetLuaManager()->RemoveLuaContext(m_luaContext);
+    m_luaContext = nullptr;
     return true;
 }
 
 bool CResource::HasGoneAway()
 {
+    /*
     if (m_bResourceIsZip)
     {
         return !IsRegularFile(m_archiveFilePath);
@@ -952,7 +885,8 @@ bool CResource::HasGoneAway()
     else
     {
         return !IsRegularFile(m_metaFilePath);
-    }
+    }*/
+    return false;
 }
 
 bool CResource::GetFilePath(const char* szFilename, string& strPath)
@@ -1016,7 +950,7 @@ bool CResource::RemoveDefaultSetting(const char* szName)
 
 bool CResource::AddMapFile(const char* szName, const char* szFullFilename, int iDimension)
 {
-    if (!IsLoaded() || m_bResourceIsZip)
+    /*if (!IsLoaded() || m_bResourceIsZip)
         return false;
 
     std::unique_ptr<CXMLFile> document{g_pServerInterface->GetXML()->CreateXML(m_metaFilePath.string().c_str())};
@@ -1043,12 +977,13 @@ bool CResource::AddMapFile(const char* szName, const char* szFullFilename, int i
     m_ResourceFiles.push_back(new CResourceMapItem(this, szName, szFullFilename, &map->GetAttributes(), iDimension));
 
     // Success, write and destroy XML
-    document->Write();
+    document->Write();*/
     return true;
 }
 
 bool CResource::AddConfigFile(const char* szName, const char* szFullFilepath, int iType)
 {
+    /*
     if (!IsLoaded() || m_bResourceIsZip)
         return false;
 
@@ -1080,7 +1015,7 @@ bool CResource::AddConfigFile(const char* szName, const char* szFullFilepath, in
     // If we're loaded, add it to the resourcefiles too
     m_ResourceFiles.push_back(new CResourceConfigItem(this, szName, szFullFilepath, &config->GetAttributes()));
 
-    document->Write();
+    document->Write();*/
     return true;
 }
 
@@ -1102,6 +1037,7 @@ bool CResource::IncludedFileExists(const char* szName, int iType)
 
 bool CResource::RemoveFile(const char* szName)
 {
+    /*
     if (!IsLoaded() || m_bResourceIsZip)
         return false;
 
@@ -1149,7 +1085,7 @@ bool CResource::RemoveFile(const char* szName)
     if (File::Delete(resourceFilePath->absolute.string().c_str()) != 0)
         CLogger::LogPrintf("WARNING: Problems deleting the actual file, but was removed from resource");
 
-    document->Write();
+    document->Write();*/
     return true;
 }
 
@@ -1266,448 +1202,6 @@ void CResource::RemoveDependent(CResource* pResource)
     CheckState();
 }
 
-bool CResource::IsDuplicateServerFile(const fs::path& relativeFilePath)
-{
-    return std::find(m_serverFiles.begin(), m_serverFiles.end(), relativeFilePath) != m_serverFiles.end();
-}
-
-bool CResource::IsDuplicateClientFile(const fs::path& relativeFilePath)
-{
-    std::string lowercasePath = relativeFilePath.generic_string();
-    std::transform(lowercasePath.begin(), lowercasePath.end(), lowercasePath.begin(), [](unsigned char c) { return tolower(c); });
-
-    for (const auto& [path, string] : m_clientFiles)
-    {
-        if (lowercasePath == string || relativeFilePath == path)
-            return true;
-    }
-
-    return false;
-}
-
-void CResource::AddServerFilePath(const ResourceFilePath& resourceFilePath)
-{
-    m_serverFiles.push_back(resourceFilePath.relative);
-}
-
-void CResource::AddClientFilePath(const ResourceFilePath& resourceFilePath)
-{
-    std::string lowercasePath = resourceFilePath.relative.generic_string();
-    std::transform(lowercasePath.begin(), lowercasePath.end(), lowercasePath.begin(), [](unsigned char c) { return tolower(c); });
-    m_clientFiles.push_back(std::make_pair(resourceFilePath.relative, std::move(lowercasePath)));
-}
-
-bool CResource::ProcessMeta(const mtasa::MetaFileParser& meta)
-{
-    m_strMinServerFromMetaXml = meta.minServerVersion;
-    m_strMinServerRequirement = meta.minServerVersion;
-
-    m_strMinClientFromMetaXml = meta.minClientVersion;
-    m_strMinClientRequirement = meta.minClientVersion;
-
-    m_bOOPEnabledInMetaXml = meta.useOOP;
-
-    m_iDownloadPriorityGroup = meta.downloadPriorityGroup;
-
-    m_pNodeSettings = meta.settingsNode;
-
-    if (meta.syncMapElementDataDefined)
-    {
-        m_bSyncMapElementData = meta.syncMapElementData;
-        m_bSyncMapElementDataDefined = true;
-    }
-    else
-    {
-        m_bSyncMapElementData = true;
-        m_bSyncMapElementDataDefined = false;
-    }
-
-    // TODO:
-    /*
-    // Find the acl requets
-    CXMLNode* pNodeAclRequest = pRoot->FindSubNode("aclrequest", 0);
-
-    if (pNodeAclRequest)
-        RefreshAutoPermissions(pNodeAclRequest);
-    else
-        RemoveAutoPermissions();
-    */
-
-    return ProcessMetaInfo(meta) && ProcessMetaIncludes(meta) && ProcessMetaMaps(meta) && ProcessMetaFiles(meta) && ProcessMetaScripts(meta) &&
-           ProcessMetaHtmls(meta) && ProcessMetaExports(meta) && ProcessMetaConfigs(meta);
-}
-
-bool CResource::ProcessMetaInfo(const mtasa::MetaFileParser& meta)
-{
-    m_Info.clear();
-
-    for (const auto& [key, value] : meta.info)
-    {
-        m_Info[key] = value;
-    }
-
-    return true;
-}
-
-bool CResource::ProcessMetaIncludes(const mtasa::MetaFileParser& meta)
-{
-    for (const mtasa::MetaDependencyItem& item : meta.dependencies)
-    {
-        SVersion minVersion{item.minVersion.major, item.minVersion.minor, item.minVersion.revision};
-        SVersion maxVersion{item.maxVersion.major, item.maxVersion.minor, item.maxVersion.revision};
-        m_IncludedResources.push_back(new CIncludedResources{m_pResourceManager, item.resourceName, minVersion, maxVersion, this});
-    }
-
-    return true;
-}
-
-bool CResource::ProcessMetaMaps(const mtasa::MetaFileParser& meta)
-{
-    for (const mtasa::MetaFileItem& item : meta.maps)
-    {
-        std::optional<ResourceFilePath> resourceFilePath = ProduceResourceFilePath(item.sourceFile, false);
-
-        if (!resourceFilePath.has_value() || !IsRegularFile(resourceFilePath->absolute))
-        {
-            std::string filePath = item.sourceFile.string();
-
-            m_strFailureReason =
-                SString("Couldn't find map %.*s for resource %.*s\n", filePath.size(), filePath.data(), m_strResourceName.size(), m_strResourceName.c_str());
-
-            CLogger::ErrorPrintf(m_strFailureReason);
-            return false;
-        }
-
-        std::string filePath = resourceFilePath->relative.string();
-
-        if (IsDuplicateServerFile(resourceFilePath->relative))
-        {
-            CLogger::LogPrintf("WARNING: Duplicate map file in resource '%.*s': '%.*s'\n", m_strResourceName.size(), m_strResourceName.c_str(), filePath.size(),
-                               filePath.data());
-        }
-
-        m_ResourceFiles.push_back(new CResourceMapItem{this, filePath.c_str(), resourceFilePath->absolute.string().c_str(), nullptr, item.dimension});
-
-        AddServerFilePath(resourceFilePath.value());
-    }
-
-    return true;
-}
-
-bool CResource::ProcessMetaFiles(const mtasa::MetaFileParser& meta)
-{
-    for (const mtasa::MetaFileItem& item : meta.files)
-    {
-        std::optional<ResourceFilePath> resourceFilePath = ProduceResourceFilePath(item.sourceFile, true);
-
-        if (!resourceFilePath.has_value() || !IsRegularFile(resourceFilePath->absolute))
-        {
-            std::string filePath = item.sourceFile.string();
-
-            m_strFailureReason =
-                SString("Couldn't find file %.*s for resource %.*s\n", filePath.size(), filePath.data(), m_strResourceName.size(), m_strResourceName.c_str());
-
-            CLogger::ErrorPrintf(m_strFailureReason);
-            return false;
-        }
-
-        std::string filePath = resourceFilePath->relative.string();
-
-        if (!resourceFilePath->isWindowsCompatible)
-        {
-            m_strFailureReason = SString("Client file path %.*s for resource %.*s is not supported on Windows\n", filePath.size(), filePath.data(),
-                                         m_strResourceName.size(), m_strResourceName.c_str());
-            CLogger::ErrorPrintf(m_strFailureReason);
-            return false;
-        }
-
-        if (IsDuplicateClientFile(resourceFilePath->relative))
-        {
-            CLogger::LogPrintf("WARNING: Ignoring duplicate client file in resource '%.*s': '%.*s'\n", m_strResourceName.size(), m_strResourceName.c_str(),
-                               filePath.size(), filePath.data());
-            continue;
-        }
-
-        m_ResourceFiles.push_back(
-            new CResourceClientFileItem{this, filePath.c_str(), resourceFilePath->absolute.string().c_str(), nullptr, !item.isClientOptional});
-
-        AddClientFilePath(resourceFilePath.value());
-    }
-
-    return true;
-}
-
-bool CResource::ProcessMetaScripts(const mtasa::MetaFileParser& meta)
-{
-    for (const mtasa::MetaFileItem& item : meta.scripts)
-    {
-        std::optional<ResourceFilePath> resourceFilePath = ProduceResourceFilePath(item.sourceFile, item.isForClient);
-
-        if (!resourceFilePath.has_value() || !IsRegularFile(resourceFilePath->absolute))
-        {
-            std::string filePath = item.sourceFile.string();
-
-            m_strFailureReason =
-                SString("Couldn't find script %.*s for resource %.*s\n", filePath.size(), filePath.data(), m_strResourceName.size(), m_strResourceName.c_str());
-
-            CLogger::ErrorPrintf(m_strFailureReason);
-            return false;
-        }
-
-        std::string filePath = resourceFilePath->relative.string();
-
-        if (item.isForClient && !resourceFilePath->isWindowsCompatible)
-        {
-            m_strFailureReason = SString("Client script path %.*s for resource %.*s is not supported on Windows\n", filePath.size(), filePath.data(),
-                                         m_strResourceName.size(), m_strResourceName.c_str());
-            CLogger::ErrorPrintf(m_strFailureReason);
-            return false;
-        }
-
-        if (item.isForServer && IsDuplicateServerFile(resourceFilePath->relative))
-        {
-            CLogger::LogPrintf("WARNING: Duplicate script file in resource '%.*s': '%.*s'\n", m_strResourceName.size(), m_strResourceName.c_str(),
-                               filePath.size(), filePath.data());
-        }
-
-        bool createForClient = item.isForClient;
-
-        if (item.isForClient && IsDuplicateClientFile(resourceFilePath->relative))
-        {
-            createForClient = false;
-
-            CLogger::LogPrintf("WARNING: Ignoring duplicate client script file in resource '%.*s': '%.*s'\n", m_strResourceName.size(),
-                               m_strResourceName.c_str(), filePath.size(), filePath.data());
-        }
-
-        if (item.isForServer)
-        {
-            m_ResourceFiles.push_back(new CResourceScriptItem{this, filePath.c_str(), resourceFilePath->absolute.string().c_str(), nullptr});
-
-            AddServerFilePath(resourceFilePath.value());
-        }
-
-        if (createForClient)
-        {
-            auto resourceFile = new CResourceClientScriptItem{this, filePath.c_str(), resourceFilePath->absolute.string().c_str(), nullptr};
-            resourceFile->SetNoClientCache(!item.isClientCacheable);
-            m_ResourceFiles.push_back(resourceFile);
-
-            AddClientFilePath(resourceFilePath.value());
-        }
-    }
-
-    return true;
-}
-
-bool CResource::ProcessMetaHtmls(const mtasa::MetaFileParser& meta)
-{
-    CResourceHTMLItem* firstHtmlFile = nullptr;
-    bool               hasDefaultHtmlPage = false;
-
-    for (const mtasa::MetaFileItem& item : meta.htmls)
-    {
-        std::optional<ResourceFilePath> resourceFilePath = ProduceResourceFilePath(item.sourceFile, false);
-
-        if (!resourceFilePath.has_value() || !IsRegularFile(resourceFilePath->absolute))
-        {
-            std::string filePath = item.sourceFile.string();
-
-            m_strFailureReason =
-                SString("Couldn't find html %.*s for resource %.*s\n", filePath.size(), filePath.data(), m_strResourceName.size(), m_strResourceName.c_str());
-
-            CLogger::ErrorPrintf(m_strFailureReason);
-            return false;
-        }
-
-        std::string filePath = resourceFilePath->relative.string();
-
-        if (IsDuplicateServerFile(resourceFilePath->relative))
-        {
-            CLogger::LogPrintf("WARNING: Duplicate html file in resource '%.*s': '%.*s'\n", m_strResourceName.size(), m_strResourceName.c_str(),
-                               filePath.size(), filePath.data());
-        }
-
-        bool isDefault = item.isHttpDefault;
-
-        if (isDefault)
-        {
-            if (hasDefaultHtmlPage)
-            {
-                isDefault = false;
-
-                CLogger::LogPrintf("Only one html item can be default per resource, ignoring %.*s in %.*s\n", filePath.size(), filePath.data(),
-                                   m_strResourceName.size(), m_strResourceName.c_str());
-            }
-            else
-            {
-                hasDefaultHtmlPage = true;
-            }
-        }
-
-        auto resourceFile = new CResourceHTMLItem{this,
-                                                  filePath.c_str(),
-                                                  resourceFilePath->absolute.string().c_str(),
-                                                  nullptr,
-                                                  isDefault,
-                                                  !!item.isHttpRaw,
-                                                  !!item.isHttpRestricted,
-                                                  m_bOOPEnabledInMetaXml};
-
-        m_ResourceFiles.push_back(resourceFile);
-
-        if (firstHtmlFile == nullptr)
-            firstHtmlFile = resourceFile;
-
-        AddServerFilePath(resourceFilePath.value());
-    }
-
-    if (firstHtmlFile != nullptr && !hasDefaultHtmlPage)
-        firstHtmlFile->SetDefaultPage(true);
-
-    return true;
-}
-
-bool CResource::ProcessMetaExports(const mtasa::MetaFileParser& meta)
-{
-    for (const mtasa::MetaExportItem& item : meta.exports)
-    {
-        if (item.isForServer)
-        {
-            m_ExportedFunctions.push_back(
-                CExportedFunction{item.functionName, !!item.isHttpAccessible, CExportedFunction::EXPORTED_FUNCTION_TYPE_SERVER, !!item.isACLRestricted});
-        }
-
-        if (item.isForClient)
-        {
-            m_ExportedFunctions.push_back(
-                CExportedFunction{item.functionName, !!item.isHttpAccessible, CExportedFunction::EXPORTED_FUNCTION_TYPE_CLIENT, !!item.isACLRestricted});
-        }
-    }
-
-    return true;
-}
-
-bool CResource::ProcessMetaConfigs(const mtasa::MetaFileParser& meta)
-{
-    for (const mtasa::MetaFileItem& item : meta.configs)
-    {
-        std::optional<ResourceFilePath> resourceFilePath = ProduceResourceFilePath(item.sourceFile, item.isForClient);
-
-        if (!resourceFilePath.has_value() || !IsRegularFile(resourceFilePath->absolute))
-        {
-            std::string filePath = item.sourceFile.string();
-
-            m_strFailureReason =
-                SString("Couldn't find config %.*s for resource %.*s\n", filePath.size(), filePath.data(), m_strResourceName.size(), m_strResourceName.c_str());
-
-            CLogger::ErrorPrintf(m_strFailureReason);
-            return false;
-        }
-
-        std::string filePath = resourceFilePath->relative.string();
-
-        if (item.isForClient && !resourceFilePath->isWindowsCompatible)
-        {
-            m_strFailureReason = SString("Client config path %.*s for resource %.*s is not supported on Windows\n", filePath.size(), filePath.data(),
-                                         m_strResourceName.size(), m_strResourceName.c_str());
-            CLogger::ErrorPrintf(m_strFailureReason);
-            return false;
-        }
-
-        if (item.isForServer && IsDuplicateServerFile(resourceFilePath->relative))
-        {
-            CLogger::LogPrintf("WARNING: Duplicate config file in resource '%.*s': '%.*s'\n", m_strResourceName.size(), m_strResourceName.c_str(),
-                               filePath.size(), filePath.data());
-        }
-
-        bool createForClient = item.isForClient;
-
-        if (item.isForClient && IsDuplicateClientFile(resourceFilePath->relative))
-        {
-            createForClient = false;
-
-            CLogger::LogPrintf("WARNING: Ignoring duplicate client config file in resource '%.*s': '%.*s'\n", m_strResourceName.size(),
-                               m_strResourceName.c_str(), filePath.size(), filePath.data());
-        }
-
-        if (item.isForServer)
-        {
-            m_ResourceFiles.push_back(new CResourceConfigItem{this, filePath.c_str(), resourceFilePath->absolute.string().c_str(), nullptr});
-
-            AddServerFilePath(resourceFilePath.value());
-        }
-
-        if (createForClient)
-        {
-            m_ResourceFiles.push_back(new CResourceClientConfigItem{this, filePath.c_str(), resourceFilePath->absolute.string().c_str(), nullptr});
-
-            AddClientFilePath(resourceFilePath.value());
-        }
-    }
-
-    return true;
-}
-
-static std::unordered_set<std::string> reservedWindowsFileNames = {"CON"s,  "PRN"s,  "AUX"s,  "NUL"s,  "COM1"s, "COM2"s, "COM3"s, "COM4"s,
-                                                                   "COM5"s, "COM6"s, "COM7"s, "COM8"s, "COM9"s, "LPT1"s, "LPT2"s, "LPT3"s,
-                                                                   "LPT4"s, "LPT5"s, "LPT6"s, "LPT7"s, "LPT8"s, "LPT9"s};
-
-std::optional<CResource::ResourceFilePath> CResource::ProduceResourceFilePath(const fs::path& relativePath, bool windowsPlatformCheck)
-{
-    if (relativePath.is_absolute())
-        return std::nullopt;
-
-    // NOTE(botder): The path provided to `std::filesystem::canonical` must exist
-    std::error_code errorCode;
-    fs::path        absoluteFilePath = fs::canonical(m_staticRootDirectory / relativePath, errorCode);
-
-    if (errorCode)
-        return std::nullopt;
-
-    // Check if the resulting absolute file path is inside our resource directory
-    auto [rootIter, absoluteIter] = std::mismatch(m_staticRootDirectory.begin(), m_staticRootDirectory.end(), absoluteFilePath.begin(), absoluteFilePath.end());
-
-    if (rootIter == m_staticRootDirectory.end() || ++rootIter != m_staticRootDirectory.end())
-        return std::nullopt;
-
-    fs::path relativeFilePath = fs::relative(absoluteFilePath, m_staticRootDirectory, errorCode);
-
-    if (errorCode)
-        return std::nullopt;
-
-    // Check if the relative file path is allowed on a Windows operating system
-    // See https://docs.microsoft.com/en-us/windows/win32/fileio/naming-a-file
-    bool isWindowsCompatible = true;
-
-    if (windowsPlatformCheck)
-    {
-        std::string fileName = relativeFilePath.filename().string();
-
-        if (fileName.back() == '.' || fileName.back() == ' ')
-        {
-            isWindowsCompatible = false;
-        }
-        else if (reservedWindowsFileNames.find(fileName) != reservedWindowsFileNames.end())
-        {
-            isWindowsCompatible = false;
-        }
-        else
-        {
-            for (unsigned char c : fileName)
-            {
-                if (c < 32 || c == '<' || c == '>' || c == ':' || c == '"' || c == '/' || c == '\\' || c == '|' || c == '?' || c == '*')
-                {
-                    isWindowsCompatible = false;
-                    break;
-                }
-            }
-        }
-    }
-
-    return ResourceFilePath{absoluteFilePath, relativeFilePath, isWindowsCompatible};
-}
-
 bool CResource::CallExportedFunction(const char* szFunctionName, CLuaArguments& Arguments, CLuaArguments& Returns, CResource& Caller)
 {
     if (m_eState != EResourceState::Running)
@@ -1732,7 +1226,7 @@ bool CResource::CallExportedFunction(const char* szFunctionName, CLuaArguments& 
                     pACLManager->CanObjectUseRight(Caller.GetName().c_str(), CAccessControlListGroupObject::OBJECT_TYPE_RESOURCE, szFunctionRightName,
                                                    CAccessControlListRight::RIGHT_TYPE_RESOURCE, !bRestricted))
                 {
-                    if (Arguments.CallGlobal(m_pVM, szFunctionName, &Returns))
+                    if (Arguments.CallGlobal(m_luaContext, szFunctionName, &Returns))
                     {
                         return true;
                     }
@@ -1759,7 +1253,7 @@ bool CResource::CheckState()
 
 void CResource::OnPlayerJoin(CPlayer& Player)
 {
-    Player.Send(CResourceStartPacket(m_strResourceName.c_str(), this));
+    // Player.Send(CResourceStartPacket(m_strResourceName.c_str(), this));
     SendNoClientCacheScripts(&Player);
 }
 
@@ -1786,6 +1280,7 @@ void CResource::SendNoClientCacheScripts(CPlayer* pPlayer)
     if (!vecPlayers.empty())
     {
         // Decide what scripts to send
+        /*
         CResourceClientScriptsPacket Packet(this);
         bool                         bEmptyPacket = true;
 
@@ -1810,151 +1305,8 @@ void CResource::SendNoClientCacheScripts(CPlayer* pPlayer)
             {
                 (*iter)->Send(Packet);
             }
-        }
+        }*/
     }
-}
-
-bool CResource::UnzipResource()
-{
-    std::string archiveFilePath = m_archiveFilePath.string();
-
-#ifdef WIN32
-    zlib_filefunc_def ffunc;
-    fill_win32_filefunc(&ffunc);
-    unzFile zipHandle = unzOpen2(archiveFilePath.c_str(), &ffunc);
-#else
-    unzFile zipHandle = unzOpen(archiveFilePath.c_str());
-#endif
-
-    if (zipHandle == nullptr)
-    {
-        m_strFailureReason = SString("Couldn't open archive file for resource '%.*s'", m_strResourceName.size(), m_strResourceName.c_str());
-        CLogger::ErrorPrintf(m_strFailureReason);
-        return false;
-    }
-
-    std::unique_ptr<unzFile, decltype(&unzClose)> zipCloser{reinterpret_cast<unzFile*>(zipHandle), &unzClose};
-
-    if (unzGoToFirstFile(zipHandle) != UNZ_OK)
-    {
-        m_strFailureReason =
-            SString("Failed to process archive file for resource '%.*s': first file not found", m_strResourceName.size(), m_strResourceName.c_str());
-        CLogger::ErrorPrintf(m_strFailureReason);
-        return false;
-    }
-
-    constexpr uLong fileNameBufferSize = 65535;
-    auto            fileNameBuffer = std::make_unique<char[]>(fileNameBufferSize);
-
-    constexpr unsigned int outputBufferSize = 8192;
-    auto                   outputBuffer = std::make_unique<char[]>(outputBufferSize);
-
-    std::error_code errorCode;
-
-    do
-    {
-        unz_file_info fileInfo;
-        memset(&fileInfo, 0, sizeof(fileInfo));
-
-        if (unzGetCurrentFileInfo(zipHandle, &fileInfo, fileNameBuffer.get(), fileNameBufferSize, nullptr, 0, nullptr, 0) != UNZ_OK)
-            return false;
-
-        std::string_view fileName{fileNameBuffer.get(), fileInfo.size_filename};
-
-        if (fileName.back() == '/')
-            continue;
-
-        fs::path outputFilePath = m_staticRootDirectory / fileName;
-
-        struct tm zipFileWriteTime;
-        unzConvertToEpochTime(fileInfo.tmu_date, zipFileWriteTime);
-
-        if (IsRegularFile(outputFilePath))
-        {
-            // Compare file write time (in epoch) to avoid heavy CRC checksum calculation
-            struct tm fileWriteTime;
-
-            if (GetFileLastWriteTime(outputFilePath.c_str(), fileWriteTime))
-            {
-                time_t zipEpoch = mktime(&zipFileWriteTime);
-                time_t outputEpoch = mktime(&fileWriteTime);
-
-                if (zipEpoch != -1 && outputEpoch != -1 && difftime(zipEpoch, outputEpoch) == 0)
-                    continue;
-            }
-
-            unsigned long crc = CRCGenerator::GetCRCFromFile(outputFilePath.string().c_str());
-
-            if (crc == fileInfo.crc)
-            {
-                SetFileLastWriteTime(outputFilePath.c_str(), zipFileWriteTime);
-                continue;
-            }
-        }
-
-        fs::path outputDirectory = outputFilePath.parent_path();
-
-        if (fs::create_directories(outputDirectory, errorCode); errorCode)
-        {
-            m_strFailureReason = SString("Processing archive file '%.*s' for resource '%.*s' failed: couldn't create parent directory", fileName.size(),
-                                         fileName.data(), m_strResourceName.size(), m_strResourceName.c_str());
-            CLogger::ErrorPrintf(m_strFailureReason);
-            return false;
-        }
-
-        FILE* outputStream = File::Fopen(outputFilePath.string().c_str(), "wb");
-
-        if (outputStream == nullptr)
-        {
-            m_strFailureReason = SString("Decompressing archive file '%.*s' for resource '%.*s' failed: couldn't create output file", fileName.size(),
-                                         fileName.data(), m_strResourceName.size(), m_strResourceName.c_str());
-            CLogger::ErrorPrintf(m_strFailureReason);
-            return false;
-        }
-
-        std::unique_ptr<FILE, decltype(&fclose)> fileCloser{outputStream, &fclose};
-
-        if (unzOpenCurrentFile(zipHandle) != UNZ_OK)
-        {
-            m_strFailureReason = SString("Decompressing archive file '%.*s' for resource '%.*s' failed: archive file open error", fileName.size(),
-                                         fileName.data(), m_strResourceName.size(), m_strResourceName.c_str());
-            CLogger::ErrorPrintf(m_strFailureReason);
-            return false;
-        }
-
-        std::unique_ptr<unzFile, decltype(&unzCloseCurrentFile)> currentFileCloser{reinterpret_cast<unzFile*>(zipHandle), &unzCloseCurrentFile};
-
-        for (;;)
-        {
-            int numBytes = unzReadCurrentFile(zipHandle, outputBuffer.get(), outputBufferSize);
-
-            if (numBytes < 0)
-            {
-                m_strFailureReason = SString("Decompressing archive file '%.*s' for resource '%.*s' failed: archive file read error", fileName.size(),
-                                             fileName.data(), m_strResourceName.size(), m_strResourceName.c_str());
-                CLogger::ErrorPrintf(m_strFailureReason);
-                return false;
-            }
-
-            if (numBytes == 0)
-                break;
-
-            if (fwrite(outputBuffer.get(), numBytes, 1, outputStream) != 1)
-            {
-                m_strFailureReason = SString("Decompressing archive file '%.*s' for resource '%.*s' failed: output file write error", fileName.size(),
-                                             fileName.data(), m_strResourceName.size(), m_strResourceName.c_str());
-                CLogger::ErrorPrintf(m_strFailureReason);
-                return false;
-            }
-        }
-
-        // NOTE(botder): We must flush and close the file before applying the last write time
-        fileCloser.reset();
-
-        SetFileLastWriteTime(outputFilePath.c_str(), zipFileWriteTime);
-    } while (unzGoToNextFile(zipHandle) == UNZ_OK);
-
-    return true;
 }
 
 bool CIncludedResources::CreateLink()            // just a pointer to it

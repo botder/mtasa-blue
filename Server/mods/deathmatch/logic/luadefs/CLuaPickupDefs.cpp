@@ -10,7 +10,9 @@
  *****************************************************************************/
 
 #include "StdInc.h"
-#include "CResource.h"
+#include "Resource.h"
+
+using namespace mtasa;
 
 void CLuaPickupDefs::LoadFunctions()
 {
@@ -80,24 +82,17 @@ int CLuaPickupDefs::createPickup(lua_State* luaVM)
 
     if (!argStream.HasErrors())
     {
-        CLuaMain* pLuaMain = m_pLuaManager->GetVirtualMachine(luaVM);
-        if (pLuaMain)
+        if (Resource* resource = m_pLuaManager->GetResourceFromLuaState(luaVM); resource != nullptr)
         {
-            CResource* pResource = pLuaMain->GetResource();
-            if (pResource)
+            CPickup* pickup = CStaticFunctionDefinitions::CreatePickup(resource, vecPosition, ucType, dValue, ulRespawnInterval, dAmmo);
+
+            if (pickup != nullptr)
             {
-                CPickup* pPickup = CStaticFunctionDefinitions::CreatePickup(pResource, vecPosition, ucType, dValue, ulRespawnInterval, dAmmo);
-                if (pPickup)
-                {
-                    CElementGroup* pGroup = pResource->GetElementGroup();
-                    if (pGroup)
-                    {
-                        pGroup->Add(pPickup);
-                    }
-                    // Return the handle
-                    lua_pushelement(luaVM, pPickup);
-                    return 1;
-                }
+                if (CElementGroup* elementGroup = resource->GetElementGroup(); elementGroup != nullptr)
+                    elementGroup->Add(pickup);
+
+                lua_pushelement(luaVM, pickup);
+                return 1;
             }
         }
     }

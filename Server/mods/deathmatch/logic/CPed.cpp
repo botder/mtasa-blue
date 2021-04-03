@@ -11,6 +11,8 @@
 
 #include "StdInc.h"
 
+using namespace mtasa;
+
 char szBodyPartNameEmpty[] = "";
 struct SBodyPartName
 {
@@ -120,7 +122,7 @@ CPed::~CPed()
     Unlink();
 }
 
-CElement* CPed::Clone(bool* bAddEntity, CResource* pResource)
+CElement* CPed::Clone(bool* bAddEntity, Resource* resource)
 {
     CPed* const pTemp = m_pPedManager->Create(GetModel(), GetParentEntity());
 

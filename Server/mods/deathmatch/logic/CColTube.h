@@ -17,7 +17,7 @@ class CColTube : public CColShape
 {
 public:
     CColTube(CColManager* pManager, CElement* pParent, const CVector& vecPosition, float fRadius, float fHeight);
-    CElement* Clone(bool* bAddEntity, CResource* pResource) override;
+    CElement* Clone(bool* bAddEntity, mtasa::Resource* resource) override;
 
     virtual CSphere GetWorldBoundingSphere();
 

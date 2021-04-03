@@ -44,7 +44,7 @@ public:
 public:
     CMarker(class CMarkerManager* pMarkerManager, CColManager* pColManager, CElement* pParent);
     ~CMarker();
-    CElement* Clone(bool* bAddEntity, CResource* pResource) override;
+    CElement* Clone(bool* bAddEntity, mtasa::Resource* resource) override;
 
     void Unlink();
 

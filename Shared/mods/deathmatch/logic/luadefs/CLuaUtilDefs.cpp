@@ -214,9 +214,10 @@ int CLuaUtilDefs::Split(lua_State* luaVM)
 
 int CLuaUtilDefs::IsOOPEnabled(lua_State* luaVM)
 {
-    CLuaMain* pLuaMain = m_pLuaManager->GetVirtualMachine(luaVM);
-    if (pLuaMain)
-        lua_pushboolean(luaVM, pLuaMain->IsOOPEnabled());
+    CLuaMain* luaContext = m_pLuaManager->GetLuaContext(luaVM);
+
+    if (luaContext)
+        lua_pushboolean(luaVM, luaContext->IsOOPEnabled());
     else
         lua_pushnil(luaVM);
 

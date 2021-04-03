@@ -12,6 +12,7 @@
 #pragma once
 
 #include "lua/CLuaManager.h"
+#include "lua/LuaCommon.h"
 #include "packets/CPacket.h"
 #include <cstdio>
 #include <list>
@@ -60,9 +61,9 @@ public:
     const SLuaDebugInfo& GetLuaDebugInfo(lua_State* luaVM);
     void                 SaveLuaDebugInfo(const SLuaDebugInfo& luaDebugInfo) { m_SavedLuaDebugInfo = luaDebugInfo; }
 
-    void      PushLuaMain(CLuaMain* pLuaMain);
-    void      PopLuaMain(CLuaMain* pLuaMain);
-    void      OnLuaMainDestroy(CLuaMain* pLuaMain);
+    void      PushLuaMain(CLuaMain* luaContext);
+    void      PopLuaMain(CLuaMain* luaContext);
+    void      OnLuaMainDestroy(CLuaMain* luaContext);
     CLuaMain* GetTopLuaMain();
     void      UpdateLogOutput();
 

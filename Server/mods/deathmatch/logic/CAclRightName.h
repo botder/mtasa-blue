@@ -26,6 +26,25 @@ public:
             m_bValid = StringToEnum(strTypePart, m_TypePart);
     }
 
+    // Construct from the full name "type.name"
+    explicit CAclRightName(const std::string_view& name) : m_strFullName{name.data(), name.size()}
+    {
+        if (std::size_t separator = name.find('.'); separator != std::string_view::npos && separator > 0)
+        {
+            std::string_view typePart = name.substr(0, separator);
+            SString type{typePart.data(), typePart.size()};
+
+            std::string_view namePart = name.substr(separator + 1);
+            m_strNamePart = SString{namePart.data(), namePart.size()};
+
+            m_bValid = StringToEnum(type, m_TypePart);
+        }
+        else
+        {
+            m_bValid = false;
+        }
+    }
+
     // Construct from the type and name
     CAclRightName(CAccessControlListRight::ERightType typePart, const SString& strNamePart)
     {

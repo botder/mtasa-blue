@@ -10,17 +10,19 @@
  *****************************************************************************/
 
 #include "StdInc.h"
-#include "CResource.h"
+#include "Resource.h"
 
 #ifndef WIN32
 #include <clocale>
 #endif
 
-extern CGame* g_pGame;
-
 #ifndef VERIFY_ELEMENT
 #define VERIFY_ELEMENT(element) (g_pGame->GetMapManager()->GetRootElement()->IsMyChild(element, true) && !element->IsBeingDeleted())
 #endif
+
+using namespace mtasa;
+
+extern CGame* g_pGame;
 
 CLuaArguments::CLuaArguments(const CLuaArguments& Arguments, CFastHashMap<CLuaArguments*, CLuaArguments*>* pKnownTables)
 {
@@ -196,13 +198,13 @@ void CLuaArguments::PushArguments(const CLuaArguments& Arguments)
     }
 }
 
-bool CLuaArguments::Call(CLuaMain* pLuaMain, const CLuaFunctionRef& iLuaFunction, CLuaArguments* returnValues) const
+bool CLuaArguments::Call(CLuaMain* luaContext, const CLuaFunctionRef& iLuaFunction, CLuaArguments* returnValues) const
 {
-    assert(pLuaMain);
+    assert(luaContext);
     TIMEUS startTime = GetTimeUs();
 
     // Add the function name to the stack and get the event from the table
-    lua_State* luaVM = pLuaMain->GetVirtualMachine();
+    lua_State* luaVM = luaContext->GetLuaState();
     assert(luaVM);
     LUA_CHECKSTACK(luaVM, 1);
     int luaStackPointer = lua_gettop(luaVM);
@@ -212,9 +214,9 @@ bool CLuaArguments::Call(CLuaMain* pLuaMain, const CLuaFunctionRef& iLuaFunction
     PushArguments(luaVM);
 
     // Call the function with our arguments
-    pLuaMain->ResetInstructionCount();
+    luaContext->ResetInstructionCount();
 
-    int iret = pLuaMain->PCall(luaVM, m_Arguments.size(), LUA_MULTRET, 0);
+    int iret = luaContext->PCall(luaVM, m_Arguments.size(), LUA_MULTRET, 0);
     if (iret == LUA_ERRRUN || iret == LUA_ERRMEM)
     {
         SString strRes = ConformResourcePath(lua_tostring(luaVM, -1));
@@ -243,18 +245,18 @@ bool CLuaArguments::Call(CLuaMain* pLuaMain, const CLuaFunctionRef& iLuaFunction
             lua_pop(luaVM, 1);
     }
 
-    CPerfStatLuaTiming::GetSingleton()->UpdateLuaTiming(pLuaMain, pLuaMain->GetFunctionTag(iLuaFunction.ToInt()), GetTimeUs() - startTime);
+    CPerfStatLuaTiming::GetSingleton()->UpdateLuaTiming(luaContext, luaContext->GetFunctionTag(iLuaFunction.ToInt()), GetTimeUs() - startTime);
     return true;
 }
 
-bool CLuaArguments::CallGlobal(CLuaMain* pLuaMain, const char* szFunction, CLuaArguments* returnValues) const
+bool CLuaArguments::CallGlobal(CLuaMain* luaContext, const char* szFunction, CLuaArguments* returnValues) const
 {
-    assert(pLuaMain);
+    assert(luaContext);
     assert(szFunction);
     TIMEUS startTime = GetTimeUs();
 
     // Add the function name to the stack and get the event from the table
-    lua_State* luaVM = pLuaMain->GetVirtualMachine();
+    lua_State* luaVM = luaContext->GetLuaState();
     assert(luaVM);
     LUA_CHECKSTACK(luaVM, 1);
     int luaStackPointer = lua_gettop(luaVM);
@@ -275,10 +277,10 @@ bool CLuaArguments::CallGlobal(CLuaMain* pLuaMain, const char* szFunction, CLuaA
     PushArguments(luaVM);
 
     // Reset function call timer (checks long-running functions)
-    pLuaMain->ResetInstructionCount();
+    luaContext->ResetInstructionCount();
 
     // Call the function with our arguments
-    int iret = pLuaMain->PCall(luaVM, m_Arguments.size(), LUA_MULTRET, 0);
+    int iret = luaContext->PCall(luaVM, m_Arguments.size(), LUA_MULTRET, 0);
     if (iret == LUA_ERRRUN || iret == LUA_ERRMEM)
     {
         std::string strRes = ConformResourcePath(lua_tostring(luaVM, -1));
@@ -307,7 +309,7 @@ bool CLuaArguments::CallGlobal(CLuaMain* pLuaMain, const char* szFunction, CLuaA
             lua_pop(luaVM, 1);
     }
 
-    CPerfStatLuaTiming::GetSingleton()->UpdateLuaTiming(pLuaMain, szFunction, GetTimeUs() - startTime);
+    CPerfStatLuaTiming::GetSingleton()->UpdateLuaTiming(luaContext, szFunction, GetTimeUs() - startTime);
     return true;
 }
 
@@ -397,12 +399,12 @@ CLuaArgument* CLuaArguments::PushAccount(CAccount* pAccount)
     return pArgument;
 }
 
-CLuaArgument* CLuaArguments::PushResource(CResource* pResource)
+CLuaArgument* CLuaArguments::PushResource(Resource* resource)
 {
-    CLuaArgument* pArgument = new CLuaArgument;
-    pArgument->ReadScriptID(pResource->GetScriptID());
-    m_Arguments.push_back(pArgument);
-    return pArgument;
+    auto argument = new CLuaArgument;
+    argument->ReadScriptID(resource->GetUniqueIdentifier());
+    m_Arguments.push_back(argument);
+    return argument;
 }
 
 CLuaArgument* CLuaArguments::PushTextDisplay(CTextDisplay* pTextDisplay)

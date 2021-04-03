@@ -20,7 +20,7 @@ class CRadarArea : public CPerPlayerEntity
 
 public:
     ~CRadarArea();
-    CElement* Clone(bool* bAddEntity, CResource* pResource) override;
+    CElement* Clone(bool* bAddEntity, mtasa::Resource* resource) override;
 
     void Unlink();
 

@@ -18,7 +18,7 @@ class CDummy final : public CElement
 public:
     CDummy(class CGroups* pGroups, CElement* pParent);
     ~CDummy();
-    CElement* Clone(bool* bAddEntity, CResource* pResource) override;
+    CElement* Clone(bool* bAddEntity, mtasa::Resource* resource) override;
 
     bool IsEntity() { return true; }
 

@@ -10,6 +10,9 @@
  *****************************************************************************/
 
 #include "StdInc.h"
+
+using namespace mtasa;
+
 int CLuaClassDefs::Index(lua_State* luaVM)
 {
     lua_pushvalue(luaVM, lua_upvalueindex(1));            // ud, k, mt
@@ -248,8 +251,8 @@ const char* CLuaClassDefs::GetObjectClass(void* pObject)
 {
     if (CElement* pElement = UserDataCast<CElement>((CElement*)NULL, pObject, NULL))
         return GetElementClass(pElement);
-    else if (CResource* pResource = UserDataCast<CResource>((CResource*)NULL, pObject, NULL))
-        return GetResourceClass(pResource);
+    else if (auto resource = UserDataCast<Resource>(static_cast<Resource*>(nullptr), pObject, NULL))
+        return GetResourceClass(resource);
     else if (CXMLNode* pNode = UserDataCast<CXMLNode>((CXMLNode*)NULL, pObject, NULL))
         return GetXmlNodeClass(pNode);
     else if (CLuaTimer* pTimer = UserDataCast<CLuaTimer>((CLuaTimer*)NULL, pObject, NULL))
@@ -257,7 +260,7 @@ const char* CLuaClassDefs::GetObjectClass(void* pObject)
     return NULL;
 }
 
-const char* CLuaClassDefs::GetResourceClass(CResource* pResource)
+const char* CLuaClassDefs::GetResourceClass(Resource*)
 {
     return "Resource";
 }

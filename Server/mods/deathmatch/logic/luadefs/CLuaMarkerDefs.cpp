@@ -9,7 +9,9 @@
  *****************************************************************************/
 
 #include "StdInc.h"
-#include "CResource.h"
+#include "Resource.h"
+
+using namespace mtasa;
 
 void CLuaMarkerDefs::LoadFunctions()
 {
@@ -93,24 +95,17 @@ int CLuaMarkerDefs::CreateMarker(lua_State* luaVM)
 
     if (!argStream.HasErrors())
     {
-        CLuaMain* pLuaMain = g_pGame->GetLuaManager()->GetVirtualMachine(luaVM);
-        if (pLuaMain)
+        if (Resource* resource = m_pLuaManager->GetResourceFromLuaState(luaVM); resource != nullptr)
         {
-            CResource* pResource = pLuaMain->GetResource();
-            if (pResource)
+            CMarker* marker = CStaticFunctionDefinitions::CreateMarker(resource, vecPosition, strType, fSize, color, pVisibleTo);
+
+            if (marker != nullptr)
             {
-                // Create it
-                CMarker* pMarker = CStaticFunctionDefinitions::CreateMarker(pResource, vecPosition, strType, fSize, color, pVisibleTo);
-                if (pMarker)
-                {
-                    CElementGroup* pGroup = pResource->GetElementGroup();
-                    if (pGroup)
-                    {
-                        pGroup->Add(pMarker);
-                    }
-                    lua_pushelement(luaVM, pMarker);
-                    return 1;
-                }
+                if (CElementGroup* elementGroup = resource->GetElementGroup(); elementGroup != nullptr)
+                    elementGroup->Add(marker);
+
+                lua_pushelement(luaVM, marker);
+                return 1;
             }
         }
     }

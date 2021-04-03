@@ -11,6 +11,8 @@
 
 #include "StdInc.h"
 
+using namespace mtasa;
+
 CColCuboid::CColCuboid(CColManager* pManager, CElement* pParent, const CVector& vecPosition, const CVector& vecSize) : CColShape(pManager, pParent)
 {
     m_vecPosition = vecPosition;
@@ -19,7 +21,7 @@ CColCuboid::CColCuboid(CColManager* pManager, CElement* pParent, const CVector& 
     UpdateSpatialData();
 }
 
-CElement* CColCuboid::Clone(bool* bAddEntity, CResource* pResource)
+CElement* CColCuboid::Clone(bool* bAddEntity, Resource* resource)
 {
     CColCuboid* pColCuboid = new CColCuboid(m_pManager, GetParentEntity(), m_vecPosition, m_vecSize);
     return pColCuboid;

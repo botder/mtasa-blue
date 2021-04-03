@@ -81,6 +81,12 @@ void CResource::RemoveAutoPermissions()
         pACLManager->DeleteACL(pAcl);
 }
 
+// TODO: Remove later?
+static bool StringToBool(const SString& strText)
+{
+    return (strText == "true" || strText == "1" || strText == "yes");
+}
+
 ///////////////////////////////////////////////////////////////
 //
 // CResource::HasAutoPermissions

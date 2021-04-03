@@ -255,9 +255,9 @@ const SLuaDebugInfo& CScriptDebugging::GetLuaDebugInfo(lua_State* luaVM)
     static SLuaDebugInfo scriptDebugInfo;
     scriptDebugInfo = SLuaDebugInfo();
 
-    // Get a VM from somewhere
+    // Get most recently used Lua state, if we have none
     if (!luaVM && !m_LuaMainStack.empty())
-        luaVM = m_LuaMainStack.back()->GetVM();
+        luaVM = m_LuaMainStack.back()->GetLuaState();
 
     // Lua oop found at level 4 added one just in case it somehow ends up deeper due to nested calls
     for (int level = 1; level <= 5; level++)
@@ -337,25 +337,25 @@ SString CScriptDebugging::ComposeErrorMessage(const char* szPrePend, const SLuaD
 }
 
 // Keep a stack of called VMs to give global warnings/errors a context
-void CScriptDebugging::PushLuaMain(CLuaMain* pLuaMain)
+void CScriptDebugging::PushLuaMain(CLuaMain* luaContext)
 {
-    m_LuaMainStack.push_back(pLuaMain);
+    m_LuaMainStack.push_back(luaContext);
 }
 
-void CScriptDebugging::PopLuaMain(CLuaMain* pLuaMain)
+void CScriptDebugging::PopLuaMain(CLuaMain* luaContext)
 {
     dassert(!m_LuaMainStack.empty());
     if (!m_LuaMainStack.empty())
     {
-        dassert(m_LuaMainStack.back() == pLuaMain);
+        dassert(m_LuaMainStack.back() == luaContext);
         m_LuaMainStack.pop_back();
     }
 }
 
-void CScriptDebugging::OnLuaMainDestroy(CLuaMain* pLuaMain)
+void CScriptDebugging::OnLuaMainDestroy(CLuaMain* luaContext)
 {
-    dassert(!ListContains(m_LuaMainStack, pLuaMain));
-    ListRemove(m_LuaMainStack, pLuaMain);
+    dassert(!ListContains(m_LuaMainStack, luaContext));
+    ListRemove(m_LuaMainStack, luaContext);
 }
 
 CLuaMain* CScriptDebugging::GetTopLuaMain()

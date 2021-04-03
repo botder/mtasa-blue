@@ -10,7 +10,9 @@
  *****************************************************************************/
 
 #include "StdInc.h"
-#include "CResource.h"
+#include "Resource.h"
+
+using namespace mtasa;
 
 void CLuaTeamDefs::LoadFunctions()
 {
@@ -103,23 +105,17 @@ int CLuaTeamDefs::CreateTeam(lua_State* luaVM)
 
     if (!argStream.HasErrors())
     {
-        CLuaMain* pLuaMain = g_pGame->GetLuaManager()->GetVirtualMachine(luaVM);
-        if (pLuaMain)
+        if (Resource* resource = m_pLuaManager->GetResourceFromLuaState(luaVM); resource != nullptr)
         {
-            CResource* pResource = pLuaMain->GetResource();
-            if (pResource)
+            CTeam* team = CStaticFunctionDefinitions::CreateTeam(resource, strName, ucRed, ucGreen, ucBlue);
+
+            if (team != nullptr)
             {
-                CTeam* pTeam = CStaticFunctionDefinitions::CreateTeam(pResource, strName, ucRed, ucGreen, ucBlue);
-                if (pTeam)
-                {
-                    CElementGroup* pGroup = pResource->GetElementGroup();
-                    if (pGroup)
-                    {
-                        pGroup->Add(pTeam);
-                    }
-                    lua_pushelement(luaVM, pTeam);
-                    return 1;
-                }
+                if (CElementGroup* elementGroup = resource->GetElementGroup(); elementGroup != nullptr)
+                    elementGroup->Add(team);
+
+                lua_pushelement(luaVM, team);
+                return 1;
             }
         }
     }

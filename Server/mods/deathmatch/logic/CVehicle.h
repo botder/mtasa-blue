@@ -146,7 +146,7 @@ public:
     ZERO_ON_NEW
     CVehicle(class CVehicleManager* pVehicleManager, CElement* pParent, unsigned short usModel, unsigned char ucVariant, unsigned char ucVariant2);
     ~CVehicle();
-    CElement* Clone(bool* bAddEntity, CResource* pResource) override;
+    CElement* Clone(bool* bAddEntity, mtasa::Resource* resource) override;
 
     bool IsEntity() { return true; }
 

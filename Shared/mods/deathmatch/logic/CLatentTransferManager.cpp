@@ -9,7 +9,14 @@
  *****************************************************************************/
 
 #include "StdInc.h"
+
+#ifndef MTA_CLIENT
+    #include "Resource.h"
+    #include "ResourceManager.h"
+#endif
+
 using namespace LatentTransfer;
+using namespace mtasa;
 
 ///////////////////////////////////////////////////////////////
 //
@@ -89,10 +96,10 @@ void CLatentTransferManager::RemoveRemote(NetPlayerID remoteId)
 // When a Lua VM is stopped
 //
 ///////////////////////////////////////////////////////////////
-void CLatentTransferManager::OnLuaMainDestroy(void* pLuaMain)
+void CLatentTransferManager::OnLuaMainDestroy(void* luaContext)
 {
     for (uint i = 0; i < m_SendQueueList.size(); i++)
-        m_SendQueueList[i]->OnLuaMainDestroy(pLuaMain);
+        m_SendQueueList[i]->OnLuaMainDestroy(luaContext);
 }
 
 ///////////////////////////////////////////////////////////////
@@ -140,13 +147,13 @@ void CLatentTransferManager::AddSendBatchBegin(unsigned char ucPacketId, NetBitS
 // Send to remote
 //
 ///////////////////////////////////////////////////////////////
-SSendHandle CLatentTransferManager::AddSend(NetPlayerID remoteId, ushort usBitStreamVersion, uint uiRate, void* pLuaMain, ushort usResourceNetId)
+SSendHandle CLatentTransferManager::AddSend(NetPlayerID remoteId, ushort usBitStreamVersion, uint uiRate, void* luaContext, ushort usResourceNetId)
 {
     m_uiNumSends++;
     assert(m_pBatchBufferRef);
 
     CLatentSendQueue* pSendQueue = GetSendQueueForRemote(remoteId, usBitStreamVersion);
-    return pSendQueue->AddSend(*m_pBatchBufferRef, uiRate, CATEGORY_PACKET, pLuaMain, usResourceNetId);
+    return pSendQueue->AddSend(*m_pBatchBufferRef, uiRate, CATEGORY_PACKET, luaContext, usResourceNetId);
 }
 
 ///////////////////////////////////////////////////////////////
@@ -386,10 +393,12 @@ bool DoStaticProcessPacket(unsigned char ucPacketID, NetPlayerID remoteId, NetBi
     // Check if latent packet should be ignored
     if (usResourceNetId != 0xFFFF)
     {
-        CResource* pResource = g_pGame->GetResourceManager()->GetResourceFromNetID(usResourceNetId);
-        if (!pResource)
+        Resource* resource = g_pGame->GetResourceManager().GetResourceFromRemoteIdentifier(usResourceNetId);
+
+        if (resource == nullptr)
             return true;
     }
+
     return CGame::StaticProcessPacket(ucPacketID, remoteId, pBitStream, NULL);
 }
 

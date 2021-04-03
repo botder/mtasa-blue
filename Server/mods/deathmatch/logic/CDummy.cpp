@@ -11,6 +11,8 @@
 
 #include "StdInc.h"
 
+using namespace mtasa;
+
 CDummy::CDummy(CGroups* pGroups, CElement* pParent) : CElement(pParent)
 {
     // Init
@@ -31,7 +33,7 @@ CDummy::~CDummy()
     Unlink();
 }
 
-CElement* CDummy::Clone(bool* bAddEntity, CResource* pResource)
+CElement* CDummy::Clone(bool* bAddEntity, Resource* resource)
 {
     CElement* pNewElement = new CDummy(g_pGame->GetGroups(), GetParentEntity());
     pNewElement->SetName(GetName());

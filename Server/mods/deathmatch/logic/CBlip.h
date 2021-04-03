@@ -20,7 +20,7 @@ class CBlip : public CPerPlayerEntity
 public:
     CBlip(CElement* pParent, class CBlipManager* pBlipManager);
     ~CBlip();
-    CElement* Clone(bool* bAddEntity, CResource* pResource) override;
+    CElement* Clone(bool* bAddEntity, mtasa::Resource* resource) override;
 
     void Unlink();
 

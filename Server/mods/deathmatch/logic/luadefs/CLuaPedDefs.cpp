@@ -10,7 +10,9 @@
  *****************************************************************************/
 
 #include "StdInc.h"
-#include "CResource.h"
+#include "Resource.h"
+
+using namespace mtasa;
 
 void CLuaPedDefs::LoadFunctions()
 {
@@ -205,24 +207,17 @@ int CLuaPedDefs::CreatePed(lua_State* luaVM)
 
     if (!argStream.HasErrors())
     {
-        CLuaMain* pLuaMain = g_pGame->GetLuaManager()->GetVirtualMachine(luaVM);
-        if (pLuaMain)
+        if (Resource* resource = m_pLuaManager->GetResourceFromLuaState(luaVM); resource != nullptr)
         {
-            CResource* pResource = pLuaMain->GetResource();
-            if (pResource)
+            CPed* ped = CStaticFunctionDefinitions::CreatePed(resource, usModel, vecPosition, fRotation, bSynced);
+
+            if (ped != nullptr)
             {
-                // Create the ped and return its handle
-                CPed* pPed = CStaticFunctionDefinitions::CreatePed(pResource, usModel, vecPosition, fRotation, bSynced);
-                if (pPed)
-                {
-                    CElementGroup* pGroup = pResource->GetElementGroup();
-                    if (pGroup)
-                    {
-                        pGroup->Add(pPed);
-                    }
-                    lua_pushelement(luaVM, pPed);
-                    return 1;
-                }
+                if (CElementGroup* elementGroup = resource->GetElementGroup(); elementGroup != nullptr)
+                    elementGroup->Add(ped);
+
+                lua_pushelement(luaVM, ped);
+                return 1;
             }
         }
     }

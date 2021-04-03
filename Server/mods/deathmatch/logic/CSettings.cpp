@@ -11,6 +11,7 @@
 
 #include "StdInc.h"
 #include "CResource.h"
+#include "CResourceManager.h"
 
 #define ERROR_BUFFER            32
 

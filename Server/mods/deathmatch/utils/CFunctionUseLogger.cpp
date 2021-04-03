@@ -10,7 +10,10 @@
 
 #include "StdInc.h"
 #include "CFunctionUseLogger.h"
-#include "CResource.h"
+#include "Resource.h"
+#include "ResourceManager.h"
+
+using namespace mtasa;
 
 //
 // CFunctionUseLogger::CFunctionUseLogger
@@ -72,10 +75,10 @@ void CFunctionUseLogger::OnFunctionUse(lua_State* luaVM, const char* szFunctionN
     if (m_strLogFilename.empty())
         return;
 
-    CResource* pResource = g_pGame->GetResourceManager()->GetResourceFromLuaState(luaVM);
-    SString    strResourceName = pResource ? pResource->GetName() : "Unknown";
+    Resource* resource = g_pGame->GetResourceManager().GetResourceFromLuaState(luaVM);
+    SString   resourceName = (resource ? resource->GetName() : "Unknown"s);
 
-    SString strKey("%s-%s", szFunctionName, *strResourceName);
+    SString strKey("%s-%s", szFunctionName, *resourceName);
 
     SFuncCallRecord* pItem = MapFind(m_FuncCallRecordMap, strKey);
     if (!pItem)
@@ -84,7 +87,7 @@ void CFunctionUseLogger::OnFunctionUse(lua_State* luaVM, const char* szFunctionN
         MapSet(m_FuncCallRecordMap, strKey, SFuncCallRecord());
         pItem = MapFind(m_FuncCallRecordMap, strKey);
         pItem->strFunctionName = szFunctionName;
-        pItem->strResourceName = strResourceName;
+        pItem->strResourceName = resourceName;
         pItem->uiCallCount = 0;
         pItem->timeFirstUsed = CTickCount::Now();
     }

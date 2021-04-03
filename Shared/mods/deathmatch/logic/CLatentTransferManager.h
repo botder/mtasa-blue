@@ -44,7 +44,7 @@ struct SSendItem
           uiReadPosition(0),
           bSendStarted(false),
           bSendFinishing(false),
-          pLuaMain(NULL),
+          luaContext(NULL),
           usResourceNetId(0xFFFF),
           iEstSendDurationMsRemaining(0),
           iEstSendDurationMsUsed(0)
@@ -58,7 +58,7 @@ struct SSendItem
     uint       uiReadPosition;             // Current position in the buffer sent so far
     bool       bSendStarted;               // true when the send actually starts
     bool       bSendFinishing;             // true when the last part has been sent
-    void*      pLuaMain;                   // For cancelling by VM
+    void*      luaContext;                   // For cancelling by VM
     ushort     usResourceNetId;            // Only allow packet if this resource is running (ignored if 0xFFFF)
 
     int iEstSendDurationMsRemaining;            // Used for status calculations
@@ -107,8 +107,8 @@ public:
     CLatentSendQueue(NetPlayerID remoteId, ushort usBitStreamVersion);
     ~CLatentSendQueue();
     void        DoPulse(int iTimeMsBetweenCalls);
-    bool        OnLuaMainDestroy(void* pLuaMain);
-    SSendHandle AddSend(CBufferRef bufferRef, uint uiRate, ushort usCategory, void* pLuaMain, ushort usResourceNetId);
+    bool        OnLuaMainDestroy(void* luaContext);
+    SSendHandle AddSend(CBufferRef bufferRef, uint uiRate, ushort usCategory, void* luaContext, ushort usResourceNetId);
     bool        CancelSend(SSendHandle handle);
     void        CancelAllSends();
     bool        GetSendStatus(SSendHandle handle, SSendStatus* pOutSendStatus);
@@ -165,11 +165,11 @@ public:
     ~CLatentTransferManager();
     void DoPulse();
     void RemoveRemote(NetPlayerID remoteId);
-    void OnLuaMainDestroy(void* pLuaMain);
+    void OnLuaMainDestroy(void* luaContext);
 
     // Send functions
     void        AddSendBatchBegin(unsigned char ucPacketId, NetBitStreamInterface* pBitStream);
-    SSendHandle AddSend(NetPlayerID remoteId, ushort usBitStreamVersion, uint uiRate, void* pLuaMain, ushort usResourceNetId);
+    SSendHandle AddSend(NetPlayerID remoteId, ushort usBitStreamVersion, uint uiRate, void* luaContext, ushort usResourceNetId);
     void        AddSendBatchEnd();
 
     bool CancelSend(NetPlayerID remoteId, SSendHandle handle);

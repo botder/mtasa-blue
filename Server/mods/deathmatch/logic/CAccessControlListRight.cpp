@@ -46,6 +46,12 @@ void CAccessControlListRight::WriteToXMLNode(CXMLNode* pNode)
     }
 }
 
+// TODO: Remove later?
+static bool StringToBool(const SString& strText)
+{
+    return (strText == "true" || strText == "1" || strText == "yes");
+}
+
 ///////////////////////////////////////////////////////////////
 //
 // CAccessControlListRight::SetAttributeValue

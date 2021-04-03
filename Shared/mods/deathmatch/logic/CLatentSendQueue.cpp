@@ -137,7 +137,7 @@ void CLatentSendQueue::DoPulse(int iTimeMsBetweenCalls)
 // From data pointer
 //
 ///////////////////////////////////////////////////////////////
-SSendHandle CLatentSendQueue::AddSend(CBufferRef bufferRef, uint uiRate, ushort usCategory, void* pLuaMain, ushort usResourceNetId)
+SSendHandle CLatentSendQueue::AddSend(CBufferRef bufferRef, uint uiRate, ushort usCategory, void* luaContext, ushort usResourceNetId)
 {
     m_TxQueue.push_back(SSendItem());
 
@@ -146,7 +146,7 @@ SSendHandle CLatentSendQueue::AddSend(CBufferRef bufferRef, uint uiRate, ushort 
     newTx.bufferRef = bufferRef;
     newTx.uiRate = uiRate;
     newTx.usCategory = usCategory;
-    newTx.pLuaMain = pLuaMain;
+    newTx.luaContext = luaContext;
     newTx.usResourceNetId = usResourceNetId;
 
     // Current rate is highest queued item
@@ -317,11 +317,11 @@ void CLatentSendQueue::SendCancelNotification(SSendItem& activeTx)
 // When a Lua VM is stopped
 //
 ///////////////////////////////////////////////////////////////
-bool CLatentSendQueue::OnLuaMainDestroy(void* pLuaMain)
+bool CLatentSendQueue::OnLuaMainDestroy(void* luaContext)
 {
     for (std::list<SSendItem>::iterator iter = m_TxQueue.begin(); iter != m_TxQueue.end();)
     {
-        if (iter->pLuaMain == pLuaMain && !iter->bSendFinishing)
+        if (iter->luaContext == luaContext && !iter->bSendFinishing)
         {
             if (iter->bSendStarted)
                 SendCancelNotification(*iter);

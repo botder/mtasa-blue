@@ -10,11 +10,17 @@
  *****************************************************************************/
 
 #pragma once
+
 extern "C"
 {
     #include "lua.h"
     #include "lualib.h"
     #include "lauxlib.h"
+}
+
+namespace mtasa
+{
+    class Resource;
 }
 
 class CLuaClassDefs : public CLuaDefs
@@ -31,7 +37,7 @@ public:
     LUA_DECLARE(ToString);
 
     static const char* GetObjectClass(void* pObject);
-    static const char* GetResourceClass(CResource* pResource);
+    static const char* GetResourceClass(mtasa::Resource*);
     static const char* GetTimerClass(CLuaTimer* pTimer);
     static const char* GetXmlNodeClass(CXMLNode* pXmlNode);
     static const char* GetACLClass(CAccessControlList* pACL);

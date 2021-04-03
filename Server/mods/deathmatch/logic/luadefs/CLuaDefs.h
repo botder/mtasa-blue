@@ -10,6 +10,7 @@
  *****************************************************************************/
 
 #pragma once
+
 #include "../CAccessControlListManager.h"
 #include "../CAccountManager.h"
 #include "../CBlipManager.h"
@@ -25,7 +26,6 @@
 #include "../CPlayerManager.h"
 #include "../CRadarAreaManager.h"
 #include "../CRegisteredCommands.h"
-#include "../CResourceManager.h"
 #include "../CScriptDebugging.h"
 #include "../CTeamManager.h"
 #include "../CVehicleManager.h"
@@ -53,12 +53,19 @@
 #define LUA_DECLARE(x) static int x ( lua_State * luaVM );
 #define LUA_DECLARE_OOP(x) LUA_DECLARE(x) LUA_DECLARE(OOP_##x)
 
+namespace mtasa
+{
+    class Resource;
+    class ResourceManager;
+}
+
 class CLuaDefs
 {
 public:
     static void Initialize(class CGame* pGame);
 
-    static bool CanUseFunction(const char* szFunction, lua_State* luaVM, bool bRestricted);
+    static bool CanUseFunction(const char* szFunction, lua_State* luaVM, bool isRestricted);
+    static bool CanUseFunction(const char* szFunction, const mtasa::Resource* resource, bool isRestricted);
     static int  CanUseFunction(lua_CFunction f, lua_State* luaVM);
     static void DidUseFunction(lua_CFunction f, lua_State* luaVM);
     static void LogWarningIfPlayerHasNotJoinedYet(lua_State* luaVM, CElement* pElement);
@@ -82,9 +89,10 @@ protected:
     static CTeamManager*              m_pTeamManager;
     static CAccountManager*           m_pAccountManager;
     static CColManager*               m_pColManager;
-    static CResourceManager*          m_pResourceManager;
     static CAccessControlListManager* m_pACLManager;
     static CMainConfig*               m_pMainConfig;
+
+    inline static mtasa::ResourceManager* m_resourceManager = nullptr;
 
 protected:
     // Old style: Only warn on failure. This should

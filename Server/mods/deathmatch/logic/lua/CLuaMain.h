@@ -31,18 +31,24 @@ class CRadarAreaManager;
 class CVehicleManager;
 class CMapManager;
 
+namespace mtasa
+{
+    class Resource;
+}
+
 struct CRefInfo
 {
     unsigned long int ulUseCount;
     int               iFunction;
 };
 
-class CLuaMain            //: public CClient
+class CLuaMain
 {
 public:
     ZERO_ON_NEW
-    CLuaMain(class CLuaManager* pLuaManager, CObjectManager* pObjectManager, CPlayerManager* pPlayerManager, CVehicleManager* pVehicleManager,
-             CBlipManager* pBlipManager, CRadarAreaManager* pRadarAreaManager, CMapManager* pMapManager, CResource* pResourceOwner, bool bEnableOOP);
+
+    CLuaMain(mtasa::Resource& resource, class CLuaManager* pLuaManager, CObjectManager* pObjectManager, CPlayerManager* pPlayerManager, CVehicleManager* pVehicleManager,
+             CBlipManager* pBlipManager, CRadarAreaManager* pRadarAreaManager, CMapManager* pMapManager, bool bEnableOOP);
 
     ~CLuaMain();
 
@@ -57,7 +63,6 @@ public:
     const char* GetScriptName() const { return m_strScriptName; }
     void        SetScriptName(const char* szName) { m_strScriptName.AssignLeft(szName, MAX_SCRIPTNAME_LENGTH); }
 
-    lua_State*        GetVM() { return m_luaVM; };
     CLuaTimerManager* GetTimerManager() const { return m_pLuaTimerManager; };
 
     CBlipManager*    GetBlipManager() const { return m_pBlipManager; };
@@ -71,7 +76,6 @@ public:
     bool          DestroyXML(CXMLFile* pFile);
     bool          DestroyXML(CXMLNode* pRootNode);
     bool          SaveXML(CXMLNode* pRootNode);
-    bool          XMLExists(CXMLFile* pFile);
     unsigned long GetXMLFileCount() const { return m_XMLFiles.size(); };
     unsigned long GetOpenFileCount() const { return m_OpenFilenameList.size(); };
     unsigned long GetTimerCount() const { return m_pLuaTimerManager ? m_pLuaTimerManager->GetTimerCount() : 0; };
@@ -90,12 +94,14 @@ public:
     CTextDisplay* GetTextDisplayFromScriptID(uint uiScriptID);
     CTextItem*    GetTextItemFromScriptID(uint uiScriptID);
 
-    bool       BeingDeleted();
-    lua_State* GetVirtualMachine() const { return m_luaVM; };
+    bool BeingDeleted();
+
+    lua_State* GetLuaState() const { return m_luaVM; }
 
     void ResetInstructionCount();
 
-    CResource* GetResource() { return m_pResource; }
+    mtasa::Resource&       GetResource() { return m_resource; }
+    const mtasa::Resource& GetResource() const { return m_resource; }
 
     void           SetResourceFile(class CResourceFile* resourceFile) { m_pResourceFile = resourceFile; }
     CResourceFile* GetResourceFile() { return m_pResourceFile; }
@@ -124,7 +130,8 @@ private:
     lua_State*        m_luaVM;
     CLuaTimerManager* m_pLuaTimerManager;
 
-    class CResource*     m_pResource;
+    mtasa::Resource& m_resource;
+
     class CResourceFile* m_pResourceFile;
     CBlipManager*        m_pBlipManager;
     CObjectManager*      m_pObjectManager;

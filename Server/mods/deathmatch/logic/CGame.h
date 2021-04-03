@@ -91,7 +91,6 @@ class CLuaCallbackManager;
 class CRegistryManager;
 class CRegistry;
 class CRemoteCalls;
-class CResourceManager;
 class CScriptDebugging;
 class CSettings;
 class CTeamManager;
@@ -131,6 +130,11 @@ class CVehiclePuresyncPacket;
 class CVehicleTrailerPacket;
 class CVoiceDataPacket;
 class CWeaponDamageCheckPacket;
+
+namespace mtasa
+{
+    class ResourceManager;
+}
 
 typedef SFixedArray<bool, MAX_GARAGES> SGarageStates;
 
@@ -229,7 +233,7 @@ public:
     CLatentTransferManager*          GetLatentTransferManager() { return m_pLatentTransferManager; }
     CDebugHookManager*               GetDebugHookManager() { return m_pDebugHookManager; }
     CPedManager*                     GetPedManager() { return m_pPedManager; }
-    CResourceManager*                GetResourceManager() { return m_pResourceManager; }
+    mtasa::ResourceManager&          GetResourceManager() { return *m_resourceManager; }
     CMarkerManager*                  GetMarkerManager() { return m_pMarkerManager; }
     CBlipManager*                    GetBlipManager() { return m_pBlipManager; }
     CPickupManager*                  GetPickupManager() { return m_pPickupManager; }
@@ -440,7 +444,7 @@ public:
 
     void HandleBackup();
     void HandleCrashDumpEncryption();
-    void EnableLatentSends(bool bEnabled, int iBandwidth = 0, CLuaMain* pLuaMain = NULL, ushort usResourceNetId = 0xFFFF);
+    void EnableLatentSends(bool bEnabled, int iBandwidth = 0, CLuaMain* luaContext = NULL, ushort usResourceNetId = 0xFFFF);
     void SendPacketBatchBegin(unsigned char ucPacketId, NetBitStreamInterface* pBitStream);
     bool SendPacket(unsigned char ucPacketID, const NetServerPlayerID& playerID, NetBitStreamInterface* pBitStream, bool bBroadcast,
                     NetServerPacketPriority packetPriority, NetServerPacketReliability packetReliability,
@@ -546,7 +550,6 @@ private:
     CLatentTransferManager*    m_pLatentTransferManager;
     CDebugHookManager*         m_pDebugHookManager;
     CPedManager*               m_pPedManager;
-    CResourceManager*          m_pResourceManager;
     CAccessControlListManager* m_pACLManager;
     CSettings*                 m_pSettings;
     CZoneNames*                m_pZoneNames;
@@ -555,6 +558,8 @@ private:
     CRPCFunctions*             m_pRPCFunctions;
     CLanBroadcast*             m_pLanBroadcast;
     CWaterManager*             m_pWaterManager;
+
+    std::unique_ptr<mtasa::ResourceManager> m_resourceManager;
 
     CWeaponStatManager*      m_pWeaponStatsManager;
     CBuildingRemovalManager* m_pBuildingRemovalManager;

@@ -233,8 +233,8 @@ public:
 
     const SString& GetName() const noexcept { return m_strResourceName; }
 
-    CLuaMain*       GetVirtualMachine() { return m_pVM; }
-    const CLuaMain* GetVirtualMachine() const { return m_pVM; }
+    CLuaMain*       GetLuaContext() { return m_luaContext; }
+    const CLuaMain* GetLuaContext() const { return m_luaContext; }
 
     void AddDependent(CResource* pResource);
     void RemoveDependent(CResource* pResource);
@@ -282,7 +282,6 @@ public:
     bool IsProtected() const noexcept { return m_bProtected; }
 
     bool IsResourceZip() const noexcept { return m_bResourceIsZip; }
-    bool UnzipResource();
 
     std::list<CResourceFile*>::iterator       IterBegin() { return m_ResourceFiles.begin(); }
     std::list<CResourceFile*>::const_iterator IterBegin() const noexcept { return m_ResourceFiles.begin(); }
@@ -338,40 +337,7 @@ private:
     void TidyUp();
 
 private:
-    struct ResourceFilePath
-    {
-        std::filesystem::path absolute;
-        std::filesystem::path relative;
-        bool                  isWindowsCompatible = true;
-    };
-
     std::unique_ptr<mtasa::ResourceFileRouter> m_httpRouter;
-
-    std::filesystem::path m_rootDirectory;
-    std::filesystem::path m_staticRootDirectory;
-    std::filesystem::path m_metaFilePath;
-    std::filesystem::path m_archiveFilePath;
-
-    std::vector<std::filesystem::path>                         m_serverFiles;
-    std::vector<std::pair<std::filesystem::path, std::string>> m_clientFiles;
-
-    bool IsDuplicateServerFile(const std::filesystem::path& relativeFilePath);
-    bool IsDuplicateClientFile(const std::filesystem::path& relativeFilePath);
-
-    void AddServerFilePath(const ResourceFilePath& resourceFilePath);
-    void AddClientFilePath(const ResourceFilePath& resourceFilePath);
-
-    bool ProcessMeta(const mtasa::MetaFileParser& meta);
-    bool ProcessMetaInfo(const mtasa::MetaFileParser& meta);
-    bool ProcessMetaIncludes(const mtasa::MetaFileParser& meta);
-    bool ProcessMetaMaps(const mtasa::MetaFileParser& meta);
-    bool ProcessMetaFiles(const mtasa::MetaFileParser& meta);
-    bool ProcessMetaScripts(const mtasa::MetaFileParser& meta);
-    bool ProcessMetaHtmls(const mtasa::MetaFileParser& meta);
-    bool ProcessMetaExports(const mtasa::MetaFileParser& meta);
-    bool ProcessMetaConfigs(const mtasa::MetaFileParser& meta);
-
-    std::optional<ResourceFilePath> ProduceResourceFilePath(const std::filesystem::path& relativePath, bool windowsPlatformCheck);
 
 private:
     EResourceState m_eState = EResourceState::None;
@@ -396,7 +362,7 @@ private:
     CDummy*        m_pResourceElement = nullptr;
     CDummy*        m_pResourceDynamicElementRoot = nullptr;
     CElementGroup* m_pDefaultElementGroup = nullptr;            // stores elements created by scripts in this resource
-    CLuaMain*      m_pVM = nullptr;
+    CLuaMain*      m_luaContext = nullptr;
 
     KeyValueMap                    m_Info;
     std::list<CIncludedResources*> m_IncludedResources;            // we store them here temporarily, then read them once all the resources are loaded

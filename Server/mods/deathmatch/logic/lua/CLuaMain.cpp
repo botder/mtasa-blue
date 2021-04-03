@@ -10,16 +10,18 @@
  *****************************************************************************/
 
 #include "StdInc.h"
-#include "CResource.h"
+#include "Resource.h"
 #include "CResourceConfigItem.h"
 #include "CLuaFunctionDefs.h"
 #include <clocale>
 
-static CLuaManager* m_pLuaManager;
-SString             CLuaMain::ms_strExpectedUndumpHash;
-
 #define HOOK_INSTRUCTION_COUNT 1000000
 #define HOOK_MAXIMUM_TIME 5000
+
+using namespace mtasa;
+
+static CLuaManager* m_pLuaManager;
+SString             CLuaMain::ms_strExpectedUndumpHash;
 
 extern CGame*      g_pGame;
 extern CNetServer* g_pRealNetServer;
@@ -28,13 +30,14 @@ extern CNetServer* g_pRealNetServer;
 #include "luascripts/exports.lua.h"
 #include "luascripts/inspect.lua.h"
 
-CLuaMain::CLuaMain(CLuaManager* pLuaManager, CObjectManager* pObjectManager, CPlayerManager* pPlayerManager, CVehicleManager* pVehicleManager,
-                   CBlipManager* pBlipManager, CRadarAreaManager* pRadarAreaManager, CMapManager* pMapManager, CResource* pResourceOwner, bool bEnableOOP)
+CLuaMain::CLuaMain(Resource& resource, CLuaManager* pLuaManager, CObjectManager* pObjectManager, CPlayerManager* pPlayerManager,
+                   CVehicleManager* pVehicleManager, CBlipManager* pBlipManager, CRadarAreaManager* pRadarAreaManager, CMapManager* pMapManager,
+                   bool bEnableOOP)
+    : m_resource(resource)
 {
     // Initialise everything to be setup in the Start function
     m_pLuaManager = pLuaManager;
     m_luaVM = NULL;
-    m_pResource = pResourceOwner;
     m_pResourceFile = NULL;
     m_bBeingDeleted = false;
     m_pLuaTimerManager = new CLuaTimerManager;
@@ -174,7 +177,7 @@ void CLuaMain::InitVM()
 
     // Create a new VM
     m_luaVM = lua_open();
-    m_pLuaManager->OnLuaMainOpenVM(this, m_luaVM);
+    m_pLuaManager->OnLuaStateOpen(this, m_luaVM);
 
     // Set the instruction count hook
     lua_sethook(m_luaVM, InstructionCountHook, LUA_MASKCOUNT, HOOK_INSTRUCTION_COUNT);
@@ -203,10 +206,10 @@ void CLuaMain::InitVM()
     lua_pushelement(m_luaVM, g_pGame->GetMapManager()->GetRootElement());
     lua_setglobal(m_luaVM, "root");
 
-    lua_pushresource(m_luaVM, m_pResource);
+    lua_pushresource(m_luaVM, &m_resource);
     lua_setglobal(m_luaVM, "resource");
 
-    lua_pushelement(m_luaVM, m_pResource->GetResourceRootElement());
+    lua_pushelement(m_luaVM, m_resource.GetElement());
     lua_setglobal(m_luaVM, "resourceRoot");
 
     // Load pre-loaded lua scripts
@@ -223,18 +226,16 @@ void CLuaMain::RegisterHTMLDFunctions()
 
 void CLuaMain::InstructionCountHook(lua_State* luaVM, lua_Debug* pDebug)
 {
-    // Grab our lua VM
-    CLuaMain* pLuaMain = m_pLuaManager->GetVirtualMachine(luaVM);
-    if (pLuaMain)
+    if (CLuaMain* luaContext = m_pLuaManager->GetLuaContext(luaVM); luaContext != nullptr)
     {
         // Above max time?
-        if (pLuaMain->m_FunctionEnterTimer.Get() > HOOK_MAXIMUM_TIME)
+        if (luaContext->m_FunctionEnterTimer.Get() > HOOK_MAXIMUM_TIME)
         {
             // Print it in the console
-            CLogger::ErrorPrintf("Infinite/too long execution (%s)\n", pLuaMain->GetScriptName());
+            CLogger::ErrorPrintf("Infinite/too long execution (%s)\n", luaContext->GetScriptName());
 
             SString strAbortInf = "Aborting; infinite running script in ";
-            strAbortInf += pLuaMain->GetScriptName();
+            strAbortInf += luaContext->GetScriptName();
 
             // Error out
             luaL_error(luaVM, strAbortInf);
@@ -374,7 +375,7 @@ void CLuaMain::UnloadScript()
     if (m_luaVM)
     {
         CLuaFunctionRef::RemoveLuaFunctionRefsForVM(m_luaVM);
-        m_pLuaManager->OnLuaMainCloseVM(this, m_luaVM);
+        m_pLuaManager->OnLuaStateClose(this, m_luaVM);
         lua_close(m_luaVM);
         m_luaVM = NULL;
     }
@@ -387,7 +388,10 @@ void CLuaMain::DoPulse()
 
 unsigned long CLuaMain::GetElementCount() const
 {
-    return m_pResource && m_pResource->GetElementGroup() ? m_pResource->GetElementGroup()->GetCount() : 0;
+    if (CElementGroup* elementGroup = m_resource.GetElementGroup(); elementGroup != nullptr)
+        return elementGroup->GetCount();
+
+    return 0;
 }
 
 // Keep count of the number of open files in this resource and issue a warning if too high
@@ -466,25 +470,25 @@ bool CLuaMain::SaveXML(CXMLNode* pRootNode)
         if (pFile)
             if (pFile->GetRootNode() == pRootNode)
                 return pFile->Write();
-    if (m_pResource)
-    {
-        list<CResourceFile*>::iterator iter = m_pResource->IterBegin();
-        for (; iter != m_pResource->IterEnd(); ++iter)
-        {
-            CResourceFile* pResourceFile = *iter;
-            if (pResourceFile->GetType() == CResourceFile::RESOURCE_FILE_TYPE_CONFIG)
-            {
-                CResourceConfigItem* pConfigItem = static_cast<CResourceConfigItem*>(pResourceFile);
-                if (pConfigItem->GetRoot() == pRootNode)
-                {
-                    CXMLFile* pFile = pConfigItem->GetFile();
-                    if (pFile)
-                        return pFile->Write();
-                    return false;
-                }
-            }
-        }
-    }
+
+    // TODO:
+    // list<CResourceFile*>::iterator iter = m_pResource->IterBegin();
+    // for (; iter != m_pResource->IterEnd(); ++iter)
+    // {
+    //     CResourceFile* pResourceFile = *iter;
+    //     if (pResourceFile->GetType() == CResourceFile::RESOURCE_FILE_TYPE_CONFIG)
+    //     {
+    //         CResourceConfigItem* pConfigItem = static_cast<CResourceConfigItem*>(pResourceFile);
+    //         if (pConfigItem->GetRoot() == pRootNode)
+    //         {
+    //             CXMLFile* pFile = pConfigItem->GetFile();
+    //             if (pFile)
+    //                 return pFile->Write();
+    //             return false;
+    //         }
+    //     }
+    // }
+
     return false;
 }
 

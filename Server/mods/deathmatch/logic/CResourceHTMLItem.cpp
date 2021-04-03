@@ -25,7 +25,7 @@ CResourceHTMLItem::CResourceHTMLItem(CResource* resource, const char* szShortNam
     m_bIsRaw = bIsRaw;
     m_type = RESOURCE_FILE_TYPE_HTML;
     m_bDefault = bIsDefault;
-    m_pVM = NULL;
+    m_luaContext = NULL;
     m_bIsBeingRequested = false;
     m_bRestricted = bRestricted;
     m_bOOPEnabled = bOOPEnabled;
@@ -38,7 +38,7 @@ CResourceHTMLItem::~CResourceHTMLItem()
 
 ResponseCode CResourceHTMLItem::Request(HttpRequest* ipoHttpRequest, HttpResponse* ipoHttpResponse, CAccount* account)
 {
-    if (!m_pVM)
+    if (!m_luaContext)
         Start();
 
     if (m_bIsBeingRequested)
@@ -125,7 +125,7 @@ ResponseCode CResourceHTMLItem::Request(HttpRequest* ipoHttpRequest, HttpRespons
         args.PushString(sMethod);                                         // method
 
         // g_pGame->Lock(); // get the mutex (blocking)
-        args.CallGlobal(m_pVM, "renderPage");
+        args.CallGlobal(m_luaContext, "renderPage");
         // g_pGame->Unlock(); // release the mutex
 
         ipoHttpResponse->SetBody(m_strPageBuffer.c_str(), m_strPageBuffer.size());
@@ -293,10 +293,11 @@ bool CResourceHTMLItem::Start()
              fwrite ( m_szBuffer, 1, strlen(m_szBuffer), debug );
              fclose ( debug );*/
 
-        m_pVM = g_pGame->GetLuaManager()->CreateVirtualMachine(m_resource, m_bOOPEnabled);
-        m_pVM->LoadScript(strScript.c_str());
-        m_pVM->SetResourceFile(this);
-        m_pVM->RegisterHTMLDFunctions();
+        // TODO:
+        // m_luaContext = g_pGame->GetLuaManager()->CreateLuaContext(m_resource, m_bOOPEnabled);
+        // m_luaContext->LoadScript(strScript.c_str());
+        // m_luaContext->SetResourceFile(this);
+        // m_luaContext->RegisterHTMLDFunctions();
 
         fclose(pFile);
 
@@ -345,14 +346,14 @@ void CResourceHTMLItem::GetMimeType(const char* szFilename)
 
 bool CResourceHTMLItem::Stop()
 {
-    if (m_pVM)
+    if (m_luaContext)
     {
         // Delete the events on this VM
-        g_pGame->GetMapManager()->GetRootElement()->DeleteEvents(m_pVM, true);
+        g_pGame->GetMapManager()->GetRootElement()->DeleteEvents(m_luaContext, true);
 
-        g_pGame->GetLuaManager()->RemoveVirtualMachine(m_pVM);
+        g_pGame->GetLuaManager()->RemoveLuaContext(m_luaContext);
     }
 
-    m_pVM = NULL;
+    m_luaContext = NULL;
     return true;
 }

@@ -11,6 +11,8 @@
 
 #include "StdInc.h"
 
+using namespace mtasa;
+
 CColTube::CColTube(CColManager* pManager, CElement* pParent, const CVector& vecPosition, float fRadius, float fHeight) : CColShape(pManager, pParent)
 {
     m_vecPosition = vecPosition;
@@ -19,7 +21,7 @@ CColTube::CColTube(CColManager* pManager, CElement* pParent, const CVector& vecP
     UpdateSpatialData();
 }
 
-CElement* CColTube::Clone(bool* bAddEntity, CResource* pResource)
+CElement* CColTube::Clone(bool* bAddEntity, Resource* resource)
 {
     CColTube* pColTube = new CColTube(m_pManager, GetParentEntity(), m_vecPosition, m_fRadius, m_fHeight);
     return pColTube;

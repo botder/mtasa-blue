@@ -10,7 +10,9 @@
  *****************************************************************************/
 
 #include "StdInc.h"
-#include "CResource.h"
+#include "Resource.h"
+
+using namespace mtasa;
 
 void CLuaRadarAreaDefs::LoadFunctions()
 {
@@ -79,22 +81,17 @@ int CLuaRadarAreaDefs::CreateRadarArea(lua_State* luaVM)
 
     if (!argStream.HasErrors())
     {
-        CLuaMain*  pLuaMain = g_pGame->GetLuaManager()->GetVirtualMachine(luaVM);
-        CResource* pResource = pLuaMain ? pLuaMain->GetResource() : NULL;
-        if (pResource)
+        if (Resource* resource = m_pLuaManager->GetResourceFromLuaState(luaVM); resource != nullptr)
         {
-            SColorRGBA color(dRed, dGreen, dBlue, dAlpha);
+            SColorRGBA  color(dRed, dGreen, dBlue, dAlpha);
+            CRadarArea* radarArea = CStaticFunctionDefinitions::CreateRadarArea(resource, vecPosition, vecSize, color, pVisibleTo);
 
-            // Create it
-            CRadarArea* pRadarArea = CStaticFunctionDefinitions::CreateRadarArea(pResource, vecPosition, vecSize, color, pVisibleTo);
-            if (pRadarArea)
+            if (radarArea != nullptr)
             {
-                CElementGroup* pGroup = pResource->GetElementGroup();
-                if (pGroup)
-                {
-                    pGroup->Add(pRadarArea);
-                }
-                lua_pushelement(luaVM, pRadarArea);
+                if (CElementGroup* elementGroup = resource->GetElementGroup(); elementGroup != nullptr)
+                    elementGroup->Add(radarArea);
+
+                lua_pushelement(luaVM, radarArea);
                 return 1;
             }
         }

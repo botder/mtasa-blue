@@ -10,7 +10,9 @@
  *****************************************************************************/
 
 #include "StdInc.h"
-#include "CResource.h"
+#include "Resource.h"
+#include "ResourceManager.h"
+
 #define MTA_SERVER_CONF_TEMPLATE "mtaserver.conf.template"
 
 extern CGame* g_pGame;
@@ -19,6 +21,7 @@ CBandwidthSettings* g_pBandwidthSettings = new CBandwidthSettings();
 CTickRateSettings   g_TickRateSettings;
 
 using namespace std;
+using namespace mtasa;
 
 // Used to identify <client_file> names
 struct
@@ -672,16 +675,17 @@ bool CMainConfig::LoadExtended()
             if (pAttribute)
             {
                 // Grab the text in it and convert iwt to a path inside "scripts"
-                std::string strBuffer = pAttribute->GetValue();
+                const std::string& resourceName = pAttribute->GetValue();
 
-                CResource* loadedResource = g_pGame->GetResourceManager()->GetResource(strBuffer.c_str());
-                if (!loadedResource)
+                Resource* resource = g_pGame->GetResourceManager().GetResourceFromName(resourceName);
+
+                if (resource == nullptr)
                 {
-                    CLogger::ErrorPrintf("Couldn't find resource %s. Check it exists.\n", strBuffer.c_str());
+                    CLogger::ErrorPrintf("Couldn't find resource %s. Check it exists.\n", resourceName.c_str());
                 }
                 else
                 {
-                    loadedResource->SetPersistent(true);
+                    resource->SetPersistent(true);
 
                     pAttribute = pNode->GetAttributes().Find("startup");
                     if (pAttribute)
@@ -689,13 +693,13 @@ bool CMainConfig::LoadExtended()
                         std::string strStartup = pAttribute->GetValue();
                         if (strStartup.compare("true") == 0 || strStartup.compare("yes") == 0 || strStartup.compare("1") == 0)
                         {
-                            if (loadedResource->Start(NULL, true))
+                            if (resource->Start())
                             {
                                 CLogger::ProgressDotsUpdate();
                             }
                             else
                             {
-                                CLogger::ErrorPrintf("Unable to start resource %s; %s\n", strBuffer.c_str(), loadedResource->GetFailureReason().c_str());
+                                CLogger::ErrorPrintf("Unable to start resource %s; %s\n", strBuffer.c_str(), resource->GetLastError().c_str());
                             }
                         }
                     }
@@ -705,7 +709,7 @@ bool CMainConfig::LoadExtended()
                     {
                         std::string strProtected = pAttribute->GetValue();
                         if (strProtected.compare("true") == 0 || strProtected.compare("yes") == 0 || strProtected.compare("1") == 0)
-                            loadedResource->SetProtected(true);
+                            resource->SetProtected(true);
                     }
 
                     // Default resource
@@ -717,12 +721,7 @@ bool CMainConfig::LoadExtended()
                             std::string strDefault = pAttribute->GetValue();
                             if (strDefault.compare("true") == 0 || strDefault.compare("yes") == 0 || strDefault.compare("1") == 0)
                             {
-                                std::string strName = loadedResource->GetName();
-                                if (!strName.empty())
-                                {
-                                    g_pGame->GetHTTPD()->SetDefaultResource(strName.c_str());
-                                }
-
+                                g_pGame->GetHTTPD()->SetDefaultResource(resourceName.c_str());
                                 bFoundDefault = true;
                             }
                         }

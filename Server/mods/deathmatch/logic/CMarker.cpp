@@ -10,7 +10,9 @@
  *****************************************************************************/
 
 #include "StdInc.h"
-#include "CResource.h"
+#include "Resource.h"
+
+using namespace mtasa;
 
 CMarker::CMarker(CMarkerManager* pMarkerManager, CColManager* pColManager, CElement* pParent) : CPerPlayerEntity(pParent)
 {
@@ -46,7 +48,7 @@ CMarker::~CMarker()
     Unlink();
 }
 
-CElement* CMarker::Clone(bool* bAddEntity, CResource* pResource)
+CElement* CMarker::Clone(bool* bAddEntity, Resource* resource)
 {
     CMarker* pTemp = m_pMarkerManager->Create(GetParentEntity());
     if (pTemp)
@@ -54,7 +56,7 @@ CElement* CMarker::Clone(bool* bAddEntity, CResource* pResource)
         pTemp->SetMarkerType(GetMarkerType());
         pTemp->SetColor(GetColor());
         pTemp->SetSize(GetSize());
-        if (pResource->IsClientSynced())
+        if (resource->IsClientSynced())
             pTemp->Sync(true);
         *bAddEntity = false;
     }

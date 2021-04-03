@@ -22,6 +22,7 @@ class CLuaModuleManager;
 #include "CLuaModule.h"
 
 class CScriptDebugging;
+class CLuaManager;
 
 class CLuaModuleManager
 {
@@ -39,8 +40,8 @@ public:
     void ResourceStopping(lua_State* luaVM);
     void ResourceStopped(lua_State* luaVM);
 
-    CLuaManager*      GetLuaManager() { return m_pLuaManager; };
-    list<CLuaModule*> GetLoadedModules() { return m_Modules; };
+    CLuaManager*      GetLuaManager() { return m_pLuaManager; }
+    list<CLuaModule*> GetLoadedModules() { return m_Modules; }
 
 private:
     CScriptDebugging* m_pScriptDebugging;

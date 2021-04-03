@@ -28,6 +28,10 @@ class CResourceManager;
 #define LUA_ERROR() lua_pushboolean ( luaVM, false ); return 0;
 #define LUA_DECLARE(x) static int x ( lua_State * luaVM );
 
+namespace mtasa
+{
+    class ResourceManager;
+}
 
 extern CTimeUsMarker<20> markerLatentEvent;            // For timing triggerLatentClientEvent
 
@@ -170,7 +174,8 @@ private:
     static CTeamManager*              m_pTeamManager;
     static CAccountManager*           m_pAccountManager;
     static CColManager*               m_pColManager;
-    static CResourceManager*          m_pResourceManager;
     static CAccessControlListManager* m_pACLManager;
     static CLuaModuleManager*         m_pLuaModuleManager;
+
+    inline static mtasa::ResourceManager* m_resourceManager = nullptr;
 };

@@ -11,6 +11,8 @@
 
 #include "StdInc.h"
 
+using namespace mtasa;
+
 extern CGame* g_pGame;
 
 CVehicle::CVehicle(CVehicleManager* pVehicleManager, CElement* pParent, unsigned short usModel, unsigned char ucVariant, unsigned char ucVariant2)
@@ -171,7 +173,7 @@ CVehicle::~CVehicle()
     Unlink();
 }
 
-CElement* CVehicle::Clone(bool* bAddEntity, CResource* pResource)
+CElement* CVehicle::Clone(bool* bAddEntity, Resource* resource)
 {
     CVehicle* const pTemp = m_pVehicleManager->Create(GetParentEntity(), GetModel(), GetVariant(), GetVariant2());
 

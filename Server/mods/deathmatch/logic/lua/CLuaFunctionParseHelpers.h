@@ -7,9 +7,23 @@
  *  PURPOSE:
  *
  *****************************************************************************/
+
 #pragma once
+
 #include "CElementIDs.h"
 #include "CConsoleClient.h"
+#include "ResourceManager.h"
+#include <filesystem>
+
+namespace mtasa
+{
+    class Resource;
+}
+
+class CLuaVector2D;
+class CLuaVector3D;
+class CLuaVector4D;
+class CLuaMatrix;
 
 // Forward declare enum reflection stuff
 enum eLuaType
@@ -184,7 +198,7 @@ inline SString GetClassTypeName(CDatabaseConnectionElement*)
     return "db-connection";
 }
 
-inline SString GetClassTypeName(CResource*)
+inline SString GetClassTypeName(mtasa::Resource*)
 {
     return "resource-data";
 }
@@ -246,12 +260,12 @@ inline SString GetClassTypeName(CLuaMatrix*)
 }
 
 //
-// CResource from userdata
+// Resource from userdata
 //
 template <class T>
-CResource* UserDataCast(CResource*, void* ptr, lua_State*)
+mtasa::Resource* UserDataCast(mtasa::Resource*, void* ptr, lua_State*)
 {
-    return g_pGame->GetResourceManager()->GetResourceFromScriptID(reinterpret_cast<unsigned long>(ptr));
+    return g_pGame->GetResourceManager().GetResourceFromUniqueIdentifier(reinterpret_cast<SArrayId>(ptr));
 }
 
 //
@@ -269,12 +283,10 @@ CXMLNode* UserDataCast(CXMLNode*, void* ptr, lua_State*)
 template <class T>
 CLuaTimer* UserDataCast(CLuaTimer*, void* ptr, lua_State* luaVM)
 {
-    CLuaMain* pLuaMain = g_pGame->GetLuaManager()->GetVirtualMachine(luaVM);
-    if (pLuaMain)
-    {
-        return pLuaMain->GetTimerManager()->GetTimerFromScriptID(reinterpret_cast<unsigned long>(ptr));
-    }
-    return NULL;
+    if (CLuaMain* luaContext = g_pGame->GetLuaManager()->GetLuaContext(luaVM); luaContext)
+        return luaContext->GetTimerManager()->GetTimerFromScriptID(reinterpret_cast<unsigned long>(ptr));
+
+    return nullptr;
 }
 
 //
@@ -319,12 +331,10 @@ CAccessControlListGroup* UserDataCast(CAccessControlListGroup*, void* ptr, lua_S
 template <class T>
 CTextItem* UserDataCast(CTextItem*, void* ptr, lua_State* luaVM)
 {
-    CLuaMain* pLuaMain = g_pGame->GetLuaManager()->GetVirtualMachine(luaVM);
-    if (pLuaMain)
-    {
-        return pLuaMain->GetTextItemFromScriptID(reinterpret_cast<unsigned long>(ptr));
-    }
-    return NULL;
+    if (CLuaMain* luaContext = g_pGame->GetLuaManager()->GetLuaContext(luaVM); luaContext != nullptr)
+        return luaContext->GetTextItemFromScriptID(reinterpret_cast<unsigned long>(ptr));
+    
+    return nullptr;
 }
 
 //
@@ -333,12 +343,10 @@ CTextItem* UserDataCast(CTextItem*, void* ptr, lua_State* luaVM)
 template <class T>
 CTextDisplay* UserDataCast(CTextDisplay*, void* ptr, lua_State* luaVM)
 {
-    CLuaMain* pLuaMain = g_pGame->GetLuaManager()->GetVirtualMachine(luaVM);
-    if (pLuaMain)
-    {
-        return pLuaMain->GetTextDisplayFromScriptID(reinterpret_cast<unsigned long>(ptr));
-    }
-    return NULL;
+    if (CLuaMain* luaContext = g_pGame->GetLuaManager()->GetLuaContext(luaVM); luaContext != nullptr)
+        return luaContext->GetTextDisplayFromScriptID(reinterpret_cast<unsigned long>(ptr));
+    
+    return nullptr;
 }
 
 //
@@ -395,7 +403,7 @@ CElement* UserDataCast(CElement*, void* ptr, lua_State*)
     ElementID ID = TO_ELEMENTID(ptr);
     CElement* pElement = CElementIDs::GetElement(ID);
     if (!pElement || pElement->IsBeingDeleted() || (pElement->GetType() != GetClassType((T*)0) && GetClassType((T*)0) != -1))
-        return NULL;
+        return nullptr;
     return pElement;
 }
 
@@ -409,7 +417,7 @@ CPed* UserDataCast(CPed*, void* ptr, lua_State*)
     ElementID ID = TO_ELEMENTID(ptr);
     CElement* pElement = CElementIDs::GetElement(ID);
     if (!pElement || pElement->IsBeingDeleted() || (pElement->GetType() != CElement::PED && pElement->GetType() != CElement::PLAYER))
-        return NULL;
+        return nullptr;
     return (CPed*)pElement;
 }
 
@@ -438,7 +446,7 @@ CPlayer* UserDataCast(CPlayer*, void* ptr, lua_State*)
     ElementID ID = TO_ELEMENTID(ptr);
     CElement* pElement = CElementIDs::GetElement(ID);
     if (!pElement || pElement->IsBeingDeleted() || (pElement->GetType() != CElement::PLAYER))
-        return NULL;
+        return nullptr;
     return (CPlayer*)pElement;
 }
 
@@ -480,15 +488,13 @@ T* GetElementFromId(ElementID elementId)
 {
     CElement* pElement = CElementIDs::GetElement(elementId);
     if (!pElement || pElement->IsBeingDeleted() || (pElement->GetType() != GetClassType((T*)0) && GetClassType((T*)0) != -1))
-        return NULL;
+        return nullptr;
     return (T*)pElement;
 }
 
 class CScriptArgReader;
+
 SString GetUserDataClassName(void* ptr, lua_State* luaVM, bool bFindElementType = true);
-void    MixedReadResourceString(CScriptArgReader& argStream, SString& strOutResourceName);
-void    MixedReadResourceString(CScriptArgReader& argStream, CResource*& pOutResource);
-bool    StringToBool(const SString& strText);
 void    MinServerReqCheck(CScriptArgReader& argStream, const char* szVersionReq, const char* szReason);
 void    ReadPregFlags(CScriptArgReader& argStream, pcrecpp::RE_Options& pOptions);
 bool    ReadMatrix(lua_State* luaVM, uint uiArgIndex, CMatrix& outMatrix);
@@ -503,11 +509,11 @@ enum class eResourceModifyScope
     EVERY_RESOURCE,
 };
 
-eResourceModifyScope GetResourceModifyScope(CResource* pThisResource, CResource* pOtherResource);
-void                 CheckCanModifyOtherResource(CScriptArgReader& argStream, CResource* pThisResource, CResource* pOtherResource);
-void                 CheckCanModifyOtherResources(CScriptArgReader& argStream, CResource* pThisResource, std::initializer_list<CResource*> resourceList);
-void CheckCanAccessOtherResourceFile(CScriptArgReader& argStream, CResource* pThisResource, CResource* pOtherResource, const SString& strAbsPath,
-                                     bool* pbReadOnly = nullptr);
+eResourceModifyScope GetResourceModifyScope(const mtasa::Resource* self, const mtasa::Resource* other);
+void                 CheckCanModifyOtherResource(CScriptArgReader& argStream, const mtasa::Resource* self, const mtasa::Resource* other);
+void                 CheckCanModifyOtherResources(CScriptArgReader& argStream, const mtasa::Resource* self, std::initializer_list<const mtasa::Resource*> others);
+void CheckCanAccessOtherResourceFile(CScriptArgReader& argStream, const mtasa::Resource* self, const mtasa::Resource* other,
+                                     const std::filesystem::path& absoluteFilePath, bool* pbReadOnly = nullptr);
 
 //
 // Other misc helpers

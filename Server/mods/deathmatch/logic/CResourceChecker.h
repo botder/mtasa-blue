@@ -13,11 +13,13 @@
 
 #include <unzip.h>
 #ifdef WIN32
-#include <iowin32.h>
+    #include <iowin32.h>
 #else
-#include <ioapi.h>
+    #include <ioapi.h>
 #endif
 #include <zip.h>
+
+class CResource;
 
 namespace ECheckerMode
 {

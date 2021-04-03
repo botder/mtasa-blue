@@ -10,6 +10,7 @@
  *****************************************************************************/
 
 #include "StdInc.h"
+#include "CResourceChecker.h"
 #include "CResourceChecker.Data.h"
 #include "CResource.h"
 #include <clocale>

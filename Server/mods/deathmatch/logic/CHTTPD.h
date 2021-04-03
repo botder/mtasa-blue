@@ -32,14 +32,11 @@ public:
     // CHTTPD methods
     bool            StartHTTPD(const char* szIP, unsigned int port);
     bool            StopHTTPD();
-    void            SetResource(CResource* resource) { m_resource = resource; }
-    CResource*      GetResource() { return m_resource; }
     class CAccount* CheckAuthentication(HttpRequest* ipoHttpRequest);
     void            SetDefaultResource(const char* szResourceName) { m_strDefaultResourceName = szResourceName ? szResourceName : ""; }
     ResponseCode    RequestLogin(HttpRequest* ipoHttpRequest, HttpResponse* ipoHttpResponse);
 
 private:
-    CResource*  m_resource;
     CHTTPD*     m_server;
     std::string m_strDefaultResourceName;            // default resource name
 

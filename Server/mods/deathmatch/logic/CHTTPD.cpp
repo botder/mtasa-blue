@@ -20,7 +20,6 @@ CHTTPD::CHTTPD()
       ,
       m_HttpDosProtect(0, 0, 0)
 {
-    m_resource = NULL;
     m_server = NULL;
     m_bStartedServer = false;
 

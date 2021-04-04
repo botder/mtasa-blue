@@ -25,7 +25,7 @@ namespace mtasa
         if (!ReadEntireFile(m_resource.GetSourceDirectory() / m_relativePath, fileContent, GIBIBYTE))
             return false;
 
-        m_checksum = CChecksum::GenerateChecksumFromBuffer(fileContent.data(), fileContent.size());
+        m_checksum = CChecksum::GenerateChecksumFromBuffer(fileContent.data(), static_cast<unsigned long>(fileContent.size()));
         m_size = fileContent.size();
         return true;
     }

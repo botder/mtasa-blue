@@ -39,9 +39,9 @@ namespace mtasa
         return PreProcessArchive() && Resource::Load();
     }
 
-    bool ArchiveResource::Start()
+    bool ArchiveResource::Start(ResourceUseFlags useFlags)
     {
-        return DecompressArchive() && Resource::Start();
+        return DecompressArchive() && Resource::Start(useFlags);
     }
 
     bool ArchiveResource::ContainsSourceFile(const fs::path& relativePath) const

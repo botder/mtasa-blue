@@ -32,7 +32,7 @@ namespace mtasa
     class ResourceMapFile final : public ResourceFile
     {
     public:
-        using ResourceFile::ResourceFile;
+        ResourceMapFile(Resource& resource) : ResourceFile(resource, ResourceFileType::SERVER_MAP) {}
 
         void          SetDimension(std::uint16_t dimension) { m_dimension = dimension; }
         std::uint16_t GetDimension() const { return m_dimension; }

@@ -1,3 +1,13 @@
+/*****************************************************************************
+ *
+ *  PROJECT:     Multi Theft Auto
+ *  LICENSE:     See LICENSE in the top level directory
+ *  PURPOSE:     Resource lifetime manager
+ *
+ *  Multi Theft Auto is available from https://multitheftauto.com/
+ *
+ *****************************************************************************/
+
 #include "StdInc.h"
 #include "ResourceManager.h"
 #include "Resource.h"
@@ -130,19 +140,21 @@ namespace mtasa
             if (!resource->Load())
             {
                 CLogger::LogPrintf("Loading of resource '%.*s' failed\n", location.resourceName.size(), location.resourceName.c_str());
+                m_numErroneousResources++;
             }
             else
             {
-                if (resource->Start())
-                    resource->Stop();
+                m_resources.push_back(resource);
+                m_numLoadedResources++;
             }
 
-            m_remoteIdToResource.erase(resource->GetRemoteIdentifier());
-            m_uniqueIdToResource.erase(resource->GetUniqueIdentifier());
-            m_nameToResource.erase(resource->GetName());
-
-            CIdArray::PushUniqueId(this, EIdClass::RESOURCE, resource->GetUniqueIdentifier());
-            delete resource;
+            // TODO: Unleak this
+            // m_remoteIdToResource.erase(resource->GetRemoteIdentifier());
+            // m_uniqueIdToResource.erase(resource->GetUniqueIdentifier());
+            // m_nameToResource.erase(resource->GetName());
+            // 
+            // CIdArray::PushUniqueId(this, EIdClass::RESOURCE, resource->GetUniqueIdentifier());
+            // delete resource;
         }
     }
 

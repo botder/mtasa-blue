@@ -17,6 +17,6 @@ namespace mtasa
     class ResourceScriptFile final : public ResourceFile
     {
     public:
-        using ResourceFile::ResourceFile;
+        ResourceScriptFile(Resource& resource) : ResourceFile(resource, ResourceFileType::SERVER_SCRIPT) {}
     };
 }            // namespace mtasa

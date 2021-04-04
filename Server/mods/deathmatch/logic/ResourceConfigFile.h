@@ -19,7 +19,7 @@ namespace mtasa
     class ResourceConfigFile final : public ResourceFile
     {
     public:
-        using ResourceFile::ResourceFile;
+        ResourceConfigFile(Resource& resource) : ResourceFile(resource, ResourceFileType::SERVER_CONFIG) {}
 
     private:
         CXMLNode* m_xmlFile = nullptr;

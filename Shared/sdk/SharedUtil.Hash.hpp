@@ -104,6 +104,22 @@ namespace SharedUtil
         pBuffer[32] = '\0';
     }
 
+    std::string CMD5Hasher::ConvertToHex(const MD5& md5)
+    {
+        static const char hex[17] = "0123456789ABCDEF";
+
+        std::string result(32, '\0');
+        
+        for (std::size_t i = 0; i < 16; i++)
+        {
+            unsigned char byte = md5.data[i];
+            result[(i * 2) + 0] = hex[(byte >> 4) & 0xF];
+            result[(i * 2) + 1] = hex[byte & 0xF];
+        }
+
+        return result;
+    }
+
     SString CMD5Hasher::CalculateHexString(const char* szFilename)
     {
         MD5        md5;

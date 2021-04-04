@@ -17,7 +17,7 @@ namespace mtasa
     class ClientResourceFile final : public ResourceFile
     {
     public:
-        using ResourceFile::ResourceFile;
+        ClientResourceFile(Resource& resource) : ResourceFile(resource, ResourceFileType::CLIENT_FILE) {}
 
         void SetIsOptional(bool isOptional) { m_isOptional = isOptional; }
         bool IsOptional() const { return m_isOptional; }

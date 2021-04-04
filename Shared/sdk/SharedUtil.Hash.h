@@ -53,7 +53,9 @@ namespace SharedUtil
         bool Calculate(const char* szFilename, MD5& md5Result);
         bool Calculate(const void* pBuffer, size_t sizeLength, MD5& md5Result);
 
-        static void    ConvertToHex(const MD5& Input, char* pBuffer);
+        static void        ConvertToHex(const MD5& Input, char* pBuffer);
+        static std::string ConvertToHex(const MD5& md5);
+
         static SString CalculateHexString(const char* szFilename);
         static SString CalculateHexString(const void* pBuffer, size_t sizeLength);
 

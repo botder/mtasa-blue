@@ -10,18 +10,13 @@
 
 #pragma once
 
-#include "ResourceConfigFile.h"
-#include "ResourceScriptFile.h"
-#include "ResourceMapFile.h"
-#include "ResourceHttpFile.h"
-#include "ClientResourceNoCacheScript.h"
-#include "ClientResourceFile.h"
 #include <string>
 #include <filesystem>
 #include <optional>
 #include <vector>
 #include <unordered_map>
 #include <ctime>
+#include <cstdint>
 
 class CDummy;
 class CXMLNode;
@@ -32,6 +27,9 @@ namespace mtasa
 {
     class MetaFileParser;
     class ResourceManager;
+    class ResourceFile;
+    class ResourceHttpFile;
+    class ClientResourceScriptFile;
 
     /* --> [NOT_LOADED] --(load)-->. [LOADED] --(start)--> [STARTING] .--(success)--> [RUNNING] .--(stop)--> [STOPPING] .
     *           |                  |  |    |                          |                         |                       |
@@ -47,12 +45,36 @@ namespace mtasa
         STOPPING,
     };
 
+    struct ResourceUseFlags
+    {
+        std::uint8_t useDependencies : 1;
+        std::uint8_t useServerConfigs : 1;
+        std::uint8_t useServerMaps : 1;
+        std::uint8_t useServerScripts : 1;
+        std::uint8_t useHttpFiles : 1;
+        std::uint8_t useClientConfigs : 1;
+        std::uint8_t useClientScripts : 1;
+        std::uint8_t useClientFiles : 1;
+
+        ResourceUseFlags()
+            : useDependencies{true},
+              useServerConfigs{true},
+              useServerMaps{true},
+              useServerScripts{true},
+              useHttpFiles{true},
+              useClientConfigs{true},
+              useClientScripts{true},
+              useClientFiles{true}
+        {
+        }
+    };
+
     class Resource
     {
     public:
         Resource(ResourceManager& resourceManager);
 
-        virtual ~Resource() = default;
+        virtual ~Resource();
 
         void SetSourceDirectory(const std::filesystem::path& sourceDirectory)
         {
@@ -103,7 +125,7 @@ namespace mtasa
         CLuaMain*       GetLuaContext() { return m_luaContext; }
         const CLuaMain* GetLuaContext() const { return m_luaContext; }
 
-        bool IsClientSynced() const { return m_syncElementsToClient; }
+        bool IsClientSynced() const { return m_syncElementsToClients; }
 
         void SetProtected(bool isProtected) { m_isProtected = isProtected; }
         bool IsProtected() const { return m_isProtected; }
@@ -115,7 +137,7 @@ namespace mtasa
 
         virtual bool Unload();
         virtual bool Load();
-        virtual bool Start();
+        virtual bool Start(ResourceUseFlags useFlags = {});
         virtual bool Stop();
 
         // This function doesn't verify the absolute file path against resource directory escape attacks
@@ -166,9 +188,11 @@ namespace mtasa
         std::filesystem::path m_dynamicDirectory;
         std::filesystem::path m_metaFile;
 
-        bool m_syncElementsToClient = false;
+        bool m_syncElementsToClients = false;
         bool m_isProtected = false;
         bool m_isPersistent = false;
+
+        ResourceUseFlags m_useFlags;
 
         SArrayId      m_uniqueIdentifier = INVALID_ARRAY_ID;
         std::uint16_t m_remoteIdentifier = 0xFFFF;
@@ -237,16 +261,17 @@ namespace mtasa
         std::unordered_map<std::string, ServerFunction> m_serverFunctions;
 
     protected:
-        std::vector<ResourceMapFile>    m_maps;
-        std::vector<ResourceScriptFile> m_serverScripts;
-        std::vector<ResourceConfigFile> m_serverConfigs;
-        std::vector<ResourceHttpFile>   m_httpFiles;
-
-    protected:
-        std::vector<ClientResourceNoCacheScript> m_noCacheClientScripts;
-        std::vector<ClientResourceFile>          m_clientFiles;
+        std::vector<std::unique_ptr<ResourceFile>> m_resourceFiles;
+        std::vector<ResourceHttpFile*>             m_httpFiles;
+        std::vector<ClientResourceScriptFile*>     m_noCacheClientScripts;
+        std::vector<ResourceFile*>                 m_clientFiles;
 
     private:
+        bool PreProcessResourceFiles();
+
+        void CreateLuaContext();
+        void ReleaseLuaContext();
+
         bool IsDuplicateServerFile(const std::filesystem::path& relativeFilePath);
         bool IsDuplicateClientFile(const std::filesystem::path& relativeFilePath);
 

@@ -1,3 +1,13 @@
+/*****************************************************************************
+ *
+ *  PROJECT:     Multi Theft Auto
+ *  LICENSE:     See LICENSE in the top level directory
+ *  PURPOSE:     Resource lifetime manager
+ *
+ *  Multi Theft Auto is available from https://multitheftauto.com/
+ *
+ *****************************************************************************/
+
 #pragma once
 
 #include <string>
@@ -43,8 +53,8 @@ namespace mtasa
 
     class ResourceManager final
     {
-        static constexpr auto RESOURCES_DIRECTORY_NAME = "resources-test"sv;
-        static constexpr auto CACHE_DIRECTORY_NAME = "resource-cache-test"sv;
+        static constexpr auto RESOURCES_DIRECTORY_NAME = "resources"sv;
+        static constexpr auto CACHE_DIRECTORY_NAME = "resource-cache"sv;
         static constexpr auto ARCHIVE_DECOMPRESSION_DIRECTORY_NAME = "unzipped"sv;
 
     public:
@@ -77,12 +87,13 @@ namespace mtasa
 
         const CMtaVersion& GetMinClientRequirement() const { return m_minClientRequirement; }
 
-        std::size_t GetLoadedResourcesCount() const { return 0; }
+        std::size_t GetLoadedResourcesCount() const { return m_numLoadedResources; }
 
         // ???
-        void SaveBlockedFileReasons() {}
-        void ClearBlockedFileReasons() {}
-        void AddBlockedFileReason(std::string_view fileHash, std::string_view reason) {}
+        void        SaveBlockedFileReasons() {}
+        void        ClearBlockedFileReasons() {}
+        void        AddBlockedFileReason(std::string_view fileHash, std::string_view reason) {}
+        std::string GetBlockedFileReason(const std::string& fileHash) { return ""; }
 
         // upgrade all
         // pEchoClient->SendConsole("Upgrading all resources...");
@@ -113,6 +124,8 @@ namespace mtasa
         std::unordered_map<std::uint16_t, Resource*> m_remoteIdToResource;
 
         std::vector<Resource*> m_resources;
+        std::size_t            m_numLoadedResources = 0;
+        std::size_t            m_numErroneousResources = 0;
 
         CMtaVersion m_minClientRequirement;
     };

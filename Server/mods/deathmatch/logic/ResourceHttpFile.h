@@ -20,7 +20,7 @@ namespace mtasa
     class ResourceHttpFile final : public ResourceFile
     {
     public:
-        using ResourceFile::ResourceFile;
+        ResourceHttpFile(Resource& resource) : ResourceFile(resource, ResourceFileType::SERVER_HTTP) {}
 
         void SetIsRaw(bool isRaw) { m_isRaw = isRaw; }
         bool IsRaw() const { return m_isRaw; }

@@ -29,7 +29,7 @@ namespace mtasa
         bool IsArchived() const override { return true; }
 
         bool Load() override;
-        bool Start() override;
+        bool Start(ResourceUseFlags useFlags = {}) override;
 
     protected:
         bool ContainsSourceFile(const std::filesystem::path& relativePath) const override;

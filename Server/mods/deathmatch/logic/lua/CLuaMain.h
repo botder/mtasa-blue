@@ -9,9 +9,8 @@
  *
  *****************************************************************************/
 
-class CLuaMain;
-
 #pragma once
+
 #include "CLuaTimerManager.h"
 #include "lua/CLuaVector2.h"
 #include "lua/CLuaVector3.h"
@@ -19,8 +18,8 @@ class CLuaMain;
 #include "lua/CLuaMatrix.h"
 #include "CLuaModuleManager.h"
 #include "../CTextDisplay.h"
-
 #include "CLuaFunctionDefs.h"
+#include <string>
 
 #define MAX_SCRIPTNAME_LENGTH 64
 
@@ -30,6 +29,8 @@ class CPlayerManager;
 class CRadarAreaManager;
 class CVehicleManager;
 class CMapManager;
+class CResourceFile;
+class CLuaManager;
 
 namespace mtasa
 {
@@ -47,7 +48,7 @@ class CLuaMain
 public:
     ZERO_ON_NEW
 
-    CLuaMain(mtasa::Resource& resource, class CLuaManager* pLuaManager, CObjectManager* pObjectManager, CPlayerManager* pPlayerManager, CVehicleManager* pVehicleManager,
+    CLuaMain(mtasa::Resource& resource, CLuaManager* pLuaManager, CObjectManager* pObjectManager, CPlayerManager* pPlayerManager, CVehicleManager* pVehicleManager,
              CBlipManager* pBlipManager, CRadarAreaManager* pRadarAreaManager, CMapManager* pMapManager, bool bEnableOOP);
 
     ~CLuaMain();
@@ -60,8 +61,7 @@ public:
 
     void DoPulse();
 
-    const char* GetScriptName() const { return m_strScriptName; }
-    void        SetScriptName(const char* szName) { m_strScriptName.AssignLeft(szName, MAX_SCRIPTNAME_LENGTH); }
+    const std::string& GetResourceName() const;
 
     CLuaTimerManager* GetTimerManager() const { return m_pLuaTimerManager; };
 
@@ -103,7 +103,7 @@ public:
     mtasa::Resource&       GetResource() { return m_resource; }
     const mtasa::Resource& GetResource() const { return m_resource; }
 
-    void           SetResourceFile(class CResourceFile* resourceFile) { m_pResourceFile = resourceFile; }
+    void           SetResourceFile(CResourceFile* resourceFile) { m_pResourceFile = resourceFile; }
     CResourceFile* GetResourceFile() { return m_pResourceFile; }
 
     void RegisterHTMLDFunctions();
@@ -132,13 +132,13 @@ private:
 
     mtasa::Resource& m_resource;
 
-    class CResourceFile* m_pResourceFile;
-    CBlipManager*        m_pBlipManager;
-    CObjectManager*      m_pObjectManager;
-    CPlayerManager*      m_pPlayerManager;
-    CRadarAreaManager*   m_pRadarAreaManager;
-    CVehicleManager*     m_pVehicleManager;
-    CMapManager*         m_pMapManager;
+    CResourceFile*     m_pResourceFile;
+    CBlipManager*      m_pBlipManager;
+    CObjectManager*    m_pObjectManager;
+    CPlayerManager*    m_pPlayerManager;
+    CRadarAreaManager* m_pRadarAreaManager;
+    CVehicleManager*   m_pVehicleManager;
+    CMapManager*       m_pMapManager;
 
     list<CXMLFile*>                                 m_XMLFiles;
     std::unordered_set<std::unique_ptr<SXMLString>> m_XMLStringNodes;

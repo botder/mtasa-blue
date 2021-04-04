@@ -16,7 +16,7 @@
 static const char* GetResourceName(lua_State* luaVM)
 {
     CLuaMain* luaContext = g_pGame->GetLuaManager()->GetLuaContext(luaVM);
-    return luaContext != nullptr ? luaContext->GetScriptName() : "";
+    return luaContext != nullptr ? luaContext->GetResourceName().c_str() : "";
 }
 
 void CLuaACLDefs::LoadFunctions()

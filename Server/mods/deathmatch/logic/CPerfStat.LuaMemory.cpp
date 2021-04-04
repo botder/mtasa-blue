@@ -296,18 +296,18 @@ void CPerfStatLuaMemoryImpl::GetLuaMemoryStats(CPerfStatResult* pResult, const s
     // For each VM
     for (CLuaMainMemoryMap::iterator iter = AllLuaMemory.LuaMainMemoryMap.begin(); iter != AllLuaMemory.LuaMainMemoryMap.end(); ++iter)
     {
-        CLuaMainMemory& LuaMainMemory = iter->second;
-        const SString&  strResName = iter->first->GetScriptName();
+        CLuaMainMemory&    LuaMainMemory = iter->second;
+        const std::string& resourceName = iter->first->GetResourceName();
 
         // Apply filter
-        if (strFilter != "" && strResName.find(strFilter) == SString::npos)
+        if (strFilter != "" && resourceName.find(strFilter) == std::string::npos)
             continue;
 
         // Add row
         SString* row = pResult->AddRow();
 
         int c = 0;
-        row[c++] = strResName;
+        row[c++] = resourceName;
 
         if (labs(LuaMainMemory.Delta) >= 1)
         {

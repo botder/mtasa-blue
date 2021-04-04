@@ -232,13 +232,12 @@ void CLuaMain::InstructionCountHook(lua_State* luaVM, lua_Debug* pDebug)
         if (luaContext->m_FunctionEnterTimer.Get() > HOOK_MAXIMUM_TIME)
         {
             // Print it in the console
-            CLogger::ErrorPrintf("Infinite/too long execution (%s)\n", luaContext->GetScriptName());
-
-            SString strAbortInf = "Aborting; infinite running script in ";
-            strAbortInf += luaContext->GetScriptName();
+            const std::string& resourceName = luaContext->GetResourceName();
+            CLogger::ErrorPrintf("Infinite/too long execution (%.*s)\n", resourceName.size(), resourceName.c_str());
 
             // Error out
-            luaL_error(luaVM, strAbortInf);
+            std::string message = "Aborting; infinite running script in "s + resourceName;
+            luaL_error(luaVM, message.c_str());
         }
     }
 }
@@ -386,6 +385,11 @@ void CLuaMain::DoPulse()
     m_pLuaTimerManager->DoPulse(this);
 }
 
+const std::string& CLuaMain::GetResourceName() const
+{
+    return m_resource.GetName();
+}
+
 unsigned long CLuaMain::GetElementCount() const
 {
     if (CElementGroup* elementGroup = m_resource.GetElementGroup(); elementGroup != nullptr)
@@ -401,7 +405,9 @@ void CLuaMain::OnOpenFile(const SString& strFilename)
     if (m_OpenFilenameList.size() >= m_uiOpenFileCountWarnThresh)
     {
         m_uiOpenFileCountWarnThresh = m_OpenFilenameList.size() * 2;
-        CLogger::LogPrintf("Notice: There are now %d open files in resource '%s'\n", m_OpenFilenameList.size(), GetScriptName());
+
+        const std::string& resourceName = GetResourceName();
+        CLogger::LogPrintf("Notice: There are now %d open files in resource '%.*s'\n", m_OpenFilenameList.size(), resourceName.size(), resourceName.c_str());
     }
 }
 
@@ -419,7 +425,9 @@ CXMLFile* CLuaMain::CreateXML(const char* szFilename, bool bUseIDs, bool bReadOn
         if (m_XMLFiles.size() >= m_uiOpenXMLFileCountWarnThresh)
         {
             m_uiOpenXMLFileCountWarnThresh = m_XMLFiles.size() * 2;
-            CLogger::LogPrintf("Notice: There are now %d open XML files in resource '%s'\n", m_XMLFiles.size(), GetScriptName());
+
+            const std::string& resourceName = GetResourceName();
+            CLogger::LogPrintf("Notice: There are now %d open XML files in resource '%.*s'\n", m_XMLFiles.size(), resourceName.size(), resourceName.c_str());
         }
     }
     return pFile;
@@ -629,7 +637,8 @@ void CLuaMain::CheckExecutionTime()
         return;
 
     // Issue warning about script execution time
-    CLogger::LogPrintf("WARNING: Long execution (%s)\n", GetScriptName());
+    const std::string& resourceName = GetResourceName();
+    CLogger::LogPrintf("WARNING: Long execution (%.*s)\n", resourceName.size(), resourceName.c_str());
 }
 
 ///////////////////////////////////////////////////////////////

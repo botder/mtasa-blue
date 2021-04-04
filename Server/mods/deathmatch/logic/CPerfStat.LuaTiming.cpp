@@ -128,7 +128,7 @@ public:
 
     // CPerfStatLuaTimingImpl functions
     void GetLuaTimingStats(CPerfStatResult* pResult, const std::map<SString, int>& strOptionMap, const SString& strFilter);
-    void OutputTimingBlock(CPerfStatResult* pResult, const CTimingBlock& TimingBlock, int flags, const SString& BlockName, bool bSubBlock);
+    void OutputTimingBlock(CPerfStatResult* pResult, const CTimingBlock& TimingBlock, int flags, const std::string& BlockName, bool bSubBlock);
 
     SString                      m_strCategoryName;
     CAllLuaTiming                AllLuaTiming;
@@ -363,13 +363,13 @@ void CPerfStatLuaTimingImpl::GetLuaTimingStats(CPerfStatResult* pResult, const s
     for (CLuaMainTimingMap::iterator iter = AllLuaTiming.LuaMainTimingMap.begin(); iter != AllLuaTiming.LuaMainTimingMap.end(); ++iter)
     {
         CLuaMainTiming& LuaMainTiming = iter->second;
-        const SString&  strResName = iter->first->GetScriptName();
+        const std::string& resourceName = iter->first->GetResourceName();
 
         // Apply filter
-        if (strFilter != "" && strResName.find(strFilter) == SString::npos)
+        if (strFilter != "" && resourceName.find(strFilter) == SString::npos)
             continue;
 
-        OutputTimingBlock(pResult, LuaMainTiming.ResourceTiming, flags, strResName, false);
+        OutputTimingBlock(pResult, LuaMainTiming.ResourceTiming, flags, resourceName, false);
 
         if (bDetail)
             for (CEventTimingMap::iterator iter = LuaMainTiming.EventTimingMap.begin(); iter != LuaMainTiming.EventTimingMap.end(); ++iter)
@@ -388,7 +388,8 @@ void CPerfStatLuaTimingImpl::GetLuaTimingStats(CPerfStatResult* pResult, const s
 //
 //
 ///////////////////////////////////////////////////////////////
-void CPerfStatLuaTimingImpl::OutputTimingBlock(CPerfStatResult* pResult, const CTimingBlock& TimingBlock, int flags, const SString& BlockName, bool bSubBlock)
+void CPerfStatLuaTimingImpl::OutputTimingBlock(CPerfStatResult* pResult, const CTimingBlock& TimingBlock, int flags, const std::string& BlockName,
+                                               bool bSubBlock)
 {
     SFixedArray<const CTimingPair*, 4> pairList = {{&TimingBlock.s5, &TimingBlock.s60, &TimingBlock.m5, &TimingBlock.m60}};
     SFixedArray<const TIMEUS, 4>       threshList = {{5, 60, 300, 3600}};

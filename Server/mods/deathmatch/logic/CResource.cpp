@@ -844,11 +844,7 @@ bool CResource::CreateVM(bool bEnableOOP)
         // m_pResourceManager->NotifyResourceVMOpen(this, m_luaContext);
     }
 
-    if (!m_luaContext)
-        return false;
-
-    m_luaContext->SetScriptName(m_strResourceName.c_str());
-    return true;
+    return m_luaContext != nullptr;
 }
 
 bool CResource::DestroyVM()

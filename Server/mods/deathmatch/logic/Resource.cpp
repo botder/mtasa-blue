@@ -579,7 +579,7 @@ namespace mtasa
 
             for (std::future<FutureResult>& task : tasks)
             {
-                auto& [file, success] = task.get();
+                auto [file, success] = task.get();
 
                 if (!success)
                 {

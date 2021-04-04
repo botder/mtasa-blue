@@ -1045,10 +1045,10 @@ int CLuaResourceDefs::getResourceExportedFunctions(lua_State* luaVM)
     {
         std::size_t index = 0;
 
-        for (const std::string& functionName : resource->GetExportedServerFunctions())
+        for (const std::string_view& functionName : resource->GetExportedServerFunctions())
         {
             lua_pushnumber(luaVM, ++index);
-            lua_pushlstring(luaVM, functionName.c_str(), functionName.size());
+            lua_pushlstring(luaVM, functionName.data(), functionName.size());
             lua_settable(luaVM, -3);
         }
     }

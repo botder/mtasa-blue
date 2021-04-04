@@ -113,10 +113,10 @@ namespace mtasa
         // This function doesn't verify the absolute file path against resource directory escape attacks
         std::filesystem::path GetUnsafeAbsoluteFilePath(const std::filesystem::path& relativePath);
         
-        bool CallExportedFunction(std::string_view functionName, CLuaArguments& arguments, CLuaArguments& returns, Resource& sourceResource) { return false; }
+        bool CallExportedFunction(const std::string& functionName, CLuaArguments& arguments, CLuaArguments& returnValues, Resource& sourceResource);
 
-        std::vector<std::string> GetExportedServerFunctions() const { return {}; }
-        std::vector<std::string> GetExportedClientFunctions() const { return {}; }
+        std::vector<std::string_view> GetExportedServerFunctions() const;
+        std::vector<std::string_view> GetExportedClientFunctions() const;
 
         std::time_t GetStartTime() const { return m_startedTime; }
         std::time_t GetLoadTime() const { return m_loadedTime; }
@@ -191,6 +191,26 @@ namespace mtasa
         CMtaVersion m_minServerVersion;
         CMtaVersion m_metaMinClientVersion;
         CMtaVersion m_metaMinServerVersion;
+
+    protected:
+        struct ClientFunction
+        {
+            std::string  name;
+            std::uint8_t isHttpAccessible : 1;
+            std::uint8_t isACLRestricted : 1;
+
+            ClientFunction() : isHttpAccessible{false}, isACLRestricted{false} {}
+        };
+        std::vector<ClientFunction> m_clientFunctions;
+
+        struct ServerFunction
+        {
+            std::uint8_t isHttpAccessible : 1;
+            std::uint8_t isACLRestricted : 1;
+
+            ServerFunction() : isHttpAccessible{false}, isACLRestricted{false} {}
+        };
+        std::unordered_map<std::string, ServerFunction> m_serverFunctions;
 
     private:
         bool IsDuplicateServerFile(const std::filesystem::path& relativeFilePath);

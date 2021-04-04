@@ -110,7 +110,7 @@ bool CResourceStartPacket::Write(NetBitStreamInterface& BitStream) const
     }
 
     // Loop through the exported functions
-    for (const std::string& functionName : m_resource.GetExportedClientFunctions())
+    for (const std::string_view& functionName : m_resource.GetExportedClientFunctions())
     {
         if (functionName.empty())
             continue;
@@ -125,7 +125,7 @@ bool CResourceStartPacket::Write(NetBitStreamInterface& BitStream) const
 
         // Write the function name
         BitStream.Write(functionNameLength);
-        BitStream.Write(functionName.c_str(), functionNameLength);
+        BitStream.Write(functionName.data(), functionNameLength);
     }
 
     return true;

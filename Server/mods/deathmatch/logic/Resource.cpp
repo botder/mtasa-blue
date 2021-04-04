@@ -189,6 +189,65 @@ namespace mtasa
         return m_dynamicDirectory / relativePath;
     }
 
+    bool Resource::CallExportedFunction(const std::string& functionName, CLuaArguments& arguments, CLuaArguments& returnValues, Resource& sourceResource)
+    {
+        if (m_state != ResourceState::RUNNING)
+            return false;
+
+        // Check if the ACL right name fits into 512 bytes (-1 for null byte)
+        // ACL right name pattern: <resourceName>.function.<functionName>
+        std::size_t requiredBufferSize = m_name.size() + functionName.size() + 10;
+
+        if (requiredBufferSize > 511)
+            return false;
+
+        if (auto iter = m_serverFunctions.find(functionName); iter != m_serverFunctions.end())
+        {
+            std::string functionRight;
+            functionRight.reserve(requiredBufferSize);
+            functionRight += m_name;
+            functionRight += ".function."sv;
+            functionRight += functionName;
+
+            CAccessControlListManager* aclManager = g_pGame->GetACLManager();
+            const ServerFunction&      function = iter->second;
+            const std::string&         sourceResourceName = sourceResource.GetName();
+
+            if (aclManager->CanObjectUseRight(sourceResourceName.c_str(), CAccessControlListGroupObject::OBJECT_TYPE_RESOURCE, m_name.c_str(),
+                                              CAccessControlListRight::RIGHT_TYPE_RESOURCE, !function.isACLRestricted) &&
+                aclManager->CanObjectUseRight(sourceResourceName.c_str(), CAccessControlListGroupObject::OBJECT_TYPE_RESOURCE, functionRight.c_str(),
+                                              CAccessControlListRight::RIGHT_TYPE_RESOURCE, !function.isACLRestricted))
+            {
+                if (arguments.CallGlobal(m_luaContext, functionName.c_str(), &returnValues))
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    std::vector<std::string_view> Resource::GetExportedServerFunctions() const
+    {
+        std::vector<std::string_view> result;
+
+        for (const auto& [functionName, function] : m_serverFunctions)
+            result.push_back(functionName);
+
+        return result;
+    }
+
+    std::vector<std::string_view> Resource::GetExportedClientFunctions() const
+    {
+        std::vector<std::string_view> result;
+
+        for (const ClientFunction& function : m_clientFunctions)
+            result.push_back(function.name);
+
+        return result;
+    }
+
     bool Resource::SetInfoValue(const std::string& key, const std::string& value, bool persistChanges) { return false; }
 
     bool Resource::TryGetInfoValue(const std::string& key, std::string& value) const
@@ -508,16 +567,21 @@ namespace mtasa
         {
             if (item.isForServer)
             {
-                // TODO:
-                // m_ExportedFunctions.push_back(
-                //     CExportedFunction{item.functionName, !!item.isHttpAccessible, CExportedFunction::EXPORTED_FUNCTION_TYPE_SERVER, !!item.isACLRestricted});
+                ServerFunction function;
+                function.isHttpAccessible = item.isHttpAccessible;
+                function.isACLRestricted = item.isACLRestricted;
+
+                m_serverFunctions[item.functionName] = std::move(function);
             }
 
             if (item.isForClient)
             {
-                // TODO:
-                // m_ExportedFunctions.push_back(
-                //     CExportedFunction{item.functionName, !!item.isHttpAccessible, CExportedFunction::EXPORTED_FUNCTION_TYPE_CLIENT, !!item.isACLRestricted});
+                ClientFunction function;
+                function.name = item.functionName;
+                function.isHttpAccessible = item.isHttpAccessible;
+                function.isACLRestricted = item.isACLRestricted;
+
+                m_clientFunctions.push_back(std::move(function));
             }
         }
 

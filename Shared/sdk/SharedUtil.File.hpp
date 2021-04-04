@@ -30,6 +30,8 @@
     #include <fcntl.h>
 #endif
 
+namespace fs = std::filesystem;
+
 //
 // Returns true if the file exists
 //
@@ -263,6 +265,71 @@ bool SharedUtil::FileLoad(const SString& strFilename, std::vector<char>& buffer,
     // Close
     fclose(fh);
     return bytesRead == size;
+}
+
+bool SharedUtil::ReadEntireFile(const fs::path& filePath, std::string& buffer, std::size_t maxBufferSize)
+{
+#ifdef WIN32
+    HANDLE file = ::CreateFileW(filePath.c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_FLAG_SEQUENTIAL_SCAN, NULL);
+    std::unique_ptr<std::remove_pointer_t<HANDLE>, decltype(&::CloseHandle)> fileCloser{file, &::CloseHandle};
+
+    if (file == INVALID_HANDLE_VALUE)
+        return false;
+
+    LARGE_INTEGER fileSize;
+
+    if (!GetFileSizeEx(file, &fileSize))
+        return false;
+
+    if (fileSize.QuadPart > maxBufferSize && maxBufferSize > 0)
+        return false;
+
+    buffer.resize(fileSize.QuadPart);
+    
+    for (std::size_t offset = 0; fileSize.QuadPart > 0;)
+    {
+        DWORD bytesToRead = 0;
+
+        if (fileSize.QuadPart > ULONG_MAX)
+            bytesToRead = ULONG_MAX;
+        else
+            bytesToRead = static_cast<DWORD>(fileSize.QuadPart);
+
+        DWORD bytesRead = 0;
+
+        if (!ReadFile(file, buffer.data() + offset, bytesToRead, &bytesRead, NULL) || bytesRead != bytesToRead)
+            return false;
+
+        offset += bytesToRead;
+        fileSize.QuadPart -= bytesToRead;
+    }
+
+    return true;
+#else
+    struct stat64 info;
+
+    if (stat64(filePath.c_str(), &info) != 0)
+        return false;
+
+    auto fileSize = static_cast<std::size_t>(info.st_size);
+
+    if (fileSize == 0)
+        return true;
+
+    if (fileSize > maxBufferSize && maxBufferSize > 0)
+        return false;
+
+    buffer.resize(fileSize);
+
+    FILE* handle = fopen(filePath.c_str(), "rb");
+
+    if (!handle)
+        return false;
+
+    std::size_t bytesRead = fread(buffer.data(), 1, fileSize, handle);
+    fclose(handle);
+    return bytesRead == fileSize;
+#endif
 }
 
 //

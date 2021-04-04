@@ -10,6 +10,12 @@
 
 #pragma once
 
+#include "ResourceConfigFile.h"
+#include "ResourceScriptFile.h"
+#include "ResourceMapFile.h"
+#include "ResourceHttpFile.h"
+#include "ClientResourceNoCacheScript.h"
+#include "ClientResourceFile.h"
 #include <string>
 #include <filesystem>
 #include <optional>
@@ -53,6 +59,8 @@ namespace mtasa
             m_sourceDirectory = sourceDirectory;
             m_metaFile = sourceDirectory / "meta.xml";
         }
+
+        const std::filesystem::path& GetSourceDirectory() const { return m_sourceDirectory; }
 
         void SetDynamicDirectory(const std::filesystem::path& dynamicDirectory) { m_dynamicDirectory = dynamicDirectory; }
 
@@ -127,7 +135,7 @@ namespace mtasa
 
         CXMLNode* GetServerConfigFileRootNode(const std::filesystem::path& relativePath) const { return nullptr; }
 
-        std::size_t GetClientNoCacheScriptsCount() const { return 0; }
+        std::size_t GetNoCacheClientScriptsCount() const { return m_noCacheClientScripts.size(); }
 
         // Remove a resource default setting
         bool RemoveDefaultSetting(const std::string& settingName) { return false; }
@@ -170,8 +178,8 @@ namespace mtasa
         bool m_useOOP = false;
         int  m_downloadPriorityGroup = 0;
 
-        std::vector<std::filesystem::path>                         m_serverFiles;
-        std::vector<std::pair<std::filesystem::path, std::string>> m_clientFiles;
+        std::vector<std::filesystem::path>                         m_serverFilePaths;
+        std::vector<std::pair<std::filesystem::path, std::string>> m_clientFilePaths;
 
         CLuaMain* m_luaContext = nullptr;
 
@@ -228,6 +236,16 @@ namespace mtasa
         };
         std::unordered_map<std::string, ServerFunction> m_serverFunctions;
 
+    protected:
+        std::vector<ResourceMapFile>    m_maps;
+        std::vector<ResourceScriptFile> m_serverScripts;
+        std::vector<ResourceConfigFile> m_serverConfigs;
+        std::vector<ResourceHttpFile>   m_httpFiles;
+
+    protected:
+        std::vector<ClientResourceNoCacheScript> m_noCacheClientScripts;
+        std::vector<ClientResourceFile>          m_clientFiles;
+
     private:
         bool IsDuplicateServerFile(const std::filesystem::path& relativeFilePath);
         bool IsDuplicateClientFile(const std::filesystem::path& relativeFilePath);
@@ -240,7 +258,7 @@ namespace mtasa
         bool ProcessMetaMaps(const MetaFileParser& meta);
         bool ProcessMetaFiles(const MetaFileParser& meta);
         bool ProcessMetaScripts(const MetaFileParser& meta);
-        bool ProcessMetaHtmls(const MetaFileParser& meta);
+        bool ProcessMetaHttpFiles(const MetaFileParser& meta);
         bool ProcessMetaExports(const MetaFileParser& meta);
         bool ProcessMetaConfigs(const MetaFileParser& meta);
     };

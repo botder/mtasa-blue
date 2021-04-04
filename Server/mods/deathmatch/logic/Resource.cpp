@@ -285,7 +285,7 @@ namespace mtasa
 
     bool Resource::IsDuplicateServerFile(const fs::path& relativeFilePath)
     {
-        return std::find(m_serverFiles.begin(), m_serverFiles.end(), relativeFilePath) != m_serverFiles.end();
+        return std::find(m_serverFilePaths.begin(), m_serverFilePaths.end(), relativeFilePath) != m_serverFilePaths.end();
     }
 
     bool Resource::IsDuplicateClientFile(const fs::path& relativeFilePath)
@@ -293,7 +293,7 @@ namespace mtasa
         std::string lowercasePath = relativeFilePath.generic_string();
         std::transform(lowercasePath.begin(), lowercasePath.end(), lowercasePath.begin(), [](unsigned char c) { return tolower(c); });
 
-        for (const auto& [path, string] : m_clientFiles)
+        for (const auto& [path, string] : m_clientFilePaths)
         {
             if (lowercasePath == string || relativeFilePath == path)
                 return true;
@@ -304,14 +304,14 @@ namespace mtasa
 
     void Resource::AddServerFilePath(const fs::path& relativeFilePath)
     {
-        m_serverFiles.push_back(relativeFilePath);
+        m_serverFilePaths.push_back(relativeFilePath);
     }
 
     void Resource::AddClientFilePath(const fs::path& relativeFilePath)
     {
         std::string lowercasePath = relativeFilePath.generic_string();
         std::transform(lowercasePath.begin(), lowercasePath.end(), lowercasePath.begin(), [](unsigned char c) { return tolower(c); });
-        m_clientFiles.push_back(std::make_pair(relativeFilePath, std::move(lowercasePath)));
+        m_clientFilePaths.push_back(std::make_pair(relativeFilePath, std::move(lowercasePath)));
     }
 
     bool Resource::ProcessMeta(const MetaFileParser& meta)
@@ -353,7 +353,7 @@ namespace mtasa
             m_info[key] = value;
         }
 
-        return ProcessMetaIncludes(meta) && ProcessMetaMaps(meta) && ProcessMetaFiles(meta) && ProcessMetaScripts(meta) && ProcessMetaHtmls(meta) &&
+        return ProcessMetaIncludes(meta) && ProcessMetaMaps(meta) && ProcessMetaFiles(meta) && ProcessMetaScripts(meta) && ProcessMetaHttpFiles(meta) &&
                ProcessMetaExports(meta) && ProcessMetaConfigs(meta);
     }
 
@@ -394,8 +394,10 @@ namespace mtasa
                 CLogger::LogPrintf("WARNING: Duplicate map file in resource '%.*s': '%.*s'\n", m_name.size(), m_name.c_str(), filePath.size(), filePath.data());
             }
 
-            // TODO:
-            // m_ResourceFiles.push_back(new CResourceMapItem{this, filePath.c_str(), resourceFilePath->absolute.string().c_str(), nullptr, item.dimension});
+            ResourceMapFile file{*this};
+            file.SetRelativePath(item.sourceFile);
+            file.SetDimension(item.dimension);
+            m_maps.push_back(std::move(file));
 
             AddServerFilePath(item.sourceFile);
         }
@@ -431,10 +433,11 @@ namespace mtasa
                 continue;
             }
 
-            // TODO:
-            // m_ResourceFiles.push_back(
-            //     new CResourceClientFileItem{this, filePath.c_str(), resourceFilePath->absolute.string().c_str(), nullptr, !item.isClientOptional});
-
+            ClientResourceFile file{*this};
+            file.SetRelativePath(item.sourceFile);
+            file.SetIsOptional(item.isClientOptional);
+            m_clientFiles.push_back(std::move(file));
+            
             AddClientFilePath(item.sourceFile);
         }
 
@@ -480,18 +483,27 @@ namespace mtasa
 
             if (item.isForServer)
             {
-                // TODO:
-                // m_ResourceFiles.push_back(new CResourceScriptItem{this, filePath.c_str(), resourceFilePath->absolute.string().c_str(), nullptr});
+                ResourceScriptFile file{*this};
+                file.SetRelativePath(item.sourceFile);
+                m_serverScripts.push_back(std::move(file));
 
                 AddServerFilePath(item.sourceFile);
             }
 
             if (createForClient)
             {
-                // TODO:
-                // auto resourceFile = new CResourceClientScriptItem{this, filePath.c_str(), resourceFilePath->absolute.string().c_str(), nullptr};
-                // resourceFile->SetNoClientCache(!item.isClientCacheable);
-                // m_ResourceFiles.push_back(resourceFile);
+                if (item.isClientCacheable)
+                {
+                    ClientResourceFile file{*this};
+                    file.SetRelativePath(item.sourceFile);
+                    m_clientFiles.push_back(std::move(file));
+                }
+                else
+                {
+                    ClientResourceNoCacheScript file{*this};
+                    file.SetRelativePath(item.sourceFile);
+                    m_noCacheClientScripts.push_back(std::move(file));
+                }
 
                 AddClientFilePath(item.sourceFile);
             }
@@ -500,11 +512,9 @@ namespace mtasa
         return true;
     }
 
-    bool Resource::ProcessMetaHtmls(const MetaFileParser& meta)
+    bool Resource::ProcessMetaHttpFiles(const MetaFileParser& meta)
     {
-        // TODO:
-        // CResourceHTMLItem* firstHtmlFile = nullptr;
-        // bool               hasDefaultHtmlPage = false;
+        bool hasDefaultHtmlPage = false;
 
         for (const MetaFileItem& item : meta.htmls)
         {
@@ -529,40 +539,32 @@ namespace mtasa
 
             if (isDefault)
             {
-                // TODO:
-                // if (hasDefaultHtmlPage)
+                if (hasDefaultHtmlPage)
                 {
-                    // isDefault = false;
+                    isDefault = false;
 
-                    // CLogger::LogPrintf("Only one html item can be default per resource, ignoring %.*s in %.*s\n", filePath.size(), filePath.data(),
-                    //                    m_name.size(), m_name.c_str());
+                    CLogger::LogPrintf("Only one html item can be default per resource, ignoring %.*s in %.*s\n", filePath.size(), filePath.data(),
+                                       m_name.size(), m_name.c_str());
                 }
-                // else
+                else
                 {
-                    // hasDefaultHtmlPage = true;
+                    hasDefaultHtmlPage = true;
                 }
             }
 
-            // TODO:
-            // auto resourceFile = new CResourceHTMLItem{this,
-            //                                           filePath.c_str(),
-            //                                           resourceFilePath->absolute.string().c_str(),
-            //                                           nullptr,
-            //                                           isDefault,
-            //                                           !!item.isHttpRaw,
-            //                                           !!item.isHttpRestricted,
-            //                                           m_bOOPEnabledInMetaXml};
-            // 
-            // m_ResourceFiles.push_back(resourceFile);
-
-            // if (firstHtmlFile == nullptr)
-            //     firstHtmlFile = resourceFile;
+            ResourceHttpFile file{*this};
+            file.SetRelativePath(item.sourceFile);
+            file.SetIsRaw(item.isHttpRaw);
+            file.SetIsDefault(isDefault);
+            file.SetIsACLRestricted(item.isHttpRestricted);
+            file.SetIsUsingOOP(m_useOOP);
+            m_httpFiles.push_back(std::move(file));
 
             AddServerFilePath(item.sourceFile);
         }
 
-        // if (firstHtmlFile != nullptr && !hasDefaultHtmlPage)
-        //     firstHtmlFile->SetDefaultPage(true);
+        if (!hasDefaultHtmlPage && !m_httpFiles.empty())
+            m_httpFiles.front().SetIsDefault(true);
 
         return true;
     }
@@ -633,16 +635,18 @@ namespace mtasa
 
             if (item.isForServer)
             {
-                // TODO:
-                // m_ResourceFiles.push_back(new CResourceConfigItem{this, filePath.c_str(), resourceFilePath->absolute.string().c_str(), nullptr});
+                ResourceConfigFile file{*this};
+                file.SetRelativePath(item.sourceFile);
+                m_serverConfigs.push_back(std::move(file));
 
                 AddServerFilePath(item.sourceFile);
             }
 
             if (createForClient)
             {
-                // TODO:
-                // m_ResourceFiles.push_back(new CResourceClientConfigItem{this, filePath.c_str(), resourceFilePath->absolute.string().c_str(), nullptr});
+                ClientResourceFile file{*this};
+                file.SetRelativePath(item.sourceFile);
+                m_clientFiles.push_back(std::move(file));
 
                 AddClientFilePath(item.sourceFile);
             }

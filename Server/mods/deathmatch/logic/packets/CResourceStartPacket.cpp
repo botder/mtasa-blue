@@ -34,7 +34,7 @@ bool CResourceStartPacket::Write(NetBitStreamInterface& BitStream) const
     BitStream.Write(m_resource.GetDynamicElementRoot()->GetID());
 
     // Count the amount of 'no client cache' scripts
-    std::size_t clientScriptsCount = m_resource.GetClientNoCacheScriptsCount();
+    std::size_t clientScriptsCount = m_resource.GetNoCacheClientScriptsCount();
 
     if (clientScriptsCount > 0xFFFF)
         return false;

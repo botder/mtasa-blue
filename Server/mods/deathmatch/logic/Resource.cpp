@@ -361,10 +361,16 @@ namespace mtasa
     {
         for (const MetaDependencyItem& item : meta.dependencies)
         {
-            // TODO:
-            // SVersion minVersion{item.minVersion.major, item.minVersion.minor, item.minVersion.revision};
-            // SVersion maxVersion{item.maxVersion.major, item.maxVersion.minor, item.maxVersion.revision};
-            // m_IncludedResources.push_back(new CIncludedResources{m_pResourceManager, item.resourceName, minVersion, maxVersion, this});
+            Dependency dependency;
+            dependency.resourceName = item.resourceName;
+            dependency.minVersion.major = item.minVersion.major;
+            dependency.minVersion.minor = item.minVersion.minor;
+            dependency.minVersion.revision = item.minVersion.revision;
+            dependency.maxVersion.major = item.maxVersion.major;
+            dependency.maxVersion.minor = item.maxVersion.minor;
+            dependency.maxVersion.revision = item.maxVersion.revision;
+
+            m_dependencies.push_back(std::move(dependency));
         }
 
         return true;

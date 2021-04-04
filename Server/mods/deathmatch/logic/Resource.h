@@ -193,6 +193,22 @@ namespace mtasa
         CMtaVersion m_metaMinServerVersion;
 
     protected:
+        struct DependencyVersion
+        {
+            std::uint32_t major = 0;
+            std::uint32_t minor = 0;
+            std::uint32_t revision = 0;
+        };
+
+        struct Dependency
+        {
+            std::string       resourceName;
+            DependencyVersion minVersion;
+            DependencyVersion maxVersion;
+        };
+        std::vector<Dependency> m_dependencies;
+
+    protected:
         struct ClientFunction
         {
             std::string  name;

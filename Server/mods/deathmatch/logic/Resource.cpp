@@ -74,8 +74,8 @@ namespace mtasa
 
         if (!fs::is_regular_file(m_metaFile, errorCode))
         {
-            m_lastError = "Couldn't find meta.xml file for resource '"s + m_name + "'\n"s;
-            CLogger::ErrorPrintf(m_lastError.c_str());
+            m_lastError = "Couldn't find meta.xml file for resource '"s + m_name + "'"s;
+            CLogger::ErrorPrintf("%.*s\n", m_lastError.size(), m_lastError.c_str());
             return false;
         }
 
@@ -85,8 +85,8 @@ namespace mtasa
         if (!parserError.empty())
         {
             m_lastError =
-                SString("Couldn't parse meta file for resource '%.*s' [%.*s]\n", m_name.size(), m_name.c_str(), parserError.size(), parserError.c_str());
-            CLogger::ErrorPrintf(m_lastError.c_str());
+                SString("Couldn't parse meta file for resource '%.*s' [%.*s]", m_name.size(), m_name.c_str(), parserError.size(), parserError.c_str());
+            CLogger::ErrorPrintf("%.*s\n", m_lastError.size(), m_lastError.c_str());
             return false;
         }
 
@@ -110,7 +110,7 @@ namespace mtasa
 
         if (!m_mapRootElement->CallEvent("onResourcePreStart", preStartArguments))
         {
-            m_lastError = "Start cancelled by script\n";
+            m_lastError = "Start cancelled by script";
             m_state = ResourceState::LOADED;
             return false;
         }
@@ -164,8 +164,8 @@ namespace mtasa
         {
             m_state = ResourceState::LOADED;
 
-            m_lastError = SString("Start up of resource %.*s cancelled by element id starvation\n", m_name.size(), m_name.c_str());
-            CLogger::LogPrint(m_lastError.c_str());
+            m_lastError = SString("Start up of resource %.*s cancelled by element id starvation", m_name.size(), m_name.c_str());
+            CLogger::LogPrintf("%.*s\n", m_lastError.size(), m_lastError.c_str());
             return false;
         }
 
@@ -243,7 +243,7 @@ namespace mtasa
                 hasResourceFileError = true;
 
                 const std::string& name = file->GetName();
-                m_lastError = SString("Failed to start resource item %.*s which is required\n", name.size(), name.c_str());
+                m_lastError = SString("Failed to start resource item %.*s which is required", name.size(), name.c_str());
                 CLogger::LogPrintf("Failed to start resource item %.*s in %.*s\n", name.size(), name.c_str(), m_name.size(), m_name.c_str());
 
                 break;
@@ -325,7 +325,7 @@ namespace mtasa
 
         if (!m_element->CallEvent("onResourceStart", startArguments))
         {
-            m_lastError = "Start up of resource cancelled by script\n";
+            m_lastError = "Start up of resource cancelled by script";
             CLogger::LogPrintf("Start up of resource %.*s cancelled by script\n", m_name.size(), m_name.c_str());
 
             Stop();
@@ -586,8 +586,8 @@ namespace mtasa
 
                     const fs::path& relativePath = file->GetRelativePath();
                     const std::string& name = file->GetName();
-                    m_lastError = SString("File '%.*s' does not exist or is unreadable\n", name.size(), name.c_str());
-                    CLogger::LogPrintf(m_lastError.c_str());
+                    m_lastError = SString("File '%.*s' does not exist or is unreadable", name.size(), name.c_str());
+                    CLogger::LogPrintf("%.*s\n", m_lastError.size(), m_lastError.c_str());
                 }
             }
 
@@ -610,8 +610,8 @@ namespace mtasa
                 hasBlockedFiles = true;
 
                 const std::string& name = file->GetName();
-                m_lastError = SString("File '%.*s' is blocked (%.*s)\n", name.size(), name.c_str(), reason.size(), reason.c_str());
-                CLogger::LogPrintf("Failed to start resource '%.*s' - %.*s", m_name.size(), m_name.c_str(), m_lastError.size(), m_lastError.c_str());
+                m_lastError = SString("File '%.*s' is blocked (%.*s)", name.size(), name.c_str(), reason.size(), reason.c_str());
+                CLogger::LogPrintf("Failed to start resource '%.*s' - %.*s\n", m_name.size(), m_name.c_str(), m_lastError.size(), m_lastError.c_str());
             }
         }
 
@@ -742,8 +742,8 @@ namespace mtasa
 
             if (!ContainsSourceFile(item.sourceFile))
             {
-                m_lastError = SString("Couldn't find map %.*s for resource %.*s\n", filePath.size(), filePath.data(), m_name.size(), m_name.c_str());
-                CLogger::ErrorPrintf(m_lastError.c_str());
+                m_lastError = SString("Couldn't find map %.*s for resource %.*s", filePath.size(), filePath.data(), m_name.size(), m_name.c_str());
+                CLogger::ErrorPrintf("%.*s\n", m_lastError.size(), m_lastError.c_str());
                 return false;
             }
 
@@ -771,16 +771,16 @@ namespace mtasa
 
             if (!ContainsSourceFile(item.sourceFile))
             {
-                m_lastError = SString("Couldn't find file %.*s for resource %.*s\n", filePath.size(), filePath.data(), m_name.size(), m_name.c_str());
-                CLogger::ErrorPrintf(m_lastError.c_str());
+                m_lastError = SString("Couldn't find file %.*s for resource %.*s", filePath.size(), filePath.data(), m_name.size(), m_name.c_str());
+                CLogger::ErrorPrintf("%.*s\n", m_lastError.size(), m_lastError.c_str());
                 return false;
             }
 
             if (!IsWindowsCompatiblePath(item.sourceFile))
             {
-                m_lastError = SString("Client file path %.*s for resource %.*s is not supported on Windows\n", filePath.size(), filePath.data(), m_name.size(),
+                m_lastError = SString("Client file path %.*s for resource %.*s is not supported on Windows", filePath.size(), filePath.data(), m_name.size(),
                                       m_name.c_str());
-                CLogger::ErrorPrintf(m_lastError.c_str());
+                CLogger::ErrorPrintf("%.*s\n", m_lastError.size(), m_lastError.c_str());
                 return false;
             }
 
@@ -812,16 +812,16 @@ namespace mtasa
             
             if (!ContainsSourceFile(item.sourceFile))
             {
-                m_lastError = SString("Couldn't find script %.*s for resource %.*s\n", filePath.size(), filePath.data(), m_name.size(), m_name.c_str());
-                CLogger::ErrorPrintf(m_lastError.c_str());
+                m_lastError = SString("Couldn't find script %.*s for resource %.*s", filePath.size(), filePath.data(), m_name.size(), m_name.c_str());
+                CLogger::ErrorPrintf("%.*s\n", m_lastError.size(), m_lastError.c_str());
                 return false;
             }
 
             if (item.isForClient && !IsWindowsCompatiblePath(item.sourceFile))
             {
-                m_lastError = SString("Client script path %.*s for resource %.*s is not supported on Windows\n", filePath.size(), filePath.data(),
+                m_lastError = SString("Client script path %.*s for resource %.*s is not supported on Windows", filePath.size(), filePath.data(),
                                       m_name.size(), m_name.c_str());
-                CLogger::ErrorPrintf(m_lastError.c_str());
+                CLogger::ErrorPrintf("%.*s\n", m_lastError.size(), m_lastError.c_str());
                 return false;
             }
 
@@ -887,8 +887,8 @@ namespace mtasa
             {
                 std::string filePath = item.sourceFile.string();
 
-                m_lastError = SString("Couldn't find html %.*s for resource %.*s\n", filePath.size(), filePath.data(), m_name.size(), m_name.c_str());
-                CLogger::ErrorPrintf(m_lastError.c_str());
+                m_lastError = SString("Couldn't find html %.*s for resource %.*s", filePath.size(), filePath.data(), m_name.size(), m_name.c_str());
+                CLogger::ErrorPrintf("%.*s\n", m_lastError.size(), m_lastError.c_str());
                 return false;
             }
 
@@ -969,16 +969,16 @@ namespace mtasa
 
             if (!ContainsSourceFile(item.sourceFile))
             {
-                m_lastError = SString("Couldn't find config %.*s for resource %.*s\n", filePath.size(), filePath.data(), m_name.size(), m_name.c_str());
-                CLogger::ErrorPrintf(m_lastError.c_str());
+                m_lastError = SString("Couldn't find config %.*s for resource %.*s", filePath.size(), filePath.data(), m_name.size(), m_name.c_str());
+                CLogger::ErrorPrintf("%.*s\n", m_lastError.size(), m_lastError.c_str());
                 return false;
             }
 
             if (item.isForClient && !IsWindowsCompatiblePath(item.sourceFile))
             {
-                m_lastError = SString("Client config path %.*s for resource %.*s is not supported on Windows\n", filePath.size(), filePath.data(),
+                m_lastError = SString("Client config path %.*s for resource %.*s is not supported on Windows", filePath.size(), filePath.data(),
                                       m_name.size(), m_name.c_str());
-                CLogger::ErrorPrintf(m_lastError.c_str());
+                CLogger::ErrorPrintf("%.*s\n", m_lastError.size(), m_lastError.c_str());
                 return false;
             }
 

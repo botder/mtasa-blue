@@ -550,9 +550,8 @@ namespace mtasa
             return false;
 
         // Check if the resulting absolute file path is inside our resource directory
-        auto [rootIter, absoluteIter] = std::mismatch(m_sourceDirectory.begin(), m_sourceDirectory.end(), absoluteFilePath.begin(), absoluteFilePath.end());
-
-        return (rootIter != m_sourceDirectory.end() && ++rootIter == m_sourceDirectory.end());
+        auto [iter, ignore] = std::mismatch(m_sourceDirectory.begin(), m_sourceDirectory.end(), absoluteFilePath.begin(), absoluteFilePath.end());
+        return iter == m_sourceDirectory.end();
     }
 
     bool Resource::PreProcessResourceFiles()

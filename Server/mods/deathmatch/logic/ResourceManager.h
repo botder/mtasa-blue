@@ -112,6 +112,13 @@ namespace mtasa
         std::vector<Resource*>::const_iterator end() const { return m_resources.end(); }
 
     private:
+        SArrayId GenerateResourceUniqueIdentifier();
+        void     RecycleResourceUniqueIdentifier(SArrayId id);
+
+        std::uint16_t GenerateResourceRemoteIdentifier();
+        void          RecycleResourceRemoteIdentifier(std::uint16_t id);
+
+    private:
         std::filesystem::path m_resourcesDirectory;
         std::filesystem::path m_archiveDecompressionDirectory;
 
@@ -128,5 +135,7 @@ namespace mtasa
         std::size_t            m_numErroneousResources = 0;
 
         CMtaVersion m_minClientRequirement;
+
+        std::vector<std::uint16_t> m_unusedResourceRemoteIdentifiers;
     };
 }

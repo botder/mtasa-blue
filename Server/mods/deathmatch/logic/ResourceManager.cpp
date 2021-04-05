@@ -17,6 +17,14 @@ namespace fs = std::filesystem;
 
 namespace mtasa
 {
+    template <typename I>
+    struct NumberGenerator
+    {
+        I storage = 0;
+
+        constexpr I operator()() { return ++storage; }
+    };
+
     enum class ResourceLocationType
     {
         DIRECTORY,
@@ -42,6 +50,9 @@ namespace mtasa
 
     ResourceManager::ResourceManager(const fs::path& baseDirectory)
     {
+        m_unusedResourceRemoteIdentifiers.resize(INVALID_RESOURCE_NET_ID - 1);
+        std::generate(m_unusedResourceRemoteIdentifiers.rbegin(), m_unusedResourceRemoteIdentifiers.rend(), NumberGenerator<std::uint16_t>{});
+
         m_resourcesDirectory = baseDirectory / RESOURCES_DIRECTORY_NAME;
 
         fs::path resourceCacheDirectory = baseDirectory / CACHE_DIRECTORY_NAME;
@@ -106,6 +117,22 @@ namespace mtasa
 
         for (ResourceLocation& location : resourceLocations)
         {
+            SArrayId uniqueId = GenerateResourceUniqueIdentifier();
+
+            if (uniqueId == INVALID_ARRAY_ID)
+            {
+                // LOG ERROR HERE
+                break;
+            }
+
+            std::uint16_t remoteId = GenerateResourceRemoteIdentifier();
+
+            if (remoteId == INVALID_RESOURCE_NET_ID)
+            {
+                // LOG ERROR HERE
+                break;
+            }
+
             Resource* resource = nullptr;
 
             if (location.type == ResourceLocationType::DIRECTORY)
@@ -130,16 +157,17 @@ namespace mtasa
 
             resource->SetName(location.resourceName);
             resource->SetGroupDirectory(location.relativePath);
-            resource->SetUniqueIdentifier(CIdArray::PopUniqueId(this, EIdClass::RESOURCE));
-            resource->SetRemoteIdentifier(0);
+            resource->SetUniqueIdentifier(uniqueId);
+            resource->SetRemoteIdentifier(remoteId);
 
             m_nameToResource[resource->GetName()] = resource;
-            m_uniqueIdToResource[resource->GetUniqueIdentifier()] = resource;
-            m_remoteIdToResource[resource->GetRemoteIdentifier()] = resource;
+            m_uniqueIdToResource[uniqueId] = resource;
+            m_remoteIdToResource[remoteId] = resource;
 
             if (!resource->Load())
             {
-                CLogger::LogPrintf("Loading of resource '%.*s' failed\n", location.resourceName.size(), location.resourceName.c_str());
+                CLogger::LogPrintf("Loading of resource '%.*s' (uid: %lx, rid: %u) failed\n", location.resourceName.size(), location.resourceName.c_str(),
+                                   uniqueId, remoteId);
                 m_numErroneousResources++;
             }
             else
@@ -156,6 +184,30 @@ namespace mtasa
             // CIdArray::PushUniqueId(this, EIdClass::RESOURCE, resource->GetUniqueIdentifier());
             // delete resource;
         }
+    }
+
+    SArrayId ResourceManager::GenerateResourceUniqueIdentifier()
+    {
+        return CIdArray::PopUniqueId(this, EIdClass::RESOURCE); }
+
+    void ResourceManager::RecycleResourceUniqueIdentifier(SArrayId id)
+    {
+        CIdArray::PushUniqueId(this, EIdClass::RESOURCE, id);
+    }
+
+    std::uint16_t ResourceManager::GenerateResourceRemoteIdentifier()
+    {
+        if (m_unusedResourceRemoteIdentifiers.empty())
+            return INVALID_RESOURCE_NET_ID;
+
+        std::uint16_t remoteIdentifier = m_unusedResourceRemoteIdentifiers.back();
+        m_unusedResourceRemoteIdentifiers.pop_back();
+        return remoteIdentifier;
+    }
+
+    void ResourceManager::RecycleResourceRemoteIdentifier(std::uint16_t id)
+    {
+        m_unusedResourceRemoteIdentifiers.push_back(id);
     }
 
     void CreateDirectories(const fs::path& directory)

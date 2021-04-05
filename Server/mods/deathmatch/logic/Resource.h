@@ -93,7 +93,7 @@ namespace mtasa
         bool          IsStarting() const { return m_state == ResourceState::STARTING; }
         bool          IsRunning() const { return m_state == ResourceState::RUNNING; }
 
-        bool IsUsingOOP() const { return m_useOOP; }
+        bool IsUsingOOP() const { return m_usingOOP; }
 
         int GetDownloadPriorityGroup() const { return m_downloadPriorityGroup; }
 
@@ -199,7 +199,7 @@ namespace mtasa
 
         std::unordered_map<std::string, std::string> m_info;
 
-        bool m_useOOP = false;
+        bool m_usingOOP = false;
         int  m_downloadPriorityGroup = 0;
 
         std::vector<std::filesystem::path>                         m_serverFilePaths;

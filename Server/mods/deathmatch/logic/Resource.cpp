@@ -57,7 +57,7 @@ namespace mtasa
         m_metaMinServerVersion = ""s;
         m_minClientVersion = ""s;
         m_metaMinClientVersion = ""s;
-        m_useOOP = false;
+        m_usingOOP = false;
         m_downloadPriorityGroup = 0;
         m_lastError = ""s;
         m_loadedTime = 0;
@@ -621,7 +621,7 @@ namespace mtasa
 
     void Resource::CreateLuaContext()
     {
-        m_luaContext = g_pGame->GetLuaManager()->CreateLuaContext(*this, m_useOOP);
+        m_luaContext = g_pGame->GetLuaManager()->CreateLuaContext(*this, m_usingOOP);
     }
 
     void Resource::ReleaseLuaContext()
@@ -681,7 +681,7 @@ namespace mtasa
         m_minClientVersion = meta.minClientVersion;
         m_metaMinClientVersion = meta.minClientVersion;
 
-        m_useOOP = meta.useOOP;
+        m_usingOOP = meta.useOOP;
         m_downloadPriorityGroup = meta.downloadPriorityGroup;
         m_settingsNode = meta.settingsNode;
 
@@ -921,7 +921,7 @@ namespace mtasa
             file->SetIsRaw(item.isHttpRaw);
             file->SetIsDefault(isDefault);
             file->SetIsACLRestricted(item.isHttpRestricted);
-            file->SetIsUsingOOP(m_useOOP);
+            file->SetIsUsingOOP(m_usingOOP);
 
             m_httpFiles.push_back(file.get());
             m_resourceFiles.push_back(std::move(file));

@@ -65,11 +65,11 @@ namespace mtasa
 
     bool ScriptFile::TryRead(std::size_t byteCount, char* buffer, std::size_t bufferSize, std::size_t& bytesRead) const
     {
-        if (byteCount > bufferSize)
-            byteCount = bufferSize;
-
         if (m_stream)
         {
+            if (byteCount > bufferSize)
+                byteCount = bufferSize;
+
             bytesRead = fread(buffer, 1, byteCount, m_stream.get());
             return true;
         }
@@ -92,9 +92,7 @@ namespace mtasa
     {
         if (m_stream)
         {
-            long rawPosition = ftell(m_stream.get());
-
-            if (rawPosition >= 0)
+            if (long rawPosition = ftell(m_stream.get()); rawPosition >= 0)
             {
                 position = rawPosition;
                 return true;
@@ -114,9 +112,7 @@ namespace mtasa
             if (fseek(m_stream.get(), position, SEEK_SET) != 0)
                 return false;
 
-            long result = ftell(m_stream.get());
-
-            if (result >= 0)
+            if (long result = ftell(m_stream.get()); result >= 0)
             {
                 afterSeekPosition = result;
                 return true;

@@ -13,8 +13,7 @@
 #include "Resource.h"
 #include "ResourceFilePath.h"
 #include "ResourceManager.h"
-#include "SResourceStartOptions.h"
-#include "CResourceConfigItem.h"
+#include "ResourceCommands.h"
 #include "../utils/CFunctionUseLogger.h"
 
 using namespace mtasa;
@@ -549,7 +548,7 @@ int CLuaResourceDefs::stopResource(lua_State* luaVM)
             }
         }
 
-        m_resourceManager->QueueResourceCommand(resource, ResourceCommand::STOP);
+        m_resourceManager->QueueResourceCommand(std::make_unique<ResourceStopCommand>(resource));
         lua_pushboolean(luaVM, true);
         return 1;
     }
@@ -560,23 +559,24 @@ int CLuaResourceDefs::stopResource(lua_State* luaVM)
 
 int CLuaResourceDefs::restartResource(lua_State* luaVM)
 {
-    Resource*             resource = nullptr;
-    bool                  bPersistent = false;            // unused
-    SResourceStartOptions StartOptions;
-
-    // TODO: SResourceStartOptions
+    Resource*        resource = nullptr;
+    bool             isPersistent = false;
+    ResourceUseFlags useFlags;
 
     CScriptArgReader argStream(luaVM);
     argStream.ReadUserData(resource);
-    argStream.ReadBool(bPersistent, false);
-    argStream.ReadBool(StartOptions.bConfigs, true);
-    argStream.ReadBool(StartOptions.bMaps, true);
-    argStream.ReadBool(StartOptions.bScripts, true);
-    argStream.ReadBool(StartOptions.bHTML, true);
-    argStream.ReadBool(StartOptions.bClientConfigs, true);
-    argStream.ReadBool(StartOptions.bClientScripts, true);
-    argStream.ReadBool(StartOptions.bClientFiles, true);
-
+    // TODO: We read `isPersistent` but we don't use the value
+    argStream.ReadBool(isPersistent, false);
+    // TODO: restartResource doesn't include the option to ignore included/dependency resources
+    // argStream.ReadBool(useFlags.useDependencies, true);
+    argStream.ReadBool(useFlags.useServerConfigs, true);
+    argStream.ReadBool(useFlags.useServerMaps, true);
+    argStream.ReadBool(useFlags.useServerScripts, true);
+    argStream.ReadBool(useFlags.useHttpFiles, true);
+    argStream.ReadBool(useFlags.useClientConfigs, true);
+    argStream.ReadBool(useFlags.useClientScripts, true);
+    argStream.ReadBool(useFlags.useClientFiles, true);
+    
     if (argStream.HasErrors())
     {
         m_pScriptDebugging->LogCustom(luaVM, argStream.GetFullErrorMessage());
@@ -586,7 +586,10 @@ int CLuaResourceDefs::restartResource(lua_State* luaVM)
 
     if (resource->IsStarting() || resource->IsRunning())
     {
-        m_resourceManager->QueueResourceCommand(resource, ResourceCommand::RESTART);
+        auto command = std::make_unique<ResourceRestartCommand>(resource);
+        command->useFlags = useFlags;
+        m_resourceManager->QueueResourceCommand(std::move(command));
+
         lua_pushboolean(luaVM, true);
     }
     else
@@ -1162,7 +1165,7 @@ int CLuaResourceDefs::call(lua_State* luaVM)
 
 int CLuaResourceDefs::refreshResources(lua_State* luaVM)
 {
-    //  bool refreshResources ( [ bool refreshAll = false, resource onlyThisResource = nil ] )
+    // bool refreshResources ( [ bool refreshAll = false, resource onlyThisResource = nil ] )
     bool      includeRunningResources = false;
     Resource* resource = nullptr;
 
@@ -1173,7 +1176,7 @@ int CLuaResourceDefs::refreshResources(lua_State* luaVM)
     if (!argStream.HasErrors())
     {
         if (resource != nullptr)
-            m_resourceManager->QueueResourceCommand(resource, ResourceCommand::REFRESH);
+            m_resourceManager->QueueResourceCommand(std::make_unique<ResourceRefreshCommand>(resource));
         else
             m_resourceManager->QueueRefresh(includeRunningResources);
 

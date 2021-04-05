@@ -12,6 +12,7 @@
 #include "ResourceManager.h"
 #include "Resource.h"
 #include "ArchiveResource.h"
+#include "ResourceCommands.h"
 
 namespace fs = std::filesystem;
 
@@ -62,6 +63,8 @@ namespace mtasa
         CreateResourceCacheReadme(resourceCacheDirectory);
     }
 
+    ResourceManager::~ResourceManager() = default;
+
     Resource* ResourceManager::GetResourceFromName(std::string_view resourceName)
     {
         if (auto iter = m_nameToResource.find(std::string{resourceName}); iter != m_nameToResource.end())
@@ -100,6 +103,50 @@ namespace mtasa
                                                          Resource*& newResource)
     {
         return CloneResourceError::DUMMY_FAIL;
+    }
+
+    void ResourceManager::QueueResourceCommand(std::unique_ptr<ResourceCommand> command)
+    {
+        m_commandsQueue.push_back(std::move(command));
+    }
+
+    void ResourceManager::RefreshResources(bool includeRunningResources)
+    {
+        // TODO: Add implementation here
+    }
+
+    void ResourceManager::RefreshResource(std::string_view resourceName)
+    {
+        // TODO: Add implementation here
+    }
+
+    void ResourceManager::StopResources()
+    {
+        // TODO: Add implementation here
+    }
+
+    void ResourceManager::ProcessQueue()
+    {
+        if (m_isRefreshQueued)
+        {
+            bool includeRunningResources = m_includeRunningResourcesRefresh;
+
+            m_isRefreshQueued = false;
+            m_includeRunningResourcesRefresh = false;
+
+            RefreshResources(includeRunningResources);
+        }
+
+        while (!m_commandsQueue.empty())
+        {
+            std::unique_ptr<ResourceCommand> command = std::move(m_commandsQueue.front());
+            m_commandsQueue.pop_front();
+
+            if (command->resource == nullptr)
+                continue;
+
+            command->Execute();
+        }
     }
 
     void ResourceManager::ScanForResources()
@@ -177,6 +224,10 @@ namespace mtasa
             // delete resource;
         }
     }
+
+    bool ResourceManager::DeleteResource(Resource* resource) { return false; }
+
+    void ResourceManager::OnPlayerJoin(CPlayer& player) {}
 
     SArrayId ResourceManager::GenerateResourceUniqueIdentifier()
     {

@@ -34,16 +34,6 @@ namespace mtasa
                                              const std::string_view& fileName, std::byte* buffer, unsigned int bufferSize);
     static std::string_view   DecompressionErrorToString(DecompressionError decompressionError);
 
-    bool ArchiveResource::Load()
-    {
-        return PreProcessArchive() && Resource::Load();
-    }
-
-    bool ArchiveResource::Start(ResourceUseFlags useFlags)
-    {
-        return DecompressArchive() && Resource::Start(useFlags);
-    }
-
     bool ArchiveResource::ContainsSourceFile(const fs::path& relativePath) const
     {
         return m_archiveSourceFiles.find(relativePath) != m_archiveSourceFiles.end();
@@ -60,7 +50,7 @@ namespace mtasa
             return false;
         }
 
-        std::unique_ptr<unzFile, decltype(&unzClose)> zipCloser{reinterpret_cast<unzFile*>(zipHandle), &unzClose};
+        std::unique_ptr<std::remove_pointer_t<unzFile>, decltype(&unzClose)> zipCloser{zipHandle, &unzClose};
 
         if (unzGoToFirstFile(zipHandle) != UNZ_OK)
         {
@@ -132,7 +122,7 @@ namespace mtasa
             return false;
         }
 
-        std::unique_ptr<unzFile, decltype(&unzClose)> zipCloser{reinterpret_cast<unzFile*>(zipHandle), &unzClose};
+        std::unique_ptr<std::remove_pointer_t<unzFile>, decltype(&unzClose)> zipCloser{zipHandle, &unzClose};
 
         if (unzGoToFirstFile(zipHandle) != UNZ_OK)
         {
@@ -241,7 +231,7 @@ namespace mtasa
         if (unzOpenCurrentFile(zipHandle) != UNZ_OK)
             return DecompressionError::OPEN_ARCHIVE_FILE;
 
-        std::unique_ptr<unzFile, decltype(&unzCloseCurrentFile)> currentFileCloser{reinterpret_cast<unzFile*>(zipHandle), &unzCloseCurrentFile};
+        std::unique_ptr<std::remove_pointer_t<unzFile>, decltype(&unzCloseCurrentFile)> currentFileCloser{zipHandle, &unzCloseCurrentFile};
 
         for (;;)
         {

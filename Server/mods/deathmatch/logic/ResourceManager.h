@@ -12,6 +12,7 @@
 
 #include <string>
 #include <string_view>
+#include <deque>
 #include <unordered_map>
 #include <filesystem>
 #include <LowercaseUtility.h>
@@ -25,6 +26,7 @@ namespace mtasa
     using namespace std::string_view_literals;
 
     class Resource;
+    class ResourceCommand;
 
     enum class CreateResourceError
     {
@@ -44,13 +46,6 @@ namespace mtasa
         DUMMY_FAIL,
     };
 
-    enum class ResourceCommand
-    {
-        REFRESH,
-        RESTART,
-        STOP,
-    };
-
     class ResourceManager final
     {
         static constexpr auto RESOURCES_DIRECTORY_NAME = "resources"sv;
@@ -59,6 +54,7 @@ namespace mtasa
 
     public:
         ResourceManager(const std::filesystem::path& baseDirectory);
+        ~ResourceManager();
 
         Resource* GetResourceFromName(std::string_view resourceName);
         Resource* GetResourceFromUniqueIdentifier(SArrayId identifier);
@@ -68,20 +64,25 @@ namespace mtasa
         RenameResourceError TryRenameResource(Resource* resource, std::string_view newResourceName, std::string_view newGroupDirectory);
         CloneResourceError  TryCloneResource(Resource* resource, std::string_view newResourceName, std::string_view newGroupDirectory, Resource*& newResource);
 
-        bool DeleteResource(Resource* resource) { return false; }
+        void QueueResourceCommand(std::unique_ptr<ResourceCommand> command);
+        
+        void QueueRefresh(bool includeRunningResources)
+        {
+            m_isRefreshQueued = true;
+            m_includeRunningResourcesRefresh = includeRunningResources;
+        }
 
-        void QueueResourceCommand(Resource* resource, ResourceCommand command) {}
-        void QueueRefresh(bool includeRunningResources) {}
+        void RefreshResources(bool includeRunningResources);
+        void RefreshResource(std::string_view resourceName);
+        void StopResources();
 
-        void RefreshResources(bool includeRunningResources) {}
-        void RefreshResource(std::string_view resourceName) {}
-        void StopResources() {}
+        void ProcessQueue();
 
         void ScanForResources();
 
-        void ProcessQueue() {}
+        bool DeleteResource(Resource* resource);
 
-        void OnPlayerJoin(CPlayer& player) {}
+        void OnPlayerJoin(CPlayer& player);
 
         const CMtaVersion& GetMinClientRequirement() const { return m_minClientRequirement; }
 
@@ -122,5 +123,10 @@ namespace mtasa
         std::size_t m_numErroneousResources = 0;
 
         CMtaVersion m_minClientRequirement;
+
+        std::deque<std::unique_ptr<ResourceCommand>> m_commandsQueue;
+
+        bool m_isRefreshQueued = false;
+        bool m_includeRunningResourcesRefresh = false;
     };
 }

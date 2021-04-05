@@ -169,11 +169,8 @@ namespace mtasa
             return false;
         }
 
-        m_useFlags = useFlags;
-
         if (!PreProcessResourceFiles())
         {
-            m_useFlags = {};
             m_state = ResourceState::LOADED;
             return false;
         }
@@ -257,7 +254,7 @@ namespace mtasa
                 file->Stop();
             }
 
-            ReleaseLuaContext();
+            DeleteLuaContext();
             m_startedTime = 0;
 
             delete m_tempSettingsNode;
@@ -272,7 +269,6 @@ namespace mtasa
             g_pGame->GetElementDeleter()->Delete(m_dynamicElementRoot);
             m_dynamicElementRoot = nullptr;
             
-            m_useFlags = {};
             m_state = ResourceState::LOADED;
             return false;
         }
@@ -328,6 +324,7 @@ namespace mtasa
         // }
 
         m_state = ResourceState::RUNNING;
+        m_useFlags = useFlags;
 
         CLuaArguments startArguments;
         startArguments.PushResource(this);
@@ -369,6 +366,7 @@ namespace mtasa
         m_state = ResourceState::STOPPING;
         m_startedTime = 0;
         m_syncElementsToClients = false;
+        m_useFlags = {};
 
         // m_pResourceManager->OnResourceStop(this);
         // m_pResourceManager->RemoveMinClientRequirement(this);
@@ -425,7 +423,7 @@ namespace mtasa
         }
 
         // Destroy the virtual machine for this resource
-        ReleaseLuaContext();
+        DeleteLuaContext();
 
         // Remove the resource element from the client
         CEntityRemovePacket removePacket;
@@ -448,17 +446,8 @@ namespace mtasa
         // Broadcast the packet to joined players
         g_pGame->GetPlayerManager()->BroadcastOnlyJoined(removePacket);
 
-        m_useFlags = {};
         m_state = ResourceState::LOADED;
         return true;
-    }
-
-    bool Resource::Restart()
-    {
-        if (m_state != ResourceState::RUNNING)
-            return false;
-
-        return Stop() && Start();
     }
 
     fs::path Resource::GetUnsafeAbsoluteFilePath(const fs::path& relativePath)
@@ -658,7 +647,7 @@ namespace mtasa
         return false;
     }
 
-    void Resource::ReleaseLuaContext()
+    void Resource::DeleteLuaContext()
     {
         g_pGame->GetLuaManager()->DeleteLuaContext(m_luaContext);
         m_luaContext = nullptr;

@@ -10,6 +10,7 @@
 
 #pragma once
 
+#include "ResourceUseFlags.h"
 #include <string>
 #include <filesystem>
 #include <optional>
@@ -43,18 +44,6 @@ namespace mtasa
         STARTING,
         RUNNING,
         STOPPING,
-    };
-
-    struct ResourceUseFlags
-    {
-        bool useDependencies = true;
-        bool useServerConfigs = true;
-        bool useServerMaps = true;
-        bool useServerScripts = true;
-        bool useHttpFiles = true;
-        bool useClientConfigs = true;
-        bool useClientScripts = true;
-        bool useClientFiles = true;
     };
 
     class Resource
@@ -130,7 +119,8 @@ namespace mtasa
         virtual bool Load();
         virtual bool Start(ResourceUseFlags useFlags = {});
         virtual bool Stop();
-        bool         Restart();
+
+        bool Restart(ResourceUseFlags useFlags = {}) { return Stop() && Start(useFlags); }
 
         // This function doesn't verify the absolute file path against resource directory escape attacks
         std::filesystem::path GetUnsafeAbsoluteFilePath(const std::filesystem::path& relativePath);
@@ -262,7 +252,7 @@ namespace mtasa
         bool PreProcessResourceFiles();
 
         bool CreateLuaContext();
-        void ReleaseLuaContext();
+        void DeleteLuaContext();
 
         bool IsDuplicateServerFile(const std::filesystem::path& relativeFilePath);
         bool IsDuplicateClientFile(const std::filesystem::path& relativeFilePath);

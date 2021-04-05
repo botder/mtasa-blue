@@ -28,8 +28,9 @@ namespace mtasa
 
         bool IsArchived() const override { return true; }
 
-        bool Load() override;
-        bool Start(ResourceUseFlags useFlags = {}) override;
+        bool Load() override { return PreProcessArchive() && Resource::Load(); }
+
+        bool Start(ResourceUseFlags useFlags = {}) override { return DecompressArchive() && Resource::Start(useFlags); }
 
     protected:
         bool ContainsSourceFile(const std::filesystem::path& relativePath) const override;

@@ -34,6 +34,12 @@ namespace mtasa
         void SetIsUsingOOP(bool useOOP) { m_usingOOP = useOOP; }
         bool IsUsingOOP() const { return m_usingOOP; }
 
+        void AppendToPageBuffer(const std::string_view& data) {}
+        void ClearPageBuffer() {}
+        void SetResponseHeader(const std::string_view& name, const std::string_view& value) {}
+        void SetResponseCookie(const std::string_view& name, const std::string_view& value) {}
+        void SetResponseCode(std::uint16_t code) {}
+
     private:
         bool m_isRaw = false;
         bool m_isDefault = false;

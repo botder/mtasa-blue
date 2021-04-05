@@ -277,6 +277,15 @@ namespace mtasa
             return false;
         }
 
+        if (useFlags.useDependencies)
+        {
+            for (Dependency& dependency : m_dependencies)
+            {
+                // TODO: Add implementation here
+                // Shouldn't we start dependencies before starting our stuff?
+            }
+        }
+
         // if (StartOptions.bIncludedResources)
         // {
         //     // Copy the list over included resources because reloading them might change the list
@@ -333,6 +342,11 @@ namespace mtasa
             return false;
         }
 
+        // Resource files may have been manipulated in the `onResourceStart` event
+        // and we should regenerate checksums for changed files before sending these to every client
+        // Clients will otherwise compare the outdated and cached resource file checksums
+        // TODO: ^ above
+
         // TODO:
         // m_pResourceManager->ApplyMinClientRequirement(this, m_strMinClientRequirement);
         g_pGame->GetMapManager()->BroadcastResourceElements(m_element, m_elementGroup);
@@ -361,7 +375,7 @@ namespace mtasa
         // m_pResourceManager->RemoveSyncMapElementDataOption(this);
 
         // Tell the modules we are stopping
-        g_pGame->GetLuaManager()->GetLuaModuleManager()->ResourceStopping(m_luaContext->GetLuaState());
+        g_pGame->GetLuaManager()->GetLuaModuleManager()->ResourceStopping(m_luaContext->GetMainLuaState());
 
         // Tell all the players that have joined that this resource is stopped
         g_pGame->GetPlayerManager()->BroadcastOnlyJoined(CResourceStopPacket(m_remoteIdentifier));
@@ -394,7 +408,7 @@ namespace mtasa
         }
 
         // Tell the module manager we have stopped
-        g_pGame->GetLuaManager()->GetLuaModuleManager()->ResourceStopped(m_luaContext->GetLuaState());
+        g_pGame->GetLuaManager()->GetLuaModuleManager()->ResourceStopped(m_luaContext->GetMainLuaState());
 
         // Remove the temporary XML storage node
         if (m_tempSettingsNode != nullptr)
@@ -437,6 +451,14 @@ namespace mtasa
         m_useFlags = {};
         m_state = ResourceState::LOADED;
         return true;
+    }
+
+    bool Resource::Restart()
+    {
+        if (m_state != ResourceState::RUNNING)
+            return false;
+
+        return Stop() && Start();
     }
 
     fs::path Resource::GetUnsafeAbsoluteFilePath(const fs::path& relativePath)
@@ -618,26 +640,27 @@ namespace mtasa
         return !hasBlockedFiles;
     }
 
-    void Resource::CreateLuaContext()
+    bool Resource::CreateLuaContext()
     {
-        m_luaContext = g_pGame->GetLuaManager()->CreateLuaContext(*this, m_usingOOP);
+        CLuaManager* luaManager = g_pGame->GetLuaManager();
+
+        if (m_luaContext = luaManager->CreateLuaContext(*this); m_luaContext == nullptr)
+            return false;
+
+        LuaContextUseFlags useFlags;
+        useFlags.useOOP = m_usingOOP;
+
+        if (m_luaContext->OpenMainLuaState(useFlags))
+            return true;
+
+        luaManager->DeleteLuaContext(m_luaContext);
+        m_luaContext = nullptr;
+        return false;
     }
 
     void Resource::ReleaseLuaContext()
     {
-        CPlayerManager* playerManager = g_pGame->GetPlayerManager();
-
-        for (auto iter = playerManager->IterBegin(); iter != playerManager->IterEnd(); ++iter)
-        {
-            if (CKeyBinds* keyBinds = (*iter)->GetKeyBinds(); keyBinds != nullptr)
-                keyBinds->RemoveAllKeys(m_luaContext);
-        }
-
-        m_mapRootElement->DeleteEvents(m_luaContext, true);
-
-        g_pGame->GetElementDeleter()->CleanUpForVM(m_luaContext);
-        g_pGame->GetLuaManager()->RemoveLuaContext(m_luaContext);
-
+        g_pGame->GetLuaManager()->DeleteLuaContext(m_luaContext);
         m_luaContext = nullptr;
     }
 

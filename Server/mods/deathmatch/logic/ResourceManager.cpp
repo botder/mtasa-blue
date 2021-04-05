@@ -86,14 +86,6 @@ namespace mtasa
         return nullptr;
     }
 
-    Resource* ResourceManager::GetResourceFromLuaState(lua_State* L)
-    {
-        if (auto iter = m_luaStateToResource.find(L); iter != m_luaStateToResource.end())
-            return iter->second;
-
-        return nullptr;
-    }
-
     CreateResourceError ResourceManager::TryCreateResource(std::string_view resourceName, std::string_view relativeOrganizationPath, Resource*& newResource)
     {
         return CreateResourceError::DUMMY_FAIL;

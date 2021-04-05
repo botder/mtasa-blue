@@ -18,5 +18,7 @@ namespace mtasa
     {
     public:
         ResourceScriptFile(Resource& resource) : ResourceFile(resource, ResourceFileType::SERVER_SCRIPT) {}
+
+        bool Start() override;
     };
 }            // namespace mtasa

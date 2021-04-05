@@ -12,40 +12,42 @@
 #pragma once
 
 #include <vector>
+#include <memory>
 
-class CBlipManager;
 class CEvents;
 class CMapManager;
-class CObjectManager;
 class CPlayerManager;
-class CRadarAreaManager;
 class CRegisteredCommands;
-class CVehicleManager;
 class CLuaModuleManager;
+class CLuaMain;
+struct lua_State;
 
 namespace mtasa
 {
     class Resource;
 }
 
-class CLuaManager
+class CLuaManager final
 {
 public:
-    CLuaManager(CObjectManager* pObjectManager, CPlayerManager* pPlayerManager, CVehicleManager* pVehicleManager, CBlipManager* pBlipManager,
-                CRadarAreaManager* pRadarAreaManager, CRegisteredCommands* pRegisteredCommands, CMapManager* pMapManager, CEvents* pEvents);
+    CLuaManager(CPlayerManager* playerManager, CRegisteredCommands* registeredCommands, CMapManager* mapManager, CEvents* events);
+
     ~CLuaManager();
 
-    CLuaMain*        CreateLuaContext(mtasa::Resource& ownerResource, bool bEnableOOP);
-    bool             RemoveLuaContext(CLuaMain* luaContext);
+    CLuaMain* CreateLuaContext(mtasa::Resource& resource);
+    void      OnLuaStateOpen(CLuaMain* luaContext, lua_State* luaState);
+    void      OnLuaStateClose(CLuaMain* luaContext, lua_State* luaState);
+    void      DeleteLuaContext(CLuaMain* luaContext);
+
     CLuaMain*        GetLuaContext(lua_State* luaState);
     mtasa::Resource* GetResourceFromLuaState(lua_State* luaVM);
-    void             OnLuaStateOpen(CLuaMain* luaContext, lua_State* luaVM);
-    void             OnLuaStateClose(CLuaMain* luaContext, lua_State* luaVM);
 
-    CLuaModuleManager* GetLuaModuleManager() const { return m_pLuaModuleManager; }
+    CLuaModuleManager*       GetLuaModuleManager() { return m_luaModuleManager.get(); }
+    const CLuaModuleManager* GetLuaModuleManager() const { return m_luaModuleManager.get(); }
+
+    void RegisterPluginFunctions(lua_State* luaState) const;
 
     void DoPulse();
-
     void LoadCFunctions();
 
     std::vector<CLuaMain*>::iterator       begin() { return m_luaContexts.begin(); }
@@ -55,15 +57,12 @@ public:
     std::vector<CLuaMain*>::const_iterator end() const { return m_luaContexts.end(); }
 
 private:
-    CBlipManager*        m_pBlipManager;
-    CObjectManager*      m_pObjectManager;
-    CPlayerManager*      m_pPlayerManager;
-    CRadarAreaManager*   m_pRadarAreaManager;
-    CRegisteredCommands* m_pRegisteredCommands;
-    CVehicleManager*     m_pVehicleManager;
-    CMapManager*         m_pMapManager;
-    CEvents*             m_pEvents;
-    CLuaModuleManager*   m_pLuaModuleManager;
+    CPlayerManager*      m_playerManager;
+    CRegisteredCommands* m_registeredCommands;
+    CMapManager*         m_mapManager;
+    CEvents*             m_events;
+
+    std::unique_ptr<CLuaModuleManager> m_luaModuleManager;
 
     CFastHashMap<lua_State*, CLuaMain*> m_luaStateToLuaContext;
     std::vector<CLuaMain*>              m_luaContexts;

@@ -36,6 +36,9 @@ namespace mtasa
 
         virtual ~ResourceFile() = default;
 
+        Resource&       GetResource() { return m_resource; }
+        const Resource& GetResource() const { return m_resource; }
+
         virtual bool Start()
         {
             m_isRunning = true;

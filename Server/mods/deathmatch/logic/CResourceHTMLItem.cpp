@@ -351,7 +351,7 @@ bool CResourceHTMLItem::Stop()
         // Delete the events on this VM
         g_pGame->GetMapManager()->GetRootElement()->DeleteEvents(m_luaContext, true);
 
-        g_pGame->GetLuaManager()->RemoveLuaContext(m_luaContext);
+        // g_pGame->GetLuaManager()->RemoveLuaContext(m_luaContext);
     }
 
     m_luaContext = NULL;

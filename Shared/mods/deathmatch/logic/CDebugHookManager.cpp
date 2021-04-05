@@ -217,7 +217,7 @@ void GetMapEventDebugInfo(CMapEvent* pMapEvent, const char*& szFilename, int& iL
     if (!luaContext)
         return;
 
-    lua_State* luaState = luaContext->GetLuaState();
+    lua_State* luaState = luaContext->GetMainLuaState();
 
     if (!luaState)
         return;
@@ -405,7 +405,7 @@ void CDebugHookManager::GetEventCallHookArguments(CLuaArguments& NewArguments, c
     const char* szFilename = "";
     int         iLineNumber = 0;
     lua_Debug   debugInfo;
-    lua_State*  luaState = sourceLuaContext ? sourceLuaContext->GetLuaState() : nullptr;
+    lua_State*  luaState = sourceLuaContext ? sourceLuaContext->GetMainLuaState() : nullptr;
     if (luaState)
         GetDebugInfo(luaState, debugInfo, szFilename, iLineNumber);
 
@@ -482,7 +482,7 @@ void CDebugHookManager::GetEventFunctionCallHookArguments(CLuaArguments& NewArgu
     const char* szEventFilename = "";
     int         iEventLineNumber = 0;
     lua_Debug   eventDebugInfo;
-    lua_State*  eventLuaState = eventLuaContext ? eventLuaContext->GetLuaState() : NULL;
+    lua_State*  eventLuaState = eventLuaContext ? eventLuaContext->GetMainLuaState() : NULL;
     if (eventLuaState)
         GetDebugInfo(eventLuaState, eventDebugInfo, szEventFilename, iEventLineNumber);
 
@@ -616,7 +616,7 @@ bool CDebugHookManager::CallHook(const char* szName, const std::vector<SDebugHoo
                 continue;
         }
 
-        lua_State* pState = info.luaContext->GetLuaState();
+        lua_State* pState = info.luaContext->GetMainLuaState();
 
         if (!pState)
             continue;

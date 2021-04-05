@@ -70,7 +70,7 @@ public:
     // functions for deathmatch
     int  _LoadModule();
     void _UnloadModule();
-    void _RegisterFunctions(lua_State* luaVM);
+    void _RegisterFunctions(lua_State* luaVM) const;
     void _UnregisterFunctions();
     void _DoPulse();
     void _ResourceStopping(lua_State* luaVM);

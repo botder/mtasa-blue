@@ -187,7 +187,7 @@ void CLuaModule::_UnloadModule()
 #endif
 }
 
-void CLuaModule::_RegisterFunctions(lua_State* luaVM)
+void CLuaModule::_RegisterFunctions(lua_State* luaVM) const
 {
     m_FunctionInfo.RegisterFunctions(luaVM);
 }
@@ -196,7 +196,7 @@ void CLuaModule::_UnregisterFunctions()
 {
     for (CLuaMain* luaContext : *m_pLuaModuleManager->GetLuaManager())
     {
-        lua_State* luaState = luaContext->GetLuaState();
+        lua_State* luaState = luaContext->GetMainLuaState();
 
         for (const SString& functionName : m_Functions)
         {
@@ -373,7 +373,7 @@ lua_State* CLuaModule::GetResourceFromName(const char* szResourceName)
     Resource* resource = g_pGame->GetResourceManager().GetResourceFromName(szResourceName);
     CLuaMain* luaContext = (resource != nullptr ? resource->GetLuaContext() : nullptr);
 
-    return (luaContext != nullptr ? luaContext->GetLuaState() : nullptr);
+    return (luaContext != nullptr ? luaContext->GetMainLuaState() : nullptr);
 }
 
 bool CLuaModule::GetResourceName(lua_State* luaVM, char* szName, size_t length)

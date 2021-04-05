@@ -521,8 +521,7 @@ bool CGame::Start(int iArgumentCount, char* szArguments[])
     m_pHqComms = new CHqComms;
 
     m_pRegisteredCommands = new CRegisteredCommands(m_pACLManager);
-    m_pLuaManager = new CLuaManager(m_pObjectManager, m_pPlayerManager, m_pVehicleManager, m_pBlipManager, m_pRadarAreaManager, m_pRegisteredCommands,
-                                    m_pMapManager, &m_Events);
+    m_pLuaManager = new CLuaManager{m_pPlayerManager, m_pRegisteredCommands, m_pMapManager, &m_Events};
     m_pConsole = new CConsole(m_pBlipManager, m_pMapManager, m_pPlayerManager, m_pRegisteredCommands, m_pVehicleManager,
                               m_pBanManager, m_pACLManager);
     m_pMainConfig = new CMainConfig(m_pConsole);

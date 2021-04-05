@@ -63,21 +63,19 @@ namespace mtasa
         Resource* GetResourceFromName(std::string_view resourceName);
         Resource* GetResourceFromUniqueIdentifier(SArrayId identifier);
         Resource* GetResourceFromRemoteIdentifier(std::uint16_t identifier);
-        Resource* GetResourceFromLuaState(lua_State* L);
 
         CreateResourceError TryCreateResource(std::string_view resourceName, std::string_view relativeOrganizationPath, Resource*& newResource);
         RenameResourceError TryRenameResource(Resource* resource, std::string_view newResourceName, std::string_view newGroupDirectory);
         CloneResourceError  TryCloneResource(Resource* resource, std::string_view newResourceName, std::string_view newGroupDirectory, Resource*& newResource);
 
-        bool StartResource(Resource* resource) { return false; }
-        bool RemoveResource(Resource* resource) { return false; }
-        void RefreshResource(Resource* resource) {}
+        bool DeleteResource(Resource* resource) { return false; }
 
         void QueueResourceCommand(Resource* resource, ResourceCommand command) {}
         void QueueRefresh(bool includeRunningResources) {}
-        void QueueStopEverything() {}
 
-        void Refresh(bool includeRunningResources) {}
+        void RefreshResources(bool includeRunningResources) {}
+        void RefreshResource(std::string_view resourceName) {}
+        void StopResources() {}
 
         void ScanForResources();
 
@@ -94,16 +92,6 @@ namespace mtasa
         void        ClearBlockedFileReasons() {}
         void        AddBlockedFileReason(std::string_view fileHash, std::string_view reason) {}
         std::string GetBlockedFileReason(const std::string& fileHash) { return ""; }
-
-        // upgrade all
-        // pEchoClient->SendConsole("Upgrading all resources...");
-        // g_pGame->GetResourceManager()->UpgradeResources();
-        // pEchoClient->SendEcho("Upgrade completed. Refreshing all resources...");
-        // g_pGame->GetResourceManager()->Refresh(true);
-
-        // upgrade ?
-        // g_pGame->GetResourceManager()->UpgradeResources(resource);
-        // g_pGame->GetResourceManager()->Refresh(true, resource->GetName());
 
         std::vector<Resource*>::iterator begin() { return m_resources.begin(); }
         std::vector<Resource*>::iterator end() { return m_resources.end(); }
@@ -124,18 +112,15 @@ namespace mtasa
 
         std::unordered_map<std::string, Resource*, LowercaseHash, LowercaseEqual> m_nameToResource;
 
-        std::unordered_map<lua_State*, Resource*> m_luaStateToResource;
-
-        std::unordered_map<SArrayId, Resource*> m_uniqueIdToResource;
-
+        std::unordered_map<SArrayId, Resource*>      m_uniqueIdToResource;
         std::unordered_map<std::uint16_t, Resource*> m_remoteIdToResource;
 
-        std::vector<Resource*> m_resources;
-        std::size_t            m_numLoadedResources = 0;
-        std::size_t            m_numErroneousResources = 0;
+        std::vector<Resource*>     m_resources;
+        std::vector<std::uint16_t> m_unusedResourceRemoteIdentifiers;
+
+        std::size_t m_numLoadedResources = 0;
+        std::size_t m_numErroneousResources = 0;
 
         CMtaVersion m_minClientRequirement;
-
-        std::vector<std::uint16_t> m_unusedResourceRemoteIdentifiers;
     };
 }

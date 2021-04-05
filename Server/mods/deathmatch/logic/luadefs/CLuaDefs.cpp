@@ -79,9 +79,7 @@ void CLuaDefs::Initialize(CGame* pGame)
 
 bool CLuaDefs::CanUseFunction(const char* szFunction, lua_State* luaVM, bool isRestricted)
 {
-    Resource* resource = m_resourceManager->GetResourceFromLuaState(luaVM);
-
-    if (resource != nullptr)
+    if (Resource* resource = m_pLuaManager->GetResourceFromLuaState(luaVM); resource != nullptr)
         return CanUseFunction(szFunction, resource, isRestricted);
 
     return false;
@@ -98,7 +96,7 @@ bool CLuaDefs::CanUseFunction(const char* szFunction, const Resource* resource, 
     else
     {
         // Otherwise just return false
-        m_pScriptDebugging->LogBadAccess(resource->GetLuaContext()->GetLuaState());
+        m_pScriptDebugging->LogBadAccess(resource->GetLuaContext()->GetMainLuaState());
         return false;
     }
 }
@@ -121,7 +119,7 @@ int CLuaDefs::CanUseFunction(lua_CFunction f, lua_State* luaVM)
     }
 
     // Get associated resource
-    Resource* resource = m_resourceManager->GetResourceFromLuaState(luaVM);
+    Resource* resource = m_pLuaManager->GetResourceFromLuaState(luaVM);
 
     if (resource == nullptr)
         return true;
@@ -225,7 +223,7 @@ void CLuaDefs::DidUseFunction(lua_CFunction f, lua_State* luaVM)
                 CLuaCFunction* pFunction = CLuaCFunctions::GetFunction(info.f);
                 if (pFunction)
                 {
-                    Resource* resource = m_resourceManager->GetResourceFromLuaState(info.luaVM);
+                    Resource* resource = m_pLuaManager->GetResourceFromLuaState(info.luaVM);
                     SString   strResourceName = (resource != nullptr ? resource->GetName() : "unknown"s);
                     CPerfStatFunctionTiming::GetSingleton()->UpdateTiming(strResourceName, pFunction->GetName().c_str(), elapsedTime, uiDeltaBytes);
                 }

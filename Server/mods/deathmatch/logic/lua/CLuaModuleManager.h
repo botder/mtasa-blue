@@ -34,7 +34,7 @@ public:
     void DoPulse();
     int  LoadModule(const char* szShortFileName, const char* szFileName, bool bLateLoad);
     void SetScriptDebugging(CScriptDebugging* pScriptDebugging);
-    void RegisterFunctions(lua_State* luaVM);
+    void RegisterFunctions(lua_State* luaVM) const;
     int  UnloadModule(const char* szShortFileName);
     int  ReloadModule(const char* szShortFileName, const char* szFileName, bool bLateLoad);
     void ResourceStopping(lua_State* luaVM);

@@ -75,7 +75,7 @@ void CFunctionUseLogger::OnFunctionUse(lua_State* luaVM, const char* szFunctionN
     if (m_strLogFilename.empty())
         return;
 
-    Resource* resource = g_pGame->GetResourceManager().GetResourceFromLuaState(luaVM);
+    Resource* resource = g_pGame->GetLuaManager()->GetResourceFromLuaState(luaVM);
     SString   resourceName = (resource ? resource->GetName() : "Unknown"s);
 
     SString strKey("%s-%s", szFunctionName, *resourceName);

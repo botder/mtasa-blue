@@ -261,7 +261,7 @@ int CLuaNetworkDefs::GetRemoteRequestInfo(lua_State* luaVM)
     CScriptArgReader argStream(luaVM);
     CLuaArguments    info, requestedHeaders;
     CRemoteCall*     pRemoteCall = nullptr;
-    Resource*        self = m_resourceManager->GetResourceFromLuaState(luaVM);
+    Resource*        self = m_pLuaManager->GetResourceFromLuaState(luaVM);
     int              iPostDataLength = 0;
     bool             bIncludeHeaders = false;
 

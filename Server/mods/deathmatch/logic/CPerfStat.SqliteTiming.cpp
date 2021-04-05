@@ -159,7 +159,7 @@ void CPerfStatSqliteTimingImpl::UpdateSqliteTiming(CRegistry* pRegistry, const c
     // Get resource name
     if (m_currentluaVM)
     {
-        if (Resource* resource = g_pGame->GetResourceManager().GetResourceFromLuaState(m_currentluaVM))
+        if (Resource* resource = g_pGame->GetLuaManager()->GetResourceFromLuaState(m_currentluaVM))
             info.resourceName = resource->GetName();
     }
 

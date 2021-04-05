@@ -204,7 +204,7 @@ bool CLuaArguments::Call(CLuaMain* luaContext, const CLuaFunctionRef& iLuaFuncti
     TIMEUS startTime = GetTimeUs();
 
     // Add the function name to the stack and get the event from the table
-    lua_State* luaVM = luaContext->GetLuaState();
+    lua_State* luaVM = luaContext->GetMainLuaState();
     assert(luaVM);
     LUA_CHECKSTACK(luaVM, 1);
     int luaStackPointer = lua_gettop(luaVM);
@@ -256,7 +256,7 @@ bool CLuaArguments::CallGlobal(CLuaMain* luaContext, const char* szFunction, CLu
     TIMEUS startTime = GetTimeUs();
 
     // Add the function name to the stack and get the event from the table
-    lua_State* luaVM = luaContext->GetLuaState();
+    lua_State* luaVM = luaContext->GetMainLuaState();
     assert(luaVM);
     LUA_CHECKSTACK(luaVM, 1);
     int luaStackPointer = lua_gettop(luaVM);

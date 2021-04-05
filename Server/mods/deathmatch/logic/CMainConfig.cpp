@@ -661,6 +661,8 @@ bool CMainConfig::LoadExtended()
     CLogger::LogPrint("Starting resources...");
     CLogger::ProgressDotsBegin();
 
+    ResourceManager& resourceManager = g_pGame->GetResourceManager();
+
     do
     {
         if (g_pServerInterface->IsRequestingExit())
@@ -677,9 +679,7 @@ bool CMainConfig::LoadExtended()
                 // Grab the text in it and convert iwt to a path inside "scripts"
                 const std::string& resourceName = pAttribute->GetValue();
 
-                Resource* resource = g_pGame->GetResourceManager().GetResourceFromName(resourceName);
-
-                if (resource == nullptr)
+                if (Resource* resource = resourceManager.GetResourceFromName(resourceName); resource == nullptr)
                 {
                     CLogger::ErrorPrintf("Couldn't find resource %s. Check it exists.\n", resourceName.c_str());
                 }

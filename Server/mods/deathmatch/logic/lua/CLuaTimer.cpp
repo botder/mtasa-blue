@@ -37,7 +37,7 @@ void CLuaTimer::ExecuteTimer(CLuaMain* luaContext)
 {
     if (VERIFY_FUNCTION(m_iLuaFunction))
     {
-        lua_State* pState = luaContext->GetLuaState();
+        lua_State* pState = luaContext->GetMainLuaState();
 
         LUA_CHECKSTACK(pState, 1);            // Ensure some room
 

@@ -16,21 +16,14 @@ using namespace mtasa;
 
 extern CGame* g_pGame;
 
-CLuaManager::CLuaManager(CObjectManager* pObjectManager, CPlayerManager* pPlayerManager, CVehicleManager* pVehicleManager, CBlipManager* pBlipManager,
-                         CRadarAreaManager* pRadarAreaManager, CRegisteredCommands* pRegisteredCommands, CMapManager* pMapManager, CEvents* pEvents)
+CLuaManager::CLuaManager(CPlayerManager* playerManager, CRegisteredCommands* registeredCommands, CMapManager* mapManager, CEvents* events)
+    : m_playerManager{playerManager},
+      m_registeredCommands{registeredCommands},
+      m_mapManager{mapManager},
+      m_events{events},
+      m_luaModuleManager{new CLuaModuleManager{this}}
 {
-    m_pObjectManager = pObjectManager;
-    m_pPlayerManager = pPlayerManager;
-    m_pVehicleManager = pVehicleManager;
-    m_pBlipManager = pBlipManager;
-    m_pRadarAreaManager = pRadarAreaManager;
-    m_pRegisteredCommands = pRegisteredCommands;
-    m_pMapManager = pMapManager;
-    m_pEvents = pEvents;
-
-    // Create our lua dynamic module manager
-    m_pLuaModuleManager = new CLuaModuleManager(this);
-    m_pLuaModuleManager->SetScriptDebugging(g_pGame->GetScriptDebugging());
+    m_luaModuleManager->SetScriptDebugging(g_pGame->GetScriptDebugging());
 
     // Load our C Functions into Lua and hook callback
     LoadCFunctions();
@@ -54,53 +47,47 @@ CLuaManager::~CLuaManager()
     {
         delete luaContext;
     }
-
-    delete m_pLuaModuleManager;
 }
 
-CLuaMain* CLuaManager::CreateLuaContext(Resource& ownerResource, bool bEnableOOP)
+CLuaMain* CLuaManager::CreateLuaContext(mtasa::Resource& resource)
 {
-    auto luaContext = new CLuaMain(ownerResource, this, m_pObjectManager, m_pPlayerManager, m_pVehicleManager, m_pBlipManager, m_pRadarAreaManager,
-                                   m_pMapManager, bEnableOOP);
-
+    auto luaContext = new CLuaMain(resource, *this, m_playerManager);
     m_luaContexts.push_back(luaContext);
-
-    luaContext->InitVM();
-
-    m_pLuaModuleManager->RegisterFunctions(luaContext->GetLuaState());
-
     return luaContext;
 }
 
-bool CLuaManager::RemoveLuaContext(CLuaMain* luaContext)
+void CLuaManager::DeleteLuaContext(CLuaMain* luaContext)
 {
-    if (luaContext)
+    // Remove all events registered by it and all commands added
+    m_events->RemoveAllEvents(luaContext);
+    m_registeredCommands->CleanUpForVM(luaContext);
+    m_mapManager->GetRootElement()->DeleteEvents(luaContext, true);
+    g_pGame->GetElementDeleter()->CleanUpForVM(luaContext);
+
+    for (auto iter = m_playerManager->IterBegin(); iter != m_playerManager->IterEnd(); ++iter)
     {
-        // Remove all events registered by it and all commands added
-        m_pEvents->RemoveAllEvents(luaContext);
-        m_pRegisteredCommands->CleanUpForVM(luaContext);
-
-        // Delete it unless it is already
-        if (!luaContext->BeingDeleted())
-        {
-            delete luaContext;
-        }
-
-        m_luaContexts.erase(std::remove(m_luaContexts.begin(), m_luaContexts.end(), luaContext));
-        return true;
+        if (CKeyBinds* keyBinds = (*iter)->GetKeyBinds(); keyBinds != nullptr)
+            keyBinds->RemoveAllKeys(luaContext);
     }
 
-    return false;
+    m_luaContexts.erase(std::remove(m_luaContexts.begin(), m_luaContexts.end(), luaContext));
+
+    delete luaContext;
 }
 
-void CLuaManager::OnLuaStateOpen(CLuaMain* luaContext, lua_State* luaVM)
+void CLuaManager::RegisterPluginFunctions(lua_State* luaState) const
 {
-    MapSet(m_luaStateToLuaContext, luaContext->GetLuaState(), luaContext);
+    m_luaModuleManager->RegisterFunctions(luaState);
 }
 
-void CLuaManager::OnLuaStateClose(CLuaMain* luaContext, lua_State* luaVM)
+void CLuaManager::OnLuaStateOpen(CLuaMain* luaContext, lua_State* luaState)
 {
-    MapRemove(m_luaStateToLuaContext, luaContext->GetLuaState());
+    MapSet(m_luaStateToLuaContext, luaState, luaContext);
+}
+
+void CLuaManager::OnLuaStateClose(CLuaMain* luaContext, lua_State* luaState)
+{
+    MapRemove(m_luaStateToLuaContext, luaState);
 }
 
 void CLuaManager::DoPulse()
@@ -108,7 +95,7 @@ void CLuaManager::DoPulse()
     for (CLuaMain* luaContext : m_luaContexts)
         luaContext->DoPulse();
 
-    m_pLuaModuleManager->DoPulse();
+    m_luaModuleManager->DoPulse();
 }
 
 CLuaMain* CLuaManager::GetLuaContext(lua_State* luaState)
@@ -127,7 +114,7 @@ CLuaMain* CLuaManager::GetLuaContext(lua_State* luaState)
 
     // Find a matching Lua context in our list
     auto iter =
-        std::find_if(m_luaContexts.begin(), m_luaContexts.end(), [luaState](const CLuaMain* luaContext) { return luaContext->GetLuaState() == luaState; });
+        std::find_if(m_luaContexts.begin(), m_luaContexts.end(), [luaState](const CLuaMain* luaContext) { return luaContext->GetMainLuaState() == luaState; });
 
     if (iter != m_luaContexts.end())
     {
@@ -138,7 +125,6 @@ CLuaMain* CLuaManager::GetLuaContext(lua_State* luaState)
     return nullptr;
 }
 
-// Return resource associated with a lua state
 Resource* CLuaManager::GetResourceFromLuaState(lua_State* luaVM)
 {
     if (CLuaMain* luaContext = GetLuaContext(luaVM); luaContext != nullptr)

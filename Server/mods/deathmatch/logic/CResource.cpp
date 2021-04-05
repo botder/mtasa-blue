@@ -757,7 +757,7 @@ bool CResource::Stop(bool bManualStop)
     CLogger::LogPrintf(LOGLEVEL_LOW, "Stopping %s\n", m_strResourceName.c_str());
 
     // Tell the modules we are stopping
-    g_pGame->GetLuaManager()->GetLuaModuleManager()->ResourceStopping(m_luaContext->GetLuaState());
+    g_pGame->GetLuaManager()->GetLuaModuleManager()->ResourceStopping(m_luaContext->GetMainLuaState());
 
     // Tell all the players that have joined that this resource is stopped
     g_pGame->GetPlayerManager()->BroadcastOnlyJoined(CResourceStopPacket(m_usNetID));
@@ -792,7 +792,7 @@ bool CResource::Stop(bool bManualStop)
     }
 
     // Tell the module manager we have stopped
-    g_pGame->GetLuaManager()->GetLuaModuleManager()->ResourceStopped(m_luaContext->GetLuaState());
+    g_pGame->GetLuaManager()->GetLuaModuleManager()->ResourceStopped(m_luaContext->GetMainLuaState());
 
     // Remove the temporary XML storage node
     if (m_pNodeStorage)
@@ -866,7 +866,7 @@ bool CResource::DestroyVM()
 
     // Delete the virtual machine
     m_pResourceManager->NotifyResourceVMClose(this, m_luaContext);
-    g_pGame->GetLuaManager()->RemoveLuaContext(m_luaContext);
+    // g_pGame->GetLuaManager()->RemoveLuaContext(m_luaContext);
     m_luaContext = nullptr;
     return true;
 }

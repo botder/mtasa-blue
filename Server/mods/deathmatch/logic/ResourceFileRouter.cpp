@@ -340,7 +340,7 @@ namespace mtasa
                 Headers.PushString(pair.second.c_str());
             }
 
-            lua_State* luaState = m_resource.m_luaContext->GetLuaState();
+            lua_State* luaState = m_resource.m_luaContext->GetMainLuaState();
 
             LUA_CHECKSTACK(luaState, 1);            // Ensure some room
 

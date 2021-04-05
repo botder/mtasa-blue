@@ -156,7 +156,7 @@ bool CMapEventManager::Call(const char* szName, const CLuaArguments& Arguments, 
                 if (pSource == pThis || pMapEvent->IsPropagated())
                 {
                     // Grab the current VM
-                    lua_State* pState = pMapEvent->GetVM()->GetLuaState();
+                    lua_State* pState = pMapEvent->GetVM()->GetMainLuaState();
 
                     LUA_CHECKSTACK(pState, 1);            // Ensure some room
 

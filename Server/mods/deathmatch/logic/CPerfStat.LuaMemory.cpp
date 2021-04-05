@@ -232,7 +232,7 @@ void CPerfStatLuaMemoryImpl::GetLuaMemoryStats(CPerfStatResult* pResult, const s
     {
         for (const auto& [luaContext, unused] : m_LuaMainMap)
         {
-            if (lua_State* luaState = luaContext->GetLuaState())
+            if (lua_State* luaState = luaContext->GetMainLuaState())
             {
                 if (bAccurate)
                     lua_gc(luaState, LUA_GCCOLLECT, 0);

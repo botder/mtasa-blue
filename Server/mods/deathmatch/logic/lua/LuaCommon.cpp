@@ -54,7 +54,7 @@ void lua_pushelement(lua_State* luaVM, CElement* pElement)
         {
             const char* szClass = nullptr;
             CLuaMain*   luaContext = g_pGame->GetLuaManager()->GetLuaContext(luaVM);
-            if (luaContext != nullptr && luaContext->IsOOPEnabled())
+            if (luaContext != nullptr && luaContext->IsUsingOOP())
                 szClass = CLuaClassDefs::GetElementClass(pElement);
 
             lua_pushobject(luaVM, szClass, (void*)reinterpret_cast<unsigned int*>(ID.Value()));
@@ -70,7 +70,7 @@ void lua_pushacl(lua_State* luaVM, CAccessControlList* pACL)
     const char* szClass = nullptr;
     CLuaMain*   luaContext = g_pGame->GetLuaManager()->GetLuaContext(luaVM);
 
-    if (luaContext != nullptr && luaContext->IsOOPEnabled())
+    if (luaContext != nullptr && luaContext->IsUsingOOP())
         szClass = CLuaClassDefs::GetACLClass(pACL);
 
     lua_pushobject(luaVM, szClass, (void*)reinterpret_cast<unsigned int*>(pACL->GetScriptID()));
@@ -81,7 +81,7 @@ void lua_pushaclgroup(lua_State* luaVM, CAccessControlListGroup* pGroup)
     const char* szClass = nullptr;
     CLuaMain*   luaContext = g_pGame->GetLuaManager()->GetLuaContext(luaVM);
 
-    if (luaContext != nullptr && luaContext->IsOOPEnabled())
+    if (luaContext != nullptr && luaContext->IsUsingOOP())
         szClass = CLuaClassDefs::GetACLGroupClass(pGroup);
 
     lua_pushobject(luaVM, szClass, (void*)reinterpret_cast<unsigned int*>(pGroup->GetScriptID()));
@@ -92,7 +92,7 @@ void lua_pushaccount(lua_State* luaVM, CAccount* pAccount)
     const char* szClass = nullptr;
     CLuaMain*   luaContext = g_pGame->GetLuaManager()->GetLuaContext(luaVM);
 
-    if (luaContext != nullptr && luaContext->IsOOPEnabled())
+    if (luaContext != nullptr && luaContext->IsUsingOOP())
         szClass = CLuaClassDefs::GetAccountClass(pAccount);
 
     lua_pushobject(luaVM, szClass, (void*)reinterpret_cast<unsigned int*>(pAccount->GetScriptID()));
@@ -103,7 +103,7 @@ void lua_pushresource(lua_State* luaVM, Resource* resource)
     const char* className = nullptr;
     CLuaMain*   luaContext = g_pGame->GetLuaManager()->GetLuaContext(luaVM);
 
-    if (luaContext != nullptr && luaContext->IsOOPEnabled())
+    if (luaContext != nullptr && luaContext->IsUsingOOP())
     {
         className = CLuaClassDefs::GetResourceClass(resource);
     }
@@ -116,7 +116,7 @@ void lua_pushtextdisplay(lua_State* luaVM, CTextDisplay* pDisplay)
     const char* szClass = nullptr;
     CLuaMain*   luaContext = g_pGame->GetLuaManager()->GetLuaContext(luaVM);
 
-    if (luaContext != nullptr && luaContext->IsOOPEnabled())
+    if (luaContext != nullptr && luaContext->IsUsingOOP())
         szClass = CLuaClassDefs::GetTextDisplayClass(pDisplay);
 
     lua_pushobject(luaVM, szClass, (void*)reinterpret_cast<unsigned int*>(pDisplay->GetScriptID()));
@@ -127,7 +127,7 @@ void lua_pushtextitem(lua_State* luaVM, CTextItem* pItem)
     const char* szClass = nullptr;
     CLuaMain*   luaContext = g_pGame->GetLuaManager()->GetLuaContext(luaVM);
 
-    if (luaContext != nullptr && luaContext->IsOOPEnabled())
+    if (luaContext != nullptr && luaContext->IsUsingOOP())
         szClass = CLuaClassDefs::GetTextItemClass(pItem);
 
     lua_pushobject(luaVM, szClass, (void*)reinterpret_cast<unsigned int*>(pItem->GetScriptID()));
@@ -138,7 +138,7 @@ void lua_pushtimer(lua_State* luaVM, CLuaTimer* pTimer)
     const char* szClass = nullptr;
     CLuaMain*   luaContext = g_pGame->GetLuaManager()->GetLuaContext(luaVM);
 
-    if (luaContext != nullptr && luaContext->IsOOPEnabled())
+    if (luaContext != nullptr && luaContext->IsUsingOOP())
         szClass = CLuaClassDefs::GetTimerClass(pTimer);
 
     lua_pushobject(luaVM, szClass, (void*)reinterpret_cast<unsigned int*>(pTimer->GetScriptID()));
@@ -149,7 +149,7 @@ void lua_pushxmlnode(lua_State* luaVM, CXMLNode* pElement)
     const char* szClass = nullptr;
     CLuaMain*   luaContext = g_pGame->GetLuaManager()->GetLuaContext(luaVM);
 
-    if (luaContext != nullptr && luaContext->IsOOPEnabled())
+    if (luaContext != nullptr && luaContext->IsUsingOOP())
         szClass = CLuaClassDefs::GetXmlNodeClass(pElement);
 
     lua_pushobject(luaVM, szClass, (void*)reinterpret_cast<unsigned int*>(pElement->GetID()));
@@ -160,7 +160,7 @@ void lua_pushban(lua_State* luaVM, CBan* pBan)
     const char* szClass = nullptr;
     CLuaMain*   luaContext = g_pGame->GetLuaManager()->GetLuaContext(luaVM);
 
-    if (luaContext != nullptr && luaContext->IsOOPEnabled())
+    if (luaContext != nullptr && luaContext->IsUsingOOP())
         szClass = CLuaClassDefs::GetBanClass(pBan);
 
     lua_pushobject(luaVM, szClass, (void*)reinterpret_cast<unsigned int*>(pBan->GetScriptID()));
@@ -171,7 +171,7 @@ void lua_pushquery(lua_State* luaVM, CDbJobData* pJobData)
     const char* szClass = nullptr;
     CLuaMain*   luaContext = g_pGame->GetLuaManager()->GetLuaContext(luaVM);
 
-    if (luaContext != nullptr && luaContext->IsOOPEnabled())
+    if (luaContext != nullptr && luaContext->IsUsingOOP())
         szClass = CLuaClassDefs::GetQueryClass(pJobData);
 
     lua_pushobject(luaVM, szClass, (void*)reinterpret_cast<unsigned int*>(pJobData->GetId()));

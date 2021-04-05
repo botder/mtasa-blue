@@ -265,7 +265,7 @@ int CLuaResourceDefs::deleteResource(lua_State* luaVM)
 
         if (resourceState == ResourceState::NOT_LOADED || resourceState == ResourceState::LOADED)
         {
-            lua_pushboolean(luaVM, m_resourceManager->RemoveResource(resource));
+            lua_pushboolean(luaVM, m_resourceManager->DeleteResource(resource));
             return 1;
         }
         else
@@ -459,23 +459,21 @@ int CLuaResourceDefs::removeResourceDefaultSetting(lua_State* luaVM)
 
 int CLuaResourceDefs::startResource(lua_State* luaVM)
 {
-    Resource*             resource = nullptr;
-    bool                  isPersistent = false;
-    SResourceStartOptions StartOptions;
-
-    // TODO: SResourceStartOptions
+    Resource*        resource = nullptr;
+    bool             isPersistent = false;
+    ResourceUseFlags useFlags;
 
     CScriptArgReader argStream(luaVM);
     argStream.ReadUserData(resource);
     argStream.ReadBool(isPersistent, false);
-    argStream.ReadBool(StartOptions.bIncludedResources, true);
-    argStream.ReadBool(StartOptions.bConfigs, true);
-    argStream.ReadBool(StartOptions.bMaps, true);
-    argStream.ReadBool(StartOptions.bScripts, true);
-    argStream.ReadBool(StartOptions.bHTML, true);
-    argStream.ReadBool(StartOptions.bClientConfigs, true);
-    argStream.ReadBool(StartOptions.bClientScripts, true);
-    argStream.ReadBool(StartOptions.bClientFiles, true);
+    argStream.ReadBool(useFlags.useDependencies, true);
+    argStream.ReadBool(useFlags.useServerConfigs, true);
+    argStream.ReadBool(useFlags.useServerMaps, true);
+    argStream.ReadBool(useFlags.useServerScripts, true);
+    argStream.ReadBool(useFlags.useHttpFiles, true);
+    argStream.ReadBool(useFlags.useClientConfigs, true);
+    argStream.ReadBool(useFlags.useClientScripts, true);
+    argStream.ReadBool(useFlags.useClientFiles, true);
 
     if (argStream.HasErrors())
     {
@@ -498,14 +496,7 @@ int CLuaResourceDefs::startResource(lua_State* luaVM)
     {
         resource->SetPersistent(isPersistent);
 
-        if (!m_resourceManager->StartResource(resource))
-        {
-            CLogger::LogPrintf("%s: Failed to start resource '%.*s'\n", lua_tostring(luaVM, lua_upvalueindex(1)), resourceName.size(), resourceName.c_str());
-            lua_pushboolean(luaVM, false);
-            return 1;
-        }
-
-        if (resource->IsRunning())
+        if (resource->Start(useFlags))
         {
             if (!isPersistent)
             {
@@ -517,18 +508,15 @@ int CLuaResourceDefs::startResource(lua_State* luaVM)
 
             CLogger::LogPrintf("%s: Resource '%.*s' started\n", lua_tostring(luaVM, lua_upvalueindex(1)), resourceName.size(), resourceName.c_str());
             lua_pushboolean(luaVM, true);
+            return 1;
         }
         else
         {
-            m_pScriptDebugging->LogWarning(luaVM, "Failed to start resource '%.*s'", resourceName.size(), resourceName.c_str());
-            lua_pushboolean(luaVM, false);
+            CLogger::LogPrintf("%s: Failed to start resource '%.*s'\n", lua_tostring(luaVM, lua_upvalueindex(1)), resourceName.size(), resourceName.c_str());
         }
     }
-    else
-    {
-        lua_pushboolean(luaVM, false);
-    }
 
+    lua_pushboolean(luaVM, false);
     return 1;
 }
 
@@ -1126,7 +1114,7 @@ int CLuaResourceDefs::call(lua_State* luaVM)
         return 1;
     }
 
-    lua_State* functionLuaState = resource->GetLuaContext()->GetLuaState();
+    lua_State* functionLuaState = resource->GetLuaContext()->GetMainLuaState();
     LUA_CHECKSTACK(functionLuaState, 1);
 
     // Lets grab the original hidden variables so we can restore them later
@@ -1269,7 +1257,7 @@ int CLuaResourceDefs::updateResourceACLRequest(lua_State* luaVM)
 
     if (!argStream.HasErrors())
     {
-        Resource* self = m_resourceManager->GetResourceFromLuaState(luaVM);
+        Resource* self = m_pLuaManager->GetResourceFromLuaState(luaVM);
 
         if (username.empty() && self != nullptr)
             username = self->GetName();
@@ -1287,13 +1275,13 @@ int CLuaResourceDefs::updateResourceACLRequest(lua_State* luaVM)
     return 1;
 }
 
-int CLuaResourceDefs::LoadString(lua_State* luaVM)
+int CLuaResourceDefs::LoadString(lua_State* luaState)
 {
-    Resource* resource = m_resourceManager->GetResourceFromLuaState(luaVM);
+    Resource* resource = m_pLuaManager->GetResourceFromLuaState(luaState);
 
     if (resource == nullptr)
     {
-        lua_pushboolean(luaVM, false);
+        lua_pushboolean(luaState, false);
         return 1;
     }
 
@@ -1301,7 +1289,7 @@ int CLuaResourceDefs::LoadString(lua_State* luaVM)
     SString strInput;
     SString strName;
 
-    CScriptArgReader argStream(luaVM);
+    CScriptArgReader argStream(luaState);
     argStream.ReadString(strInput);
     argStream.ReadString(strName, "");
 
@@ -1326,31 +1314,31 @@ int CLuaResourceDefs::LoadString(lua_State* luaVM)
         if (!argStream.HasErrors())
         {
             CLuaShared::CheckUTF8BOMAndUpdate(&cpBuffer, &uiSize);
-            if (!CLuaMain::LuaLoadBuffer(luaVM, cpBuffer, uiSize, szChunkname))
+            if (!CLuaMain::LuaLoadBuffer(luaState, cpBuffer, uiSize, szChunkname))
             {
                 // Ok
                 if (g_pGame->GetConfig()->GetLoadstringLogEnabled())
-                    g_pGame->GetFunctionUseLogger()->OnFunctionUse(luaVM, "loadstring", cpBuffer, uiSize);
+                    g_pGame->GetFunctionUseLogger()->OnFunctionUse(luaState, "loadstring", cpBuffer, uiSize);
                 return 1;
             }
             else
             {
-                lua_pushnil(luaVM);
-                lua_insert(luaVM, -2); /* put before error message */
+                lua_pushnil(luaState);
+                lua_insert(luaState, -2); /* put before error message */
                 return 2;              /* return nil plus error message */
             }
         }
     }
     if (argStream.HasErrors())
-        m_pScriptDebugging->LogCustom(luaVM, argStream.GetFullErrorMessage());
+        m_pScriptDebugging->LogCustom(luaState, argStream.GetFullErrorMessage());
 
-    lua_pushboolean(luaVM, false);
+    lua_pushboolean(luaState, false);
     return 1;
 }
 
 int CLuaResourceDefs::Load(lua_State* luaVM)
 {
-    Resource* resource = m_resourceManager->GetResourceFromLuaState(luaVM);
+    Resource* resource = m_pLuaManager->GetResourceFromLuaState(luaVM);
 
     if (resource == nullptr)
     {

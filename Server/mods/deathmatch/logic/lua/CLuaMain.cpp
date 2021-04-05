@@ -11,6 +11,8 @@
 
 #include "StdInc.h"
 #include "Resource.h"
+#include "ResourceFile.h"
+#include "CLuaTimerManager.h"
 #include "CResourceConfigItem.h"
 #include "CLuaFunctionDefs.h"
 #include <clocale>
@@ -30,30 +32,20 @@ extern CNetServer* g_pRealNetServer;
 #include "luascripts/exports.lua.h"
 #include "luascripts/inspect.lua.h"
 
-CLuaMain::CLuaMain(Resource& resource, CLuaManager* pLuaManager, CObjectManager* pObjectManager, CPlayerManager* pPlayerManager,
-                   CVehicleManager* pVehicleManager, CBlipManager* pBlipManager, CRadarAreaManager* pRadarAreaManager, CMapManager* pMapManager,
-                   bool bEnableOOP)
-    : m_resource(resource)
+CLuaMain::CLuaMain(mtasa::ResourceFile& resourceFile, CLuaManager& luaManager, CPlayerManager* playerManager)
+    : CLuaMain(resourceFile.GetResource(), luaManager, playerManager)
 {
-    // Initialise everything to be setup in the Start function
-    m_pLuaManager = pLuaManager;
-    m_luaVM = NULL;
-    m_pResourceFile = NULL;
-    m_bBeingDeleted = false;
-    m_pLuaTimerManager = new CLuaTimerManager;
+    m_resourceFile = &resourceFile;
+}
+
+CLuaMain::CLuaMain(Resource& resource, CLuaManager& luaManager, CPlayerManager* playerManager)
+    : m_resource{resource}, m_manager{luaManager}, m_timerManager{new CLuaTimerManager}, m_playerManager{playerManager}
+{
+    // TODO: This doesn't belong here, it's a singleton
+    m_pLuaManager = &luaManager;
+
     m_FunctionEnterTimer.SetMaxIncrement(500);
     m_WarningTimer.SetMaxIncrement(1000);
-    m_uiOpenFileCountWarnThresh = 10;
-    m_uiOpenXMLFileCountWarnThresh = 20;
-
-    m_pObjectManager = pObjectManager;
-    m_pPlayerManager = pPlayerManager;
-    m_pRadarAreaManager = pRadarAreaManager;
-    m_pVehicleManager = pVehicleManager;
-    m_pBlipManager = pBlipManager;
-    m_pMapManager = pMapManager;
-
-    m_bEnableOOP = bEnableOOP;
 
     CPerfStatLuaMemory::GetSingleton()->OnLuaMainCreate(this);
     CPerfStatLuaTiming::GetSingleton()->OnLuaMainCreate(this);
@@ -69,11 +61,7 @@ CLuaMain::~CLuaMain()
     g_pGame->GetScriptDebugging()->OnLuaMainDestroy(this);
 
     // Unload the current script
-    UnloadScript();
-    m_bBeingDeleted = true;
-
-    // Delete the timer manager
-    delete m_pLuaTimerManager;
+    CloseMainLuaState();
 
     // Eventually delete the XML files the LUA script didn't
     for (auto& xmlFile : m_XMLFiles)
@@ -99,129 +87,103 @@ CLuaMain::~CLuaMain()
     CPerfStatLuaTiming::GetSingleton()->OnLuaMainDestroy(this);
 }
 
-bool CLuaMain::BeingDeleted()
-{
-    return m_bBeingDeleted;
-}
-
 void CLuaMain::ResetInstructionCount()
 {
     m_FunctionEnterTimer.Reset();
 }
 
-void CLuaMain::InitSecurity()
+bool CLuaMain::OpenMainLuaState(LuaContextUseFlags useFlags)
 {
-    // Disable dangerous Lua Os library functions
-    static const luaL_reg osfuncs[] =
-    {
-        { "execute", CLuaUtilDefs::DisabledFunction },
-        { "rename", CLuaUtilDefs::DisabledFunction },
-        { "remove", CLuaUtilDefs::DisabledFunction },
-        { "exit", CLuaUtilDefs::DisabledFunction },
-        { "getenv", CLuaUtilDefs::DisabledFunction },
-        { "tmpname", CLuaUtilDefs::DisabledFunction },
-        { "setlocale", CLuaUtilDefs::DisabledFunction },
-        { NULL, NULL }
-    };
-    luaL_register(m_luaVM, "os", osfuncs);
+    if (m_mainLuaState != nullptr)
+        return false;
 
-    lua_register(m_luaVM, "dofile", CLuaUtilDefs::DisabledFunction);
-    lua_register(m_luaVM, "loadfile", CLuaUtilDefs::DisabledFunction);
-    lua_register(m_luaVM, "require", CLuaUtilDefs::DisabledFunction);
-    lua_register(m_luaVM, "loadlib", CLuaUtilDefs::DisabledFunction);
-    lua_register(m_luaVM, "getfenv", CLuaUtilDefs::DisabledFunction);
-    lua_register(m_luaVM, "newproxy", CLuaUtilDefs::DisabledFunction);
-}
+    lua_State* luaState = lua_open();
 
-void CLuaMain::InitClasses(lua_State* luaVM)
-{
-    lua_initclasses(luaVM);
-    lua_newclass(luaVM);
+    if (luaState == nullptr)
+        return false;
 
-    // Vector and Matrix classes
-    CLuaVector4Defs ::AddClass(luaVM);
-    CLuaVector3Defs ::AddClass(luaVM);
-    CLuaVector2Defs ::AddClass(luaVM);
-    CLuaMatrixDefs ::AddClass(luaVM);
-
-    // OOP based classes
-    if (!m_bEnableOOP)
-        return;
-
-    CLuaElementDefs ::AddClass(luaVM);            // keep this at the top because inheritance
-    CLuaAccountDefs ::AddClass(luaVM);
-    CLuaACLDefs ::AddClass(luaVM);
-    CLuaBanDefs ::AddClass(luaVM);
-    CLuaBlipDefs ::AddClass(luaVM);
-    CLuaColShapeDefs ::AddClass(luaVM);
-    CLuaDatabaseDefs ::AddClass(luaVM);
-    CLuaMarkerDefs ::AddClass(luaVM);
-    CLuaObjectDefs ::AddClass(luaVM);
-    CLuaPedDefs ::AddClass(luaVM);
-    CLuaPickupDefs ::AddClass(luaVM);
-    CLuaPlayerDefs ::AddClass(luaVM);
-    CLuaRadarAreaDefs ::AddClass(luaVM);
-    CLuaResourceDefs ::AddClass(luaVM);
-    CLuaTeamDefs ::AddClass(luaVM);
-    CLuaTextDefs ::AddClass(luaVM);
-    CLuaTimerDefs ::AddClass(luaVM);
-    CLuaVehicleDefs ::AddClass(luaVM);
-    CLuaWaterDefs ::AddClass(luaVM);
-
-    CLuaShared::AddClasses(luaVM);
-}
-
-void CLuaMain::InitVM()
-{
-    assert(!m_luaVM);
-
-    // Create a new VM
-    m_luaVM = lua_open();
-    m_pLuaManager->OnLuaStateOpen(this, m_luaVM);
-
-    // Set the instruction count hook
-    lua_sethook(m_luaVM, InstructionCountHook, LUA_MASKCOUNT, HOOK_INSTRUCTION_COUNT);
+    m_useFlags = useFlags;
+    m_mainLuaState = luaState;
+    m_manager.OnLuaStateOpen(this, luaState);
 
     // Load LUA libraries
-    luaopen_base(m_luaVM);
-    luaopen_math(m_luaVM);
-    luaopen_string(m_luaVM);
-    luaopen_table(m_luaVM);
-    luaopen_debug(m_luaVM);
-    luaopen_utf8(m_luaVM);
-    luaopen_os(m_luaVM);
+    luaopen_base(luaState);
+    luaopen_math(luaState);
+    luaopen_string(luaState);
+    luaopen_table(luaState);
+    luaopen_debug(luaState);
+    luaopen_utf8(luaState);
+    luaopen_os(luaState);
 
     // Initialize security restrictions. Very important to prevent lua trojans and viruses!
-    InitSecurity();
+    ApplyLuaStateSecurity(luaState);
 
     // Registering C functions
-    CLuaCFunctions::RegisterFunctionsWithVM(m_luaVM);
+    CLuaCFunctions::RegisterFunctionsWithVM(luaState);
+
+    if (useFlags.useHttp)
+        CLuaHTTPDefs::LoadFunctions(luaState);
 
     // Create class metatables
-    InitClasses(m_luaVM);
+    lua_initclasses(luaState);
+    // lua_newclass(luaVM);
 
-    // Oli: Don't forget to add new ones to CLuaManager::LoadCFunctions. Thanks!
+    // Vector and Matrix classes
+    CLuaVector4Defs::AddClass(luaState);
+    CLuaVector3Defs::AddClass(luaState);
+    CLuaVector2Defs::AddClass(luaState);
+    CLuaMatrixDefs::AddClass(luaState);
 
-    // create global vars
-    lua_pushelement(m_luaVM, g_pGame->GetMapManager()->GetRootElement());
-    lua_setglobal(m_luaVM, "root");
+    if (useFlags.useOOP)
+        RegisterLuaStateClasses(luaState);
 
-    lua_pushresource(m_luaVM, &m_resource);
-    lua_setglobal(m_luaVM, "resource");
+    // Create global variables
+    lua_pushelement(luaState, g_pGame->GetMapManager()->GetRootElement());
+    lua_setglobal(luaState, "root");
 
-    lua_pushelement(m_luaVM, m_resource.GetElement());
-    lua_setglobal(m_luaVM, "resourceRoot");
+    lua_pushresource(luaState, &m_resource);
+    lua_setglobal(luaState, "resource");
+
+    lua_pushelement(luaState, m_resource.GetElement());
+    lua_setglobal(luaState, "resourceRoot");
 
     // Load pre-loaded lua scripts
     LoadScript(EmbeddedLuaCode::exports);
     LoadScript(EmbeddedLuaCode::coroutine_debug);
     LoadScript(EmbeddedLuaCode::inspect);
+
+    // Register C functions from plugins
+    if (useFlags.usePlugins)
+        m_manager.RegisterPluginFunctions(luaState);
+
+    // Set the instruction count hook
+    lua_sethook(luaState, InstructionCountHook, LUA_MASKCOUNT, HOOK_INSTRUCTION_COUNT);
+
+    return true;
 }
 
-// Special function(s) that are only visible to HTMLD scripts
-void CLuaMain::RegisterHTMLDFunctions()
+bool CLuaMain::CloseMainLuaState()
 {
-    CLuaHTTPDefs::LoadFunctions(m_luaVM);
+    if (m_mainLuaState == nullptr)
+        return false;
+
+    // Delete all timers and events
+    m_timerManager->RemoveAllTimers();
+
+    // Delete all keybinds
+    list<CPlayer*>::const_iterator iter = m_playerManager->IterBegin();
+    for (; iter != m_playerManager->IterEnd(); ++iter)
+    {
+        if ((*iter)->IsJoined())
+            (*iter)->GetKeyBinds()->RemoveAllKeys(this);
+    }
+
+    // Close our Lua state
+    CLuaFunctionRef::RemoveLuaFunctionRefsForVM(m_mainLuaState);
+    m_manager.OnLuaStateClose(this, m_mainLuaState);
+    lua_close(m_mainLuaState);
+    m_mainLuaState = nullptr;
+    return true;
 }
 
 void CLuaMain::InstructionCountHook(lua_State* luaVM, lua_Debug* pDebug)
@@ -242,6 +204,57 @@ void CLuaMain::InstructionCountHook(lua_State* luaVM, lua_Debug* pDebug)
     }
 }
 
+void CLuaMain::ApplyLuaStateSecurity(lua_State* luaState)
+{
+    // Disable dangerous Lua Os library functions
+    static const luaL_reg osfuncs[] =
+    {
+        { "execute", CLuaUtilDefs::DisabledFunction },
+        { "rename", CLuaUtilDefs::DisabledFunction },
+        { "remove", CLuaUtilDefs::DisabledFunction },
+        { "exit", CLuaUtilDefs::DisabledFunction },
+        { "getenv", CLuaUtilDefs::DisabledFunction },
+        { "tmpname", CLuaUtilDefs::DisabledFunction },
+        { "setlocale", CLuaUtilDefs::DisabledFunction },
+        { NULL, NULL }
+    };
+    luaL_register(luaState, "os", osfuncs);
+
+    lua_register(luaState, "dofile", CLuaUtilDefs::DisabledFunction);
+    lua_register(luaState, "loadfile", CLuaUtilDefs::DisabledFunction);
+    lua_register(luaState, "require", CLuaUtilDefs::DisabledFunction);
+    lua_register(luaState, "loadlib", CLuaUtilDefs::DisabledFunction);
+    lua_register(luaState, "getfenv", CLuaUtilDefs::DisabledFunction);
+    lua_register(luaState, "newproxy", CLuaUtilDefs::DisabledFunction);
+}
+
+void CLuaMain::RegisterLuaStateClasses(lua_State* luaState)
+{
+    // NOTE: Element class always comes first due to class inheritance
+    CLuaElementDefs::AddClass(luaState);
+
+    CLuaAccountDefs::AddClass(luaState);
+    CLuaACLDefs::AddClass(luaState);
+    CLuaBanDefs::AddClass(luaState);
+    CLuaBlipDefs::AddClass(luaState);
+    CLuaColShapeDefs::AddClass(luaState);
+    CLuaDatabaseDefs::AddClass(luaState);
+    CLuaMarkerDefs::AddClass(luaState);
+    CLuaObjectDefs::AddClass(luaState);
+    CLuaPedDefs::AddClass(luaState);
+    CLuaPickupDefs::AddClass(luaState);
+    CLuaPlayerDefs::AddClass(luaState);
+    CLuaRadarAreaDefs::AddClass(luaState);
+    CLuaResourceDefs::AddClass(luaState);
+    CLuaTeamDefs::AddClass(luaState);
+    CLuaTextDefs::AddClass(luaState);
+    CLuaTimerDefs::AddClass(luaState);
+    CLuaVehicleDefs::AddClass(luaState);
+    CLuaWaterDefs::AddClass(luaState);
+
+    CLuaShared::AddClasses(luaState);
+}
+
 bool CLuaMain::LoadScriptFromBuffer(const char* cpInBuffer, unsigned int uiInSize, const char* szFileName)
 {
     SString strNiceFilename = ConformResourcePath(szFileName);
@@ -252,7 +265,7 @@ bool CLuaMain::LoadScriptFromBuffer(const char* cpInBuffer, unsigned int uiInSiz
     if (!g_pRealNetServer->DeobfuscateScript(cpInBuffer, uiInSize, &cpBuffer, &uiSize, strNiceFilename))
     {
         SString strMessage("%s is invalid. Please re-compile at http://luac.mtasa.com/", *strNiceFilename);
-        g_pGame->GetScriptDebugging()->LogError(m_luaVM, "Loading script failed: %s", *strMessage);
+        g_pGame->GetScriptDebugging()->LogError(m_mainLuaState, "Loading script failed: %s", *strMessage);
         return false;
     }
 
@@ -261,7 +274,7 @@ bool CLuaMain::LoadScriptFromBuffer(const char* cpInBuffer, unsigned int uiInSiz
     // If compiled script, make sure correct chunkname is embedded
     CLuaShared::EmbedChunkName(strNiceFilename, &cpBuffer, &uiSize);
 
-    if (m_luaVM)
+    if (m_mainLuaState)
     {
         // Are we not marked as UTF-8 already, and not precompiled?
         std::string strUTFScript;
@@ -279,41 +292,41 @@ bool CLuaMain::LoadScriptFromBuffer(const char* cpInBuffer, unsigned int uiInSiz
             if (uiSize != strUTFScript.size())
             {
                 uiSize = strUTFScript.size();
-                g_pGame->GetScriptDebugging()->LogWarning(m_luaVM, "Script '%s' is not encoded in UTF-8.  Loading as ANSI...", strNiceFilename.c_str());
+                g_pGame->GetScriptDebugging()->LogWarning(m_mainLuaState, "Script '%s' is not encoded in UTF-8.  Loading as ANSI...", strNiceFilename.c_str());
             }
         }
         else
             strUTFScript = std::string(cpBuffer, uiSize);
 
         // Run the script
-        if (CLuaMain::LuaLoadBuffer(m_luaVM, bUTF8 ? cpBuffer : strUTFScript.c_str(), uiSize, SString("@%s", *strNiceFilename)))
+        if (CLuaMain::LuaLoadBuffer(m_mainLuaState, bUTF8 ? cpBuffer : strUTFScript.c_str(), uiSize, SString("@%s", *strNiceFilename)))
         {
             // Print the error
-            std::string strRes = lua_tostring(m_luaVM, -1);
+            std::string strRes = lua_tostring(m_mainLuaState, -1);
             if (strRes.length())
             {
                 CLogger::LogPrintf("SCRIPT ERROR: %s\n", strRes.c_str());
-                g_pGame->GetScriptDebugging()->LogError(m_luaVM, "Loading script failed: %s", strRes.c_str());
+                g_pGame->GetScriptDebugging()->LogError(m_mainLuaState, "Loading script failed: %s", strRes.c_str());
             }
             else
             {
                 CLogger::LogPrint("SCRIPT ERROR: Unknown\n");
-                g_pGame->GetScriptDebugging()->LogError(m_luaVM, "Loading script failed for unknown reason");
+                g_pGame->GetScriptDebugging()->LogError(m_mainLuaState, "Loading script failed for unknown reason");
             }
         }
         else
         {
             ResetInstructionCount();
-            int luaSavedTop = lua_gettop(m_luaVM);
-            int iret = this->PCall(m_luaVM, 0, LUA_MULTRET, 0);
+            int luaSavedTop = lua_gettop(m_mainLuaState);
+            int iret = this->PCall(m_mainLuaState, 0, LUA_MULTRET, 0);
             if (iret == LUA_ERRRUN || iret == LUA_ERRMEM)
             {
-                SString strRes = lua_tostring(m_luaVM, -1);
-                g_pGame->GetScriptDebugging()->LogPCallError(m_luaVM, strRes, true);
+                SString strRes = lua_tostring(m_mainLuaState, -1);
+                g_pGame->GetScriptDebugging()->LogPCallError(m_mainLuaState, strRes, true);
             }
             // Cleanup any return values
-            if (lua_gettop(m_luaVM) > luaSavedTop)
-                lua_settop(m_luaVM, luaSavedTop);
+            if (lua_gettop(m_mainLuaState) > luaSavedTop)
+                lua_settop(m_mainLuaState, luaSavedTop);
             return true;
         }
     }
@@ -323,27 +336,27 @@ bool CLuaMain::LoadScriptFromBuffer(const char* cpInBuffer, unsigned int uiInSiz
 
 bool CLuaMain::LoadScript(const char* szLUAScript)
 {
-    if (m_luaVM && !IsLuaCompiledScript(szLUAScript, strlen(szLUAScript)))
+    if (m_mainLuaState && !IsLuaCompiledScript(szLUAScript, strlen(szLUAScript)))
     {
         // Run the script
-        if (!CLuaMain::LuaLoadBuffer(m_luaVM, szLUAScript, strlen(szLUAScript), NULL))
+        if (!CLuaMain::LuaLoadBuffer(m_mainLuaState, szLUAScript, strlen(szLUAScript), NULL))
         {
             ResetInstructionCount();
-            int luaSavedTop = lua_gettop(m_luaVM);
-            int iret = this->PCall(m_luaVM, 0, LUA_MULTRET, 0);
+            int luaSavedTop = lua_gettop(m_mainLuaState);
+            int iret = this->PCall(m_mainLuaState, 0, LUA_MULTRET, 0);
             if (iret == LUA_ERRRUN || iret == LUA_ERRMEM)
             {
-                std::string strRes = ConformResourcePath(lua_tostring(m_luaVM, -1));
-                g_pGame->GetScriptDebugging()->LogPCallError(m_luaVM, strRes);
+                std::string strRes = ConformResourcePath(lua_tostring(m_mainLuaState, -1));
+                g_pGame->GetScriptDebugging()->LogPCallError(m_mainLuaState, strRes);
             }
             // Cleanup any return values
-            if (lua_gettop(m_luaVM) > luaSavedTop)
-                lua_settop(m_luaVM, luaSavedTop);
+            if (lua_gettop(m_mainLuaState) > luaSavedTop)
+                lua_settop(m_mainLuaState, luaSavedTop);
         }
         else
         {
-            std::string strRes = ConformResourcePath(lua_tostring(m_luaVM, -1));
-            g_pGame->GetScriptDebugging()->LogError(m_luaVM, "Loading in-line script failed: %s", strRes.c_str());
+            std::string strRes = ConformResourcePath(lua_tostring(m_mainLuaState, -1));
+            g_pGame->GetScriptDebugging()->LogError(m_mainLuaState, "Loading in-line script failed: %s", strRes.c_str());
         }
     }
     else
@@ -352,42 +365,19 @@ bool CLuaMain::LoadScript(const char* szLUAScript)
     return true;
 }
 
-// TODO: Check the purpose of this function
-void CLuaMain::Start()
-{
-}
-
-void CLuaMain::UnloadScript()
-{
-    // Delete all timers and events
-    m_pLuaTimerManager->RemoveAllTimers();
-
-    // Delete all keybinds
-    list<CPlayer*>::const_iterator iter = m_pPlayerManager->IterBegin();
-    for (; iter != m_pPlayerManager->IterEnd(); ++iter)
-    {
-        if ((*iter)->IsJoined())
-            (*iter)->GetKeyBinds()->RemoveAllKeys(this);
-    }
-
-    // End the lua vm
-    if (m_luaVM)
-    {
-        CLuaFunctionRef::RemoveLuaFunctionRefsForVM(m_luaVM);
-        m_pLuaManager->OnLuaStateClose(this, m_luaVM);
-        lua_close(m_luaVM);
-        m_luaVM = NULL;
-    }
-}
-
 void CLuaMain::DoPulse()
 {
-    m_pLuaTimerManager->DoPulse(this);
+    m_timerManager->DoPulse(this);
 }
 
 const std::string& CLuaMain::GetResourceName() const
 {
     return m_resource.GetName();
+}
+
+unsigned long CLuaMain::GetTimerCount() const
+{
+    return m_timerManager->GetTimerCount();
 }
 
 unsigned long CLuaMain::GetElementCount() const
@@ -558,8 +548,8 @@ const SString& CLuaMain::GetFunctionTag(int iLuaFunction)
         SString strText;
 
         lua_Debug debugInfo;
-        lua_getref(m_luaVM, iLuaFunction);
-        if (lua_getinfo(m_luaVM, ">nlS", &debugInfo))
+        lua_getref(m_mainLuaState, iLuaFunction);
+        if (lua_getinfo(m_mainLuaState, ">nlS", &debugInfo))
         {
             // Make sure this function isn't defined in a string
             if (debugInfo.source[0] == '@')

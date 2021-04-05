@@ -535,7 +535,7 @@ void CResourceManager::OnPlayerJoin(CPlayer& Player)
 //
 void CResourceManager::NotifyResourceVMOpen(CResource* pResource, CLuaMain* luaContext)
 {
-    lua_State* luaState = luaContext->GetLuaState();
+    lua_State* luaState = luaContext->GetMainLuaState();
     assert(luaState);
     assert(!MapContains(m_ResourceLuaStateMap, pResource));
     assert(!MapContains(m_LuaStateResourceMap, luaState));
@@ -548,7 +548,7 @@ void CResourceManager::NotifyResourceVMOpen(CResource* pResource, CLuaMain* luaC
 //
 void CResourceManager::NotifyResourceVMClose(CResource* pResource, CLuaMain* luaContext)
 {
-    lua_State* luaState = luaContext->GetLuaState();
+    lua_State* luaState = luaContext->GetMainLuaState();
     assert(luaState);
     assert(MapContains(m_ResourceLuaStateMap, pResource));
     assert(MapContains(m_LuaStateResourceMap, luaState));
@@ -605,7 +605,7 @@ CResource* CResourceManager::GetResourceFromLuaState(lua_State* luaVM)
         CLuaMain*  luaContext = pResource->GetLuaContext();
         if (luaContext)
         {
-            assert(luaVM == luaContext->GetLuaState());
+            assert(luaVM == luaContext->GetMainLuaState());
             return pResource;
         }
     }

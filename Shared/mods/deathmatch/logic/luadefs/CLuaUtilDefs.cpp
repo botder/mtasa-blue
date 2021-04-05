@@ -217,7 +217,7 @@ int CLuaUtilDefs::IsOOPEnabled(lua_State* luaVM)
     CLuaMain* luaContext = m_pLuaManager->GetLuaContext(luaVM);
 
     if (luaContext)
-        lua_pushboolean(luaVM, luaContext->IsOOPEnabled());
+        lua_pushboolean(luaVM, luaContext->IsUsingOOP());
     else
         lua_pushnil(luaVM);
 

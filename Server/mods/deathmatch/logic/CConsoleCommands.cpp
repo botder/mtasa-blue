@@ -81,7 +81,7 @@ bool CConsoleCommands::StartResource(CConsole* pConsole, const char* szArguments
     }
     else if (resourceState == ResourceState::LOADED)
     {
-        if (g_pGame->GetResourceManager().StartResource(resource))
+        if (resource->Start())
         {
             pEchoClient->SendConsole(SString{"start: Resource '%.*s' started", resourceName.size(), resourceName.data()});
         }
@@ -129,7 +129,7 @@ bool CConsoleCommands::RestartResource(CConsole* pConsole, const char* szArgumen
     {
         pEchoClient->SendConsole(SString{"restart: Resource is loaded, but has errors (%s)", resource->GetLastError().c_str()});
     }
-    else if (resourceState == ResourceState::STARTING || resourceState == ResourceState::RUNNING)
+    else if (resourceState == ResourceState::RUNNING)
     {
         if (resource->IsProtected())
         {
@@ -141,8 +141,8 @@ bool CConsoleCommands::RestartResource(CConsole* pConsole, const char* szArgumen
             }
         }
 
-        g_pGame->GetResourceManager().QueueResourceCommand(resource, ResourceCommand::RESTART);
         pEchoClient->SendConsole("restart: Resource restarting...");
+        resource->Restart();
     }
     else
     {
@@ -159,24 +159,18 @@ bool CConsoleCommands::RefreshResources(CConsole* pConsole, const char* szArgume
     if (szArguments != nullptr)
         resourceName = std::string_view{szArguments};
 
+    ResourceManager& resourceManager = g_pGame->GetResourceManager();
+
     if (resourceName.empty())
     {
         BeginConsoleOutputCapture(pEchoClient);
-        g_pGame->GetResourceManager().Refresh(false);
+        resourceManager.RefreshResources(false);
         EndConsoleOutputCapture(pEchoClient, "refresh completed");
     }
     else
     {
-        Resource* resource = g_pGame->GetResourceManager().GetResourceFromName(resourceName);
-
-        if (resource == nullptr)
-        {
-            pEchoClient->SendConsole("refresh: Resource could not be found");
-            return true;
-        }
-
         BeginConsoleOutputCapture(pEchoClient);
-        g_pGame->GetResourceManager().RefreshResource(resource);
+        resourceManager.RefreshResource(resourceName);
         EndConsoleOutputCapture(pEchoClient, "refresh completed");
     }
     
@@ -186,7 +180,7 @@ bool CConsoleCommands::RefreshResources(CConsole* pConsole, const char* szArgume
 bool CConsoleCommands::RefreshAllResources(CConsole* pConsole, const char* szArguments, CClient* pClient, CClient* pEchoClient)
 {
     BeginConsoleOutputCapture(pEchoClient);
-    g_pGame->GetResourceManager().Refresh(true);
+    g_pGame->GetResourceManager().RefreshResources(true);
     EndConsoleOutputCapture(pEchoClient, "refreshall completed");
     return true;
 }
@@ -360,7 +354,8 @@ bool CConsoleCommands::StopResource(CConsole* pConsole, const char* szArguments,
         return true;
     }
 
-    Resource* resource = g_pGame->GetResourceManager().GetResourceFromName(resourceName);
+    ResourceManager& resourceManager = g_pGame->GetResourceManager();
+    Resource*        resource = resourceManager.GetResourceFromName(resourceName);
 
     if (resource == nullptr)
     {
@@ -377,7 +372,7 @@ bool CConsoleCommands::StopResource(CConsole* pConsole, const char* szArguments,
     {
         pEchoClient->SendConsole(SString{"stop: Resource is loaded, but has errors (%s)", resource->GetLastError().c_str()});
     }
-    else if (resourceState == ResourceState::STARTING || resourceState == ResourceState::RUNNING)
+    else if (resourceState == ResourceState::RUNNING)
     {
         if (resource->IsProtected())
         {
@@ -389,8 +384,8 @@ bool CConsoleCommands::StopResource(CConsole* pConsole, const char* szArguments,
             }
         }
 
-        g_pGame->GetResourceManager().QueueResourceCommand(resource, ResourceCommand::STOP);
         pEchoClient->SendConsole("stop: Resource stopping");
+        resource->Stop();
     }
     else
     {
@@ -409,8 +404,8 @@ bool CConsoleCommands::StopAllResources(CConsole* pConsole, const char* szArgume
         return false;
     }
 
-    g_pGame->GetResourceManager().QueueStopEverything();
     pEchoClient->SendConsole("stopall: Stopping all resources");
+    g_pGame->GetResourceManager().StopResources();
     return true;
 }
 

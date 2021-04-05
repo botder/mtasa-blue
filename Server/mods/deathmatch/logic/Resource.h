@@ -47,26 +47,14 @@ namespace mtasa
 
     struct ResourceUseFlags
     {
-        std::uint8_t useDependencies : 1;
-        std::uint8_t useServerConfigs : 1;
-        std::uint8_t useServerMaps : 1;
-        std::uint8_t useServerScripts : 1;
-        std::uint8_t useHttpFiles : 1;
-        std::uint8_t useClientConfigs : 1;
-        std::uint8_t useClientScripts : 1;
-        std::uint8_t useClientFiles : 1;
-
-        ResourceUseFlags()
-            : useDependencies{true},
-              useServerConfigs{true},
-              useServerMaps{true},
-              useServerScripts{true},
-              useHttpFiles{true},
-              useClientConfigs{true},
-              useClientScripts{true},
-              useClientFiles{true}
-        {
-        }
+        bool useDependencies = true;
+        bool useServerConfigs = true;
+        bool useServerMaps = true;
+        bool useServerScripts = true;
+        bool useHttpFiles = true;
+        bool useClientConfigs = true;
+        bool useClientScripts = true;
+        bool useClientFiles = true;
     };
 
     class Resource
@@ -75,6 +63,9 @@ namespace mtasa
         Resource(ResourceManager& resourceManager);
 
         virtual ~Resource();
+
+        ResourceManager&       GetManager() { return m_resourceManager; }
+        const ResourceManager& GetManager() const { return m_resourceManager; }
 
         void SetSourceDirectory(const std::filesystem::path& sourceDirectory)
         {
@@ -139,6 +130,7 @@ namespace mtasa
         virtual bool Load();
         virtual bool Start(ResourceUseFlags useFlags = {});
         virtual bool Stop();
+        bool         Restart();
 
         // This function doesn't verify the absolute file path against resource directory escape attacks
         std::filesystem::path GetUnsafeAbsoluteFilePath(const std::filesystem::path& relativePath);
@@ -169,7 +161,7 @@ namespace mtasa
         std::size_t GetFileCount() const { return 0; }
 
         // ??????????
-        bool CheckFunctionRightCache(lua_CFunction f, bool* pbOutAllowed) { return true; }
+        bool CheckFunctionRightCache(lua_CFunction f, bool* pbOutAllowed) { return false; }
         void UpdateFunctionRightCache(lua_CFunction f, bool bAllowed) {}
         void GetAclRequests(std::vector<SAclRequest>& outResultList) {}
         bool HandleAclRequestListCommand(bool bDetail) { return true; }
@@ -269,7 +261,7 @@ namespace mtasa
     private:
         bool PreProcessResourceFiles();
 
-        void CreateLuaContext();
+        bool CreateLuaContext();
         void ReleaseLuaContext();
 
         bool IsDuplicateServerFile(const std::filesystem::path& relativeFilePath);

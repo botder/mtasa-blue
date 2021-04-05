@@ -257,7 +257,7 @@ const SLuaDebugInfo& CScriptDebugging::GetLuaDebugInfo(lua_State* luaVM)
 
     // Get most recently used Lua state, if we have none
     if (!luaVM && !m_LuaMainStack.empty())
-        luaVM = m_LuaMainStack.back()->GetLuaState();
+        luaVM = m_LuaMainStack.back()->GetMainLuaState();
 
     // Lua oop found at level 4 added one just in case it somehow ends up deeper due to nested calls
     for (int level = 1; level <= 5; level++)

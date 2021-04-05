@@ -143,7 +143,7 @@ int CLuaCryptDefs::PasswordHash(lua_State* luaVM)
 
                                 if (hash.empty())
                                 {
-                                    m_pScriptDebugging->LogCustom(luaContext->GetLuaState(), "Invalid value for field 'salt'");
+                                    m_pScriptDebugging->LogCustom(luaContext->GetMainLuaState(), "Invalid value for field 'salt'");
                                     arguments.PushBoolean(false);
                                 }
                                 else

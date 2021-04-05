@@ -35,13 +35,10 @@ void CLuaModuleManager::SetScriptDebugging(CScriptDebugging* pScriptDebugging)
     m_pScriptDebugging = pScriptDebugging;
 }
 
-void CLuaModuleManager::RegisterFunctions(lua_State* luaVM)
+void CLuaModuleManager::RegisterFunctions(lua_State* luaVM) const
 {
-    list<CLuaModule*>::iterator iter = m_Modules.begin();
-    for (; iter != m_Modules.end(); ++iter)
-    {
-        (*iter)->_RegisterFunctions(luaVM);
-    }
+    for (const CLuaModule* luaModule : m_Modules)
+        luaModule->_RegisterFunctions(luaVM);
 }
 
 void CLuaModuleManager::DoPulse()
@@ -88,7 +85,7 @@ int CLuaModuleManager::LoadModule(const char* szShortFileName, const char* szFil
     {
         for (CLuaMain* luaContext : *m_pLuaManager)
         {
-            lua_State* luaState = luaContext->GetLuaState();
+            lua_State* luaState = luaContext->GetMainLuaState();
             pModule->_RegisterFunctions(luaState);
         }
     }

@@ -63,7 +63,17 @@ namespace mtasa
         CreateResourceCacheReadme(resourceCacheDirectory);
     }
 
-    ResourceManager::~ResourceManager() = default;
+    ResourceManager::~ResourceManager()
+    {
+        for (Resource* resource : std::exchange(m_resources, {}))
+        {
+            resource->Stop();
+            resource->Unload();
+            OnResourceDelete(resource);
+            RecycleResourceUniqueIdentifier(resource->GetUniqueIdentifier());
+            delete resource;
+        }
+    }
 
     Resource* ResourceManager::GetResourceFromName(std::string_view resourceName)
     {
@@ -120,9 +130,17 @@ namespace mtasa
         // TODO: Add implementation here
     }
 
-    void ResourceManager::StopResources()
+    void ResourceManager::RefreshResource(Resource* resource)
     {
         // TODO: Add implementation here
+    }
+
+    void ResourceManager::StopResources()
+    {
+        for (Resource* resource : m_resources)
+        {
+            resource->Stop();
+        }
     }
 
     void ResourceManager::ProcessQueue()
@@ -199,9 +217,7 @@ namespace mtasa
             resource->SetUniqueIdentifier(uniqueId);
             resource->SetRemoteIdentifier(remoteId);
 
-            m_nameToResource[resource->GetName()] = resource;
-            m_uniqueIdToResource[uniqueId] = resource;
-            m_remoteIdToResource[remoteId] = resource;
+            OnResourceCreate(resource);
 
             if (!resource->Load())
             {
@@ -211,23 +227,21 @@ namespace mtasa
             }
             else
             {
-                m_resources.push_back(resource);
                 m_numLoadedResources++;
             }
-
-            // TODO: Unleak this
-            // m_remoteIdToResource.erase(resource->GetRemoteIdentifier());
-            // m_uniqueIdToResource.erase(resource->GetUniqueIdentifier());
-            // m_nameToResource.erase(resource->GetName());
-            // 
-            // CIdArray::PushUniqueId(this, EIdClass::RESOURCE, resource->GetUniqueIdentifier());
-            // delete resource;
         }
     }
 
-    bool ResourceManager::DeleteResource(Resource* resource) { return false; }
+    bool ResourceManager::DeleteResource(Resource* resource)
+    {
+        // TODO: Add implementation here
+        return false;
+    }
 
-    void ResourceManager::OnPlayerJoin(CPlayer& player) {}
+    void ResourceManager::OnPlayerJoin(CPlayer& player)
+    {
+        // TODO: Add implementation here
+    }
 
     SArrayId ResourceManager::GenerateResourceUniqueIdentifier()
     {
@@ -250,7 +264,24 @@ namespace mtasa
 
     void ResourceManager::RecycleResourceRemoteIdentifier(std::uint16_t id)
     {
-        m_unusedResourceRemoteIdentifiers.push_back(id);
+        m_unusedResourceRemoteIdentifiers.push_back(id); }
+
+    void ResourceManager::OnResourceCreate(Resource* resource)
+    {
+        m_resources.push_back(resource);
+        m_nameToResource[resource->GetName()] = resource;
+        m_uniqueIdToResource[resource->GetUniqueIdentifier()] = resource;
+        m_remoteIdToResource[resource->GetRemoteIdentifier()] = resource;
+    }
+
+    void ResourceManager::OnResourceDelete(Resource* resource)
+    {
+        m_remoteIdToResource.erase(resource->GetRemoteIdentifier());
+        m_uniqueIdToResource.erase(resource->GetUniqueIdentifier());
+        m_nameToResource.erase(resource->GetName());
+
+        if (!m_resources.empty())
+            m_resources.erase(std::remove(m_resources.begin(), m_resources.end(), resource));
     }
 
     void CreateDirectories(const fs::path& directory)

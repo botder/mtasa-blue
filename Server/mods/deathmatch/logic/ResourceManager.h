@@ -74,6 +74,7 @@ namespace mtasa
 
         void RefreshResources(bool includeRunningResources);
         void RefreshResource(std::string_view resourceName);
+        void RefreshResource(Resource* resourceName);
         void StopResources();
 
         void ProcessQueue();
@@ -106,6 +107,9 @@ namespace mtasa
 
         std::uint16_t GenerateResourceRemoteIdentifier();
         void          RecycleResourceRemoteIdentifier(std::uint16_t id);
+
+        void OnResourceCreate(Resource* resource);
+        void OnResourceDelete(Resource* resource);
 
     private:
         std::filesystem::path m_resourcesDirectory;

@@ -16,7 +16,7 @@ namespace mtasa
 {
     void ResourceRefreshCommand::Execute() const
     {
-        resource->GetManager().RefreshResource(resource->GetName());
+        resource->GetManager().RefreshResource(resource);
     }
 
     void ResourceRestartCommand::Execute() const

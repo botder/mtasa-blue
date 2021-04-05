@@ -273,6 +273,9 @@ CGame::~CGame()
     // Stop networking
     Stop();
 
+    // Stop the resource manager
+    m_resourceManager.reset();
+
     // Stop async task scheduler
     SAFE_DELETE(m_pAsyncTaskScheduler);
 

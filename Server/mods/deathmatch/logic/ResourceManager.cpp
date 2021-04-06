@@ -51,7 +51,7 @@ namespace mtasa
 
     ResourceManager::ResourceManager(const fs::path& baseDirectory)
     {
-        m_unusedResourceRemoteIdentifiers.resize(INVALID_RESOURCE_NET_ID - 1);
+        m_unusedResourceRemoteIdentifiers.resize(INVALID_RESOURCE_REMOTE_ID - 1);
         std::generate(m_unusedResourceRemoteIdentifiers.rbegin(), m_unusedResourceRemoteIdentifiers.rend(), NumberGenerator<std::uint16_t>{});
 
         m_resourcesDirectory = baseDirectory / RESOURCES_DIRECTORY_NAME;
@@ -178,15 +178,17 @@ namespace mtasa
 
             if (scriptId == INVALID_ARRAY_ID)
             {
-                // LOG ERROR HERE
+                CLogger::LogPrintf("Loading of resource '%.*s' failed: unique script identifiers exhausted\n", location.resourceName.size(),
+                                   location.resourceName.c_str());
                 break;
             }
 
             std::uint16_t remoteId = GenerateResourceRemoteIdentifier();
 
-            if (remoteId == INVALID_RESOURCE_NET_ID)
+            if (remoteId == INVALID_RESOURCE_REMOTE_ID)
             {
-                // LOG ERROR HERE
+                CLogger::LogPrintf("Loading of resource '%.*s' failed: unique remote identifiers exhausted\n", location.resourceName.size(),
+                                   location.resourceName.c_str());
                 break;
             }
 
@@ -255,7 +257,7 @@ namespace mtasa
     std::uint16_t ResourceManager::GenerateResourceRemoteIdentifier()
     {
         if (m_unusedResourceRemoteIdentifiers.empty())
-            return INVALID_RESOURCE_NET_ID;
+            return INVALID_RESOURCE_REMOTE_ID;
 
         std::uint16_t remoteIdentifier = m_unusedResourceRemoteIdentifiers.back();
         m_unusedResourceRemoteIdentifiers.pop_back();

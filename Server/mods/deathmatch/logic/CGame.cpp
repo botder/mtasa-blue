@@ -3897,7 +3897,7 @@ void CGame::Packet_PlayerScreenShot(CPlayerScreenShotPacket& Packet)
                     info.llTimeStamp = Packet.m_llServerGrabTime;
                     info.uiTotalBytes = Packet.m_uiTotalBytes;
                     info.usTotalParts = Packet.m_usTotalParts;
-                    info.usResourceNetId = Packet.m_resource ? Packet.m_resource->GetRemoteIdentifier() : INVALID_RESOURCE_NET_ID;
+                    info.usResourceNetId = Packet.m_resource ? Packet.m_resource->GetRemoteIdentifier() : INVALID_RESOURCE_REMOTE_ID;
                     info.strTag = Packet.m_strTag;
                 }
             }

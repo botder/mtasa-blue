@@ -17,7 +17,7 @@
 #include <filesystem>
 #include <LowercaseUtility.h>
 
-constexpr std::uint16_t INVALID_RESOURCE_NET_ID = -1;
+constexpr std::uint16_t INVALID_RESOURCE_REMOTE_ID = -1;
 
 struct lua_State;
 

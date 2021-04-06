@@ -270,7 +270,7 @@ int CLuaFunctionDefs::TriggerLatentClientEvent(lua_State* luaVM)
     {
         // Get resource details if transfer should be stopped when resource stops
         CLuaMain* luaContext = nullptr;
-        ushort    usResourceNetId = INVALID_RESOURCE_NET_ID;
+        ushort    usResourceNetId = INVALID_RESOURCE_REMOTE_ID;
 
         if (!bPersist)
         {

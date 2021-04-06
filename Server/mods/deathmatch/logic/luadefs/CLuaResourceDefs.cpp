@@ -264,7 +264,7 @@ int CLuaResourceDefs::deleteResource(lua_State* luaVM)
 
         if (resourceState == ResourceState::NOT_LOADED || resourceState == ResourceState::LOADED)
         {
-            lua_pushboolean(luaVM, m_resourceManager->DeleteResource(resource));
+            lua_pushboolean(luaVM, m_resourceManager->MoveResourceToTrash(resource));
             return 1;
         }
         else

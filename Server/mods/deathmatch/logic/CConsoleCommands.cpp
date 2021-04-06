@@ -169,9 +169,16 @@ bool CConsoleCommands::RefreshResources(CConsole* pConsole, const char* szArgume
     }
     else
     {
-        BeginConsoleOutputCapture(pEchoClient);
-        resourceManager.RefreshResource(resourceName);
-        EndConsoleOutputCapture(pEchoClient, "refresh completed");
+        if (Resource* resource = resourceManager.GetResourceFromName(resourceName); resource != nullptr)
+        {
+            BeginConsoleOutputCapture(pEchoClient);
+            resourceManager.RefreshResource(resource);
+            EndConsoleOutputCapture(pEchoClient, "refresh completed");
+        }
+        else
+        {
+            pEchoClient->SendConsole("refresh: Resource was not found");
+        }
     }
     
     return true;

@@ -381,8 +381,7 @@ namespace mtasa
         // Call the onResourceStop event on this resource element
         CLuaArguments Arguments;
         Arguments.PushResource(this);
-        Arguments.PushBoolean(false);
-        // TODO: Arguments.PushBoolean(m_bDestroyed);
+        Arguments.PushBoolean(m_wasDeleted);
         m_element->CallEvent("onResourceStop", Arguments);
 
         /* Remove us from the resources we depend on (they might unload too first)
@@ -545,6 +544,18 @@ namespace mtasa
     }
 
     bool Resource::RemoveInfoValue(const std::string& key, bool persistChanges) { return false; }
+
+    bool Resource::Exists() const
+    {
+        std::error_code errorCode;
+        return fs::is_regular_file(m_metaFile, errorCode);
+    }
+
+    bool Resource::HasChanged() const
+    {
+        // TODO: Add implementation here
+        return false;
+    }
 
     bool Resource::ContainsSourceFile(const fs::path& relativePath) const
     {

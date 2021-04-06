@@ -63,15 +63,15 @@ namespace mtasa
         CreateResourceCacheReadme(resourceCacheDirectory);
     }
 
-    ResourceManager::~ResourceManager()
+    ResourceManager::~ResourceManager() = default;
+
+    void ResourceManager::Shutdown()
     {
+        m_commandsQueue.clear();
+
         for (Resource* resource : std::exchange(m_resources, {}))
         {
-            resource->Stop();
-            resource->Unload();
-            OnResourceDelete(resource);
-            RecycleResourceScriptIdentifier(resource->GetScriptIdentifier());
-            delete resource;
+            DestroyResource(resource);
         }
     }
 
@@ -101,17 +101,20 @@ namespace mtasa
 
     CreateResourceError ResourceManager::TryCreateResource(std::string_view resourceName, std::string_view relativeOrganizationPath, Resource*& newResource)
     {
+        // TODO: Add implementation here
         return CreateResourceError::DUMMY_FAIL;
     }
 
     RenameResourceError ResourceManager::TryRenameResource(Resource* resource, std::string_view newResourceName, std::string_view newGroupDirectory)
     {
+        // TODO: Add implementation here
         return RenameResourceError::DUMMY_FAIL;
     }
 
     CloneResourceError ResourceManager::TryCloneResource(Resource* resource, std::string_view newResourceName, std::string_view newGroupDirectory,
                                                          Resource*& newResource)
     {
+        // TODO: Add implementation here
         return CloneResourceError::DUMMY_FAIL;
     }
 
@@ -122,17 +125,39 @@ namespace mtasa
 
     void ResourceManager::RefreshResources(bool includeRunningResources)
     {
-        // TODO: Add implementation here
-    }
+        std::vector<Resource*> resources{m_resources};
 
-    void ResourceManager::RefreshResource(std::string_view resourceName)
-    {
-        // TODO: Add implementation here
+        for (Resource* resource : resources)
+        {
+            if (g_pServerInterface->IsRequestingExit())
+                return;
+
+            if (!includeRunningResources && resource->IsRunning())
+                continue;
+
+            RefreshResource(resource);
+        }
+
+        SearchForNewResources();
     }
 
     void ResourceManager::RefreshResource(Resource* resource)
     {
-        // TODO: Add implementation here
+        if (resource->GetState() == ResourceState::NOT_LOADED)
+        {
+            // Try to load resource again, because it had loading issues last time
+            LoadErroneousResource(resource);
+        }
+        else if (!resource->Exists())
+        {
+            // Destroy resource, because the source files don't exist anymore
+            DestroyZombieResource(resource);
+        }
+        else if (resource->HasChanged())
+        {
+            // Reload resource, because the source files have changed
+            ReloadChangedResource(resource);
+        }
     }
 
     void ResourceManager::StopResources()
@@ -167,74 +192,7 @@ namespace mtasa
         }
     }
 
-    void ResourceManager::ScanForResources()
-    {
-        ResourceNameToLocations resourceCandidates = LocateResources(m_resourcesDirectory);
-        ResourceLocations       resourceLocations = FilterForUniqueResources(resourceCandidates);
-
-        for (ResourceLocation& location : resourceLocations)
-        {
-            SArrayId scriptId = GenerateResourceScriptIdentifier();
-
-            if (scriptId == INVALID_ARRAY_ID)
-            {
-                CLogger::LogPrintf("Loading of resource '%.*s' failed: unique script identifiers exhausted\n", location.resourceName.size(),
-                                   location.resourceName.c_str());
-                break;
-            }
-
-            std::uint16_t remoteId = GenerateResourceRemoteIdentifier();
-
-            if (remoteId == INVALID_RESOURCE_REMOTE_ID)
-            {
-                CLogger::LogPrintf("Loading of resource '%.*s' failed: unique remote identifiers exhausted\n", location.resourceName.size(),
-                                   location.resourceName.c_str());
-                break;
-            }
-
-            Resource* resource = nullptr;
-
-            if (location.type == ResourceLocationType::DIRECTORY)
-            {
-                resource = new Resource{*this};
-                resource->SetSourceDirectory(location.absolutePath);
-                resource->SetDynamicDirectory(location.absolutePath);
-            }
-            else if (location.type == ResourceLocationType::ZIP)
-            {
-                auto archiveResource = new ArchiveResource{*this};
-                archiveResource->SetSourceDirectory(m_archiveDecompressionDirectory / location.resourceName);
-                archiveResource->SetDynamicDirectory(fs::path{location.absolutePath}.replace_extension());
-                archiveResource->SetSourceArchive(location.absolutePath);
-
-                resource = archiveResource;
-            }
-            else
-            {
-                continue;
-            }
-
-            resource->SetName(location.resourceName);
-            resource->SetGroupDirectory(location.relativePath);
-            resource->SetScriptIdentifier(scriptId);
-            resource->SetRemoteIdentifier(remoteId);
-
-            OnResourceCreate(resource);
-
-            if (!resource->Load())
-            {
-                CLogger::LogPrintf("Loading of resource '%.*s' (sid: %lx, rid: %u) failed\n", location.resourceName.size(), location.resourceName.c_str(),
-                                   scriptId, remoteId);
-                m_numErroneousResources++;
-            }
-            else
-            {
-                m_numLoadedResources++;
-            }
-        }
-    }
-
-    bool ResourceManager::DeleteResource(Resource* resource)
+    bool ResourceManager::MoveResourceToTrash(Resource* resource)
     {
         // TODO: Add implementation here
         return false;
@@ -247,7 +205,8 @@ namespace mtasa
 
     SArrayId ResourceManager::GenerateResourceScriptIdentifier()
     {
-        return CIdArray::PopUniqueId(this, EIdClass::RESOURCE); }
+        return CIdArray::PopUniqueId(this, EIdClass::RESOURCE);
+    }
 
     void ResourceManager::RecycleResourceScriptIdentifier(SArrayId id)
     {
@@ -266,24 +225,219 @@ namespace mtasa
 
     void ResourceManager::RecycleResourceRemoteIdentifier(std::uint16_t id)
     {
-        m_unusedResourceRemoteIdentifiers.push_back(id); }
-
-    void ResourceManager::OnResourceCreate(Resource* resource)
-    {
-        m_resources.push_back(resource);
-        m_nameToResource[resource->GetName()] = resource;
-        m_scriptIdToResource[resource->GetScriptIdentifier()] = resource;
-        m_remoteIdToResource[resource->GetRemoteIdentifier()] = resource;
+        m_unusedResourceRemoteIdentifiers.push_back(id);
     }
 
-    void ResourceManager::OnResourceDelete(Resource* resource)
+    void ResourceManager::DestroyResource(Resource* resource)
     {
-        m_remoteIdToResource.erase(resource->GetRemoteIdentifier());
-        m_scriptIdToResource.erase(resource->GetScriptIdentifier());
+        if (resource->GetState() != ResourceState::NOT_LOADED)
+        {
+            resource->Stop();
+            resource->Unload();
+            --m_numLoadedResources;
+        }
+        else
+        {
+            --m_numErroneousResources;
+        }
+
+        SArrayId scriptId = resource->GetScriptIdentifier();
+        RecycleResourceScriptIdentifier(scriptId);
+
+        std::uint16_t remoteId = resource->GetRemoteIdentifier();
+        RecycleResourceRemoteIdentifier(remoteId);
+
+        m_remoteIdToResource.erase(remoteId);
+        m_scriptIdToResource.erase(scriptId);
         m_nameToResource.erase(resource->GetName());
 
         if (!m_resources.empty())
+        {
             m_resources.erase(std::remove(m_resources.begin(), m_resources.end(), resource));
+        }
+
+        if (!m_commandsQueue.empty())
+        {
+            for (auto iter = m_commandsQueue.begin(); iter != m_commandsQueue.end(); /* manual increment */)
+            {
+                if ((*iter)->resource == resource)
+                    iter = m_commandsQueue.erase(iter);
+                else
+                    ++iter;
+            }
+        }
+
+        delete resource;
+    }
+
+    void ResourceManager::SearchForNewResources()
+    {
+        ResourceNameToLocations resourceCandidates = LocateResources(m_resourcesDirectory);
+
+        if (resourceCandidates.empty())
+            return;
+
+        ResourceLocations resourceLocations = FilterForUniqueResources(resourceCandidates);
+
+        if (resourceLocations.empty())
+            return;
+
+        bool isServerStarting = !g_pGame->IsServerFullyUp();
+
+        for (ResourceLocation& location : resourceLocations)
+        {
+            if (g_pServerInterface->IsRequestingExit())
+                return;
+
+            Resource* resource = GetResourceFromName(location.resourceName);
+
+            if (resource != nullptr)
+                continue;
+
+            SArrayId scriptId = GenerateResourceScriptIdentifier();
+
+            if (scriptId == INVALID_ARRAY_ID)
+            {
+                CLogger::LogPrintf("Loading of resource '%.*s' failed: unique script identifiers exhausted\n", location.resourceName.size(),
+                                   location.resourceName.c_str());
+                continue;
+            }
+
+            std::uint16_t remoteId = GenerateResourceRemoteIdentifier();
+
+            if (remoteId == INVALID_RESOURCE_REMOTE_ID)
+            {
+                CLogger::LogPrintf("Loading of resource '%.*s' failed: unique remote identifiers exhausted\n", location.resourceName.size(),
+                                   location.resourceName.c_str());
+                continue;
+            }
+
+            if (location.type == ResourceLocationType::DIRECTORY)
+            {
+                resource = new Resource{*this};
+                resource->SetSourceDirectory(location.absolutePath);
+                resource->SetDynamicDirectory(location.absolutePath);
+            }
+            else if (location.type == ResourceLocationType::ZIP)
+            {
+                auto archiveResource = new ArchiveResource{*this};
+                archiveResource->SetSourceDirectory(m_archiveDecompressionDirectory / location.resourceName);
+                archiveResource->SetDynamicDirectory(fs::path{location.absolutePath}.replace_extension());
+                archiveResource->SetSourceArchive(location.absolutePath);
+
+                resource = archiveResource;
+            }
+            else
+            {
+                RecycleResourceScriptIdentifier(scriptId);
+                RecycleResourceRemoteIdentifier(remoteId);
+                continue;
+            }
+
+            resource->SetName(location.resourceName);
+            resource->SetGroupDirectory(location.relativePath);
+            resource->SetScriptIdentifier(scriptId);
+            resource->SetRemoteIdentifier(remoteId);
+
+            m_resources.push_back(resource);
+            m_nameToResource[location.resourceName] = resource;
+            m_scriptIdToResource[scriptId] = resource;
+            m_remoteIdToResource[remoteId] = resource;
+
+            if (resource->Load())
+            {
+                if (!isServerStarting)
+                    CLogger::LogPrintf("New resource '%.*s' loaded\n", location.resourceName.size(), location.resourceName.c_str());
+
+                ++m_numLoadedResources;
+            }
+            else
+            {
+                CLogger::LogPrintf("Loading of resource '%.*s' failed\n", location.resourceName.size(), location.resourceName.c_str());
+                ++m_numErroneousResources;
+            }
+        }
+    }
+
+    void ResourceManager::DestroyZombieResource(Resource* resource)
+    {
+        const std::string& resourceName = resource->GetName();
+
+        if (resource->IsRunning())
+        {
+            resource->SetWasDeleted();
+            CLogger::ErrorPrintf("Resource '%.*s' has been removed while running! Stopping resource.\n", resourceName.size(), resourceName.c_str());
+        }
+        else
+        {
+            CLogger::LogPrintf("Resource '%.*s' has been removed\n", resourceName.size(), resourceName.c_str());
+        }
+
+        DestroyResource(resource);
+    }
+
+    void ResourceManager::ReloadChangedResource(Resource* resource)
+    {
+        const std::string& resourceName = resource->GetName();
+
+        bool wasRunning = false;
+        bool wasErroneous = false;
+
+        if (resource->IsRunning())
+        {
+            wasRunning = true;
+
+            CLogger::LogPrintf("Resource '%.*s' changed while running, reloading and restarting\n", resourceName.size(), resourceName.c_str());
+
+            resource->Stop();
+            resource->Unload();
+        }
+        else if (resource->GetState() == ResourceState::LOADED)
+        {
+            CLogger::LogPrintf("Resource '%.*s' changed, reloading\n", resourceName.size(), resourceName.c_str());
+
+            resource->Unload();
+        }
+        else
+        {
+            wasErroneous = true;
+        }
+
+        if (resource->Load())
+        {
+            if (wasErroneous)
+            {
+                --m_numErroneousResources;
+                ++m_numLoadedResources;
+            }
+
+            if (wasRunning)
+            {
+                resource->Start();
+            }
+        }
+        else
+        {
+            if (!wasErroneous)
+            {
+                ++m_numErroneousResources;
+                --m_numLoadedResources;
+            }
+
+            CLogger::LogPrintf("Loading of resource '%.*s' failed\n", resourceName.size(), resourceName.c_str());
+        }
+    }
+
+    void ResourceManager::LoadErroneousResource(Resource* resource)
+    {
+        if (resource->Load())
+        {
+            --m_numErroneousResources;
+            ++m_numLoadedResources;
+
+            const std::string& resourceName = resource->GetName();
+            CLogger::LogPrintf("New resource '%.*s' loaded\n", resourceName.size(), resourceName.c_str());
+        }
     }
 
     void CreateDirectories(const fs::path& directory)

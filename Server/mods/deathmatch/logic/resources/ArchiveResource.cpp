@@ -34,6 +34,18 @@ namespace mtasa
                                              const std::string_view& fileName, std::byte* buffer, unsigned int bufferSize);
     static std::string_view   DecompressionErrorToString(DecompressionError decompressionError);
 
+    bool ArchiveResource::Exists() const
+    {
+        std::error_code errorCode;
+        return fs::is_regular_file(m_sourceArchive, errorCode) && Resource::Exists();
+    }
+
+    bool ArchiveResource::HasChanged() const
+    {
+        // TODO: Add implementation here
+        return Resource::HasChanged();
+    }
+
     bool ArchiveResource::ContainsSourceFile(const fs::path& relativePath) const
     {
         return m_archiveSourceFiles.find(relativePath) != m_archiveSourceFiles.end();

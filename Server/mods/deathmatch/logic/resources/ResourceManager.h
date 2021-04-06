@@ -56,6 +56,8 @@ namespace mtasa
         ResourceManager(const std::filesystem::path& baseDirectory);
         ~ResourceManager();
 
+        void Shutdown();
+
         Resource* GetResourceFromName(std::string_view resourceName);
         Resource* GetResourceFromScriptIdentifier(SArrayId id);
         Resource* GetResourceFromRemoteIdentifier(std::uint16_t id);
@@ -69,19 +71,18 @@ namespace mtasa
         void QueueRefresh(bool includeRunningResources)
         {
             m_isRefreshQueued = true;
-            m_includeRunningResourcesRefresh = includeRunningResources;
+
+            if (includeRunningResources)
+                m_includeRunningResourcesRefresh = true;
         }
 
         void RefreshResources(bool includeRunningResources);
-        void RefreshResource(std::string_view resourceName);
         void RefreshResource(Resource* resourceName);
         void StopResources();
 
         void ProcessQueue();
 
-        void ScanForResources();
-
-        bool DeleteResource(Resource* resource);
+        bool MoveResourceToTrash(Resource* resource);
 
         void OnPlayerJoin(CPlayer& player);
 
@@ -95,6 +96,7 @@ namespace mtasa
         void        AddBlockedFileReason(std::string_view fileHash, std::string_view reason) {}
         std::string GetBlockedFileReason(const std::string& fileHash) { return ""; }
 
+    public:
         std::vector<Resource*>::iterator begin() { return m_resources.begin(); }
         std::vector<Resource*>::iterator end() { return m_resources.end(); }
 
@@ -108,8 +110,13 @@ namespace mtasa
         std::uint16_t GenerateResourceRemoteIdentifier();
         void          RecycleResourceRemoteIdentifier(std::uint16_t id);
 
-        void OnResourceCreate(Resource* resource);
-        void OnResourceDelete(Resource* resource);
+        void DestroyResource(Resource* resource);
+
+    private:
+        void SearchForNewResources();
+        void DestroyZombieResource(Resource* resource);
+        void ReloadChangedResource(Resource* resource);
+        void LoadErroneousResource(Resource* resource);
 
     private:
         std::filesystem::path m_resourcesDirectory;

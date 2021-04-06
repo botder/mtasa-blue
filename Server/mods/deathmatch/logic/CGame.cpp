@@ -274,6 +274,7 @@ CGame::~CGame()
     Stop();
 
     // Stop the resource manager
+    m_resourceManager->Shutdown();
     m_resourceManager.reset();
 
     // Stop async task scheduler
@@ -751,7 +752,7 @@ bool CGame::Start(int iArgumentCount, char* szArguments[])
 
     fs::path baseDirectory = fs::path{g_pServerInterface->GetServerModPath(), fs::path::format::generic_format}.make_preferred();
     m_resourceManager = std::make_unique<ResourceManager>(baseDirectory);
-    m_resourceManager->ScanForResources();
+    m_resourceManager->RefreshResources(false);
 
     if (g_pServerInterface->IsRequestingExit())
         return false;

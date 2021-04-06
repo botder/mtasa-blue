@@ -119,6 +119,8 @@ namespace mtasa
         virtual bool Load();
         virtual bool Start(ResourceUseFlags useFlags = {});
         virtual bool Stop();
+        virtual bool Exists() const;
+        virtual bool HasChanged() const;
 
         bool Restart(ResourceUseFlags useFlags = {}) { return Stop() && Start(useFlags); }
 
@@ -150,6 +152,8 @@ namespace mtasa
         std::size_t GetDependentCount() const { return 0; }
         std::size_t GetFileCount() const { return 0; }
 
+        void SetWasDeleted() { m_wasDeleted = true; }
+
         // ??????????
         bool CheckFunctionRightCache(lua_CFunction f, bool* pbOutAllowed) { return false; }
         void UpdateFunctionRightCache(lua_CFunction f, bool bAllowed) {}
@@ -173,6 +177,7 @@ namespace mtasa
         bool m_syncElementsToClients = false;
         bool m_isProtected = false;
         bool m_isPersistent = false;
+        bool m_wasDeleted = false;
 
         ResourceUseFlags m_useFlags;
 

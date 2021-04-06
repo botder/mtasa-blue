@@ -32,6 +32,10 @@ namespace mtasa
 
         bool Start(ResourceUseFlags useFlags = {}) override { return DecompressArchive() && Resource::Start(useFlags); }
 
+        bool Exists() const override;
+
+        bool HasChanged() const override;
+
     protected:
         bool ContainsSourceFile(const std::filesystem::path& relativePath) const override;
 

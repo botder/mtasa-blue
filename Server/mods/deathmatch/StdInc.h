@@ -254,7 +254,6 @@ struct SAclRequest;
 #include "CRegistryManager.h"
 #include "CRegistry.h"
 #include "CScriptDebugging.h"
-#include "CSettings.h"
 #include "CSpatialDatabase.h"
 #include "CTeam.h"
 #include "CTeamManager.h"

@@ -133,6 +133,7 @@ class CWeaponDamageCheckPacket;
 
 namespace mtasa
 {
+    class ScriptSettings;
     class ResourceManager;
 }
 
@@ -234,6 +235,7 @@ public:
     CDebugHookManager*               GetDebugHookManager() { return m_pDebugHookManager; }
     CPedManager*                     GetPedManager() { return m_pPedManager; }
     mtasa::ResourceManager&          GetResourceManager() { return *m_resourceManager; }
+    mtasa::ScriptSettings&           GetScriptSettings() { return *m_scriptSettings; }
     CMarkerManager*                  GetMarkerManager() { return m_pMarkerManager; }
     CBlipManager*                    GetBlipManager() { return m_pBlipManager; }
     CPickupManager*                  GetPickupManager() { return m_pPickupManager; }
@@ -242,7 +244,6 @@ public:
     CElementDeleter*                 GetElementDeleter() { return &m_ElementDeleter; }
     CConnectHistory*                 GetJoinFloodProtector() { return &m_FloodProtect; }
     CHTTPD*                          GetHTTPD() { return m_pHTTPD; }
-    CSettings*                       GetSettings() { return m_pSettings; }
     CAccessControlListManager*       GetACLManager() { return m_pACLManager; }
     CBanManager*                     GetBanManager() { return m_pBanManager; }
     CRemoteCalls*                    GetRemoteCalls() { return m_pRemoteCalls; }
@@ -551,7 +552,6 @@ private:
     CDebugHookManager*         m_pDebugHookManager;
     CPedManager*               m_pPedManager;
     CAccessControlListManager* m_pACLManager;
-    CSettings*                 m_pSettings;
     CZoneNames*                m_pZoneNames;
     ASE*                       m_pASE;
     CHandlingManager*          m_pHandlingManager;
@@ -560,6 +560,7 @@ private:
     CWaterManager*             m_pWaterManager;
 
     std::unique_ptr<mtasa::ResourceManager> m_resourceManager;
+    std::unique_ptr<mtasa::ScriptSettings>  m_scriptSettings;
 
     CWeaponStatManager*      m_pWeaponStatsManager;
     CBuildingRemovalManager* m_pBuildingRemovalManager;

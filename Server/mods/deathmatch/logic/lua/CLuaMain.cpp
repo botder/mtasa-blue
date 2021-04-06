@@ -13,7 +13,6 @@
 #include "Resource.h"
 #include "ResourceFile.h"
 #include "CLuaTimerManager.h"
-#include "CResourceConfigItem.h"
 #include "CLuaFunctionDefs.h"
 #include <clocale>
 

@@ -16,6 +16,7 @@
 #include "../utils/CFunctionUseLogger.h"
 #include "Resource.h"
 #include "ResourceManager.h"
+#include "ScriptSettings.h"
 #include "net/SimHeaders.h"
 #include <signal.h>
 
@@ -136,7 +137,6 @@ CGame::CGame() : m_FloodProtect(4, 30000, 30000)            // Max of 4 connecti
     m_pRegisteredCommands = NULL;
     m_pZoneNames = NULL;
     m_pGroups = NULL;
-    m_pSettings = NULL;
     m_pRemoteCalls = NULL;
     m_pRPCFunctions = NULL;
     m_pLanBroadcast = NULL;
@@ -322,7 +322,7 @@ CGame::~CGame()
     SAFE_DELETE(m_pGroups);
     SAFE_DELETE(m_pZoneNames);
     SAFE_DELETE(m_pASE);
-    SAFE_DELETE(m_pSettings);
+    m_scriptSettings.reset();
     SAFE_DELETE(m_pRPCFunctions);
     SAFE_DELETE(m_pWaterManager);
     SAFE_DELETE(m_pWeaponStatsManager);
@@ -753,13 +753,11 @@ bool CGame::Start(int iArgumentCount, char* szArguments[])
     m_resourceManager = std::make_unique<ResourceManager>(baseDirectory);
     m_resourceManager->ScanForResources();
 
-    // todo: refresh
-
     if (g_pServerInterface->IsRequestingExit())
         return false;
 
-    // TODO:
-    // m_pSettings = new CSettings(m_pResourceManager);
+    m_scriptSettings = std::make_unique<ScriptSettings>(*m_resourceManager);
+    m_scriptSettings->LoadSettings(baseDirectory / "settings.xml");
 
     m_pUnoccupiedVehicleSync = new CUnoccupiedVehicleSync(m_pPlayerManager, m_pVehicleManager);
     m_pPedSync = new CPedSync(m_pPlayerManager, m_pPedManager);

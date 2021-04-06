@@ -13,14 +13,15 @@
 #include <ehs/ehs.h>
 
 class CAccount;
-class CResource;
 
 namespace mtasa
 {
+    class Resource;
+
     class ResourceFileRouter final : public EHS
     {
     public:
-        ResourceFileRouter(CResource& resource);
+        ResourceFileRouter(Resource& resource);
         ~ResourceFileRouter();
 
         ResponseCode HandleRequest(HttpRequest* ipoHttpRequest, HttpResponse* ipoHttpResponse) override;
@@ -32,6 +33,6 @@ namespace mtasa
         bool IsHttpAccessAllowed(CAccount* account);
 
     private:
-        CResource& m_resource;
+        Resource& m_resource;
     };
 }

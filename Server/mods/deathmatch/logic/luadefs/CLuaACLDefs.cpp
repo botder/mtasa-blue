@@ -10,7 +10,7 @@
  *****************************************************************************/
 
 #include "StdInc.h"
-#include "CResource.h"
+// #include "CResource.h"
 
 // Helper function
 static const char* GetResourceName(lua_State* luaVM)
@@ -881,7 +881,8 @@ int CLuaACLDefs::aclGroupRemoveObject(lua_State* luaVM)
 int CLuaACLDefs::hasObjectPermissionTo(lua_State* luaVM)
 {
     //  bool hasObjectPermissionTo ( string / element theObject, string theAction [, bool defaultPermission = true ] )
-    CResource*                                 pResource = NULL;
+
+    class CResource*                           pResource = NULL;
     CElement*                                  pElement = NULL;
     SString                                    strObject;
     SString                                    strRightName;
@@ -905,7 +906,7 @@ int CLuaACLDefs::hasObjectPermissionTo(lua_State* luaVM)
         if (pResource)
         {
             // Grab the resource's name
-            strObject = pResource->GetName();
+            strObject = "todo"; // pResource->GetName();
             eObjectType = CAccessControlListGroupObject::OBJECT_TYPE_RESOURCE;
         }
         else if (pElement)

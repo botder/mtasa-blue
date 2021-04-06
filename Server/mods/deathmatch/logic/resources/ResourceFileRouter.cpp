@@ -10,14 +10,13 @@
 
 #include "StdInc.h"
 #include "ResourceFileRouter.h"
-#include "CResource.h"
-#include "CResourceHTMLItem.h"
+#include "Resource.h"
 
 namespace mtasa
 {
-    ResourceFileRouter::ResourceFileRouter(CResource& resource) : m_resource{resource}
+    ResourceFileRouter::ResourceFileRouter(Resource& resource) : m_resource{resource}
     {
-        g_pGame->GetHTTPD()->RegisterEHS(this, resource.m_strResourceName.c_str());
+        g_pGame->GetHTTPD()->RegisterEHS(this, resource.GetName().c_str());
         m_oEHSServerParameters["norouterequest"] = true;
         RegisterEHS(this, "call");
     }
@@ -25,7 +24,7 @@ namespace mtasa
     ResourceFileRouter::~ResourceFileRouter()
     {
         UnregisterEHS("call");
-        g_pGame->GetHTTPD()->UnregisterEHS(m_resource.m_strResourceName.c_str());
+        g_pGame->GetHTTPD()->UnregisterEHS(m_resource.GetName().c_str());
     }
 
     ResponseCode ResourceFileRouter::HandleRequest(HttpRequest* ipoHttpRequest, HttpResponse* ipoHttpResponse)
@@ -65,6 +64,7 @@ namespace mtasa
 
     ResponseCode ResourceFileRouter::HandleFileRequest(HttpRequest* ipoHttpRequest, HttpResponse* ipoHttpResponse, CAccount* account)
     {
+        /*
         const char* szUrl = ipoHttpRequest->sOriginalUri.c_str();
         std::string strFile;
 
@@ -160,7 +160,7 @@ namespace mtasa
                     }
                 }
             }
-        }
+        }*/
 
         ipoHttpResponse->SetBody("error: resource file not found", 31);
         return HTTPRESPONSECODE_404_NOTFOUND;
@@ -173,6 +173,7 @@ namespace mtasa
             return g_pGame->GetHTTPD()->RequestLogin(ipoHttpRequest, ipoHttpResponse);
         }
 
+        /*
 #define MAX_INPUT_VARIABLES 25
 
         if (m_resource.m_eState != EResourceState::Running)
@@ -427,7 +428,7 @@ namespace mtasa
 
             ipoHttpResponse->SetBody(strJSON.c_str(), length);
             return HTTPRESPONSECODE_200_OK;
-        }
+        }*/
 
         ipoHttpResponse->SetBody("error: not found", 17);
         return HTTPRESPONSECODE_200_OK;
@@ -436,10 +437,11 @@ namespace mtasa
     bool ResourceFileRouter::IsHttpAccessAllowed(CAccount* account)
     {
         CAccessControlListManager* pACLManager = g_pGame->GetACLManager();
+        const std::string&         resourceName = m_resource.GetName();
 
         // New way
         // Check for "resource.<name>.http" being explicitly allowed
-        if (pACLManager->CanObjectUseRight(account->GetName(), CAccessControlListGroupObject::OBJECT_TYPE_USER, m_resource.m_strResourceName + ".http",
+        if (pACLManager->CanObjectUseRight(account->GetName(), CAccessControlListGroupObject::OBJECT_TYPE_USER, (resourceName + ".http"s).c_str(),
                                            CAccessControlListRight::RIGHT_TYPE_RESOURCE, false))
         {
             return true;
@@ -453,7 +455,7 @@ namespace mtasa
             return false;
         }
         // Check for "resource.<name>" being explicitly denied
-        if (!pACLManager->CanObjectUseRight(account->GetName(), CAccessControlListGroupObject::OBJECT_TYPE_USER, m_resource.m_strResourceName,
+        if (!pACLManager->CanObjectUseRight(account->GetName(), CAccessControlListGroupObject::OBJECT_TYPE_USER, resourceName.c_str(),
                                             CAccessControlListRight::RIGHT_TYPE_RESOURCE, true))
         {
             return false;
@@ -467,7 +469,7 @@ namespace mtasa
             return true;
         }
         // Check for "resource.<name>" being explicitly allowed
-        if (pACLManager->CanObjectUseRight(account->GetName(), CAccessControlListGroupObject::OBJECT_TYPE_USER, m_resource.m_strResourceName,
+        if (pACLManager->CanObjectUseRight(account->GetName(), CAccessControlListGroupObject::OBJECT_TYPE_USER, resourceName.c_str(),
                                            CAccessControlListRight::RIGHT_TYPE_RESOURCE, false))
         {
             return true;

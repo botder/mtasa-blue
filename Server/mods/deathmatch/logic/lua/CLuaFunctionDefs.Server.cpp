@@ -11,6 +11,7 @@
 
 #include "StdInc.h"
 #include "Resource.h"
+#include "ScriptSettings.h"
 
 #define MIN_SERVER_REQ_CALLREMOTE_QUEUE_NAME                "1.5.3-9.11270"
 #define MIN_SERVER_REQ_CALLREMOTE_CONNECTION_ATTEMPTS       "1.3.0-9.04563"
@@ -441,7 +442,7 @@ int CLuaFunctionDefs::Set(lua_State* luaVM)
             std::string strJSON;
             Args.WriteToJSONString(strJSON);
 
-            if (g_pGame->GetSettings()->Set(resource->GetName().c_str(), strSetting.c_str(), strJSON.c_str()))
+            // if (g_pGame->GetScriptSettings()->Set(resource->GetName().c_str(), strSetting.c_str(), strJSON.c_str()))
             {
                 lua_pushboolean(luaVM, true);
                 return 1;
@@ -480,7 +481,8 @@ int CLuaFunctionDefs::Get(lua_State* luaVM)
             }
 
             // Get the setting
-            CXMLNode *pSubNode, *pNode = g_pGame->GetSettings()->Get(resource->GetName().c_str(), strSetting.c_str(), bDeleteNode);
+            // CXMLNode *pSubNode, *pNode = g_pGame->GetScriptSettings()->Get(resource->GetName().c_str(), strSetting.c_str(), bDeleteNode);
+            CXMLNode *pSubNode = nullptr, *pNode = nullptr;
 
             // Only proceed if we have a valid node
             if (pNode)

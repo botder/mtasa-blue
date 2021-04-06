@@ -809,7 +809,7 @@ json_object* CLuaArgument::WriteToJSONObject(bool bSerialize, CFastHashMap<CLuaA
             CElement* pElement = GetElement();
 
             auto      resourceIdentifier = reinterpret_cast<SArrayId>(GetUserData());
-            Resource* resource = g_pGame->GetResourceManager().GetResourceFromUniqueIdentifier(resourceIdentifier);
+            Resource* resource = g_pGame->GetResourceManager().GetResourceFromScriptIdentifier(resourceIdentifier);
 
             // Elements are dynamic, so storing them is potentially unsafe
             if (pElement && bSerialize)
@@ -908,7 +908,7 @@ char* CLuaArgument::WriteToString(char* szBuffer, int length)
             CElement* pElement = GetElement();
 
             auto      resourceIdentifier = reinterpret_cast<SArrayId>(GetUserData());
-            Resource* resource = g_pGame->GetResourceManager().GetResourceFromUniqueIdentifier(resourceIdentifier);
+            Resource* resource = g_pGame->GetResourceManager().GetResourceFromScriptIdentifier(resourceIdentifier);
 
             if (pElement)
             {
@@ -1041,7 +1041,7 @@ bool CLuaArgument::ReadFromJSONObject(json_object* object, std::vector<CLuaArgum
 
                             if (resource != nullptr)
                             {
-                                ReadScriptID(resource->GetUniqueIdentifier());
+                                ReadScriptID(resource->GetScriptIdentifier());
                             }
                             else
                             {

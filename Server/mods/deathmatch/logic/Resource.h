@@ -82,8 +82,8 @@ namespace mtasa
 
         const std::string& GetLastError() const { return m_lastError; }
 
-        void     SetUniqueIdentifier(SArrayId id) { m_uniqueIdentifier = id; }
-        SArrayId GetUniqueIdentifier() const { return m_uniqueIdentifier; }
+        void     SetScriptIdentifier(SArrayId id) { m_scriptIdentifier = id; }
+        SArrayId GetScriptIdentifier() const { return m_scriptIdentifier; }
 
         void          SetRemoteIdentifier(std::uint16_t id) { m_remoteIdentifier = id; }
         std::uint16_t GetRemoteIdentifier() const { return m_remoteIdentifier; }
@@ -176,7 +176,7 @@ namespace mtasa
 
         ResourceUseFlags m_useFlags;
 
-        SArrayId      m_uniqueIdentifier = INVALID_ARRAY_ID;
+        SArrayId      m_scriptIdentifier = INVALID_ARRAY_ID;
         std::uint16_t m_remoteIdentifier = 0xFFFF;
 
         std::unordered_map<std::string, std::string> m_info;

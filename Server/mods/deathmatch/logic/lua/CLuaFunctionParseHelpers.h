@@ -270,7 +270,7 @@ inline SString GetClassTypeName(CLuaMatrix*)
 template <class T>
 mtasa::Resource* UserDataCast(mtasa::Resource*, void* ptr, lua_State*)
 {
-    return g_pGame->GetResourceManager().GetResourceFromUniqueIdentifier(reinterpret_cast<SArrayId>(ptr));
+    return g_pGame->GetResourceManager().GetResourceFromScriptIdentifier(reinterpret_cast<SArrayId>(ptr));
 }
 
 //

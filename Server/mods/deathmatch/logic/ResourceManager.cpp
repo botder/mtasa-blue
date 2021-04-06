@@ -70,7 +70,7 @@ namespace mtasa
             resource->Stop();
             resource->Unload();
             OnResourceDelete(resource);
-            RecycleResourceUniqueIdentifier(resource->GetUniqueIdentifier());
+            RecycleResourceScriptIdentifier(resource->GetScriptIdentifier());
             delete resource;
         }
     }
@@ -83,17 +83,17 @@ namespace mtasa
         return nullptr;
     }
 
-    Resource* ResourceManager::GetResourceFromUniqueIdentifier(SArrayId identifier)
+    Resource* ResourceManager::GetResourceFromScriptIdentifier(SArrayId id)
     {
-        if (auto iter = m_uniqueIdToResource.find(identifier); iter != m_uniqueIdToResource.end())
+        if (auto iter = m_scriptIdToResource.find(id); iter != m_scriptIdToResource.end())
             return iter->second;
 
         return nullptr;
     }
 
-    Resource* ResourceManager::GetResourceFromRemoteIdentifier(std::uint16_t identifier)
+    Resource* ResourceManager::GetResourceFromRemoteIdentifier(std::uint16_t id)
     {
-        if (auto iter = m_remoteIdToResource.find(identifier); iter != m_remoteIdToResource.end())
+        if (auto iter = m_remoteIdToResource.find(id); iter != m_remoteIdToResource.end())
             return iter->second;
 
         return nullptr;
@@ -174,9 +174,9 @@ namespace mtasa
 
         for (ResourceLocation& location : resourceLocations)
         {
-            SArrayId uniqueId = GenerateResourceUniqueIdentifier();
+            SArrayId scriptId = GenerateResourceScriptIdentifier();
 
-            if (uniqueId == INVALID_ARRAY_ID)
+            if (scriptId == INVALID_ARRAY_ID)
             {
                 // LOG ERROR HERE
                 break;
@@ -214,15 +214,15 @@ namespace mtasa
 
             resource->SetName(location.resourceName);
             resource->SetGroupDirectory(location.relativePath);
-            resource->SetUniqueIdentifier(uniqueId);
+            resource->SetScriptIdentifier(scriptId);
             resource->SetRemoteIdentifier(remoteId);
 
             OnResourceCreate(resource);
 
             if (!resource->Load())
             {
-                CLogger::LogPrintf("Loading of resource '%.*s' (uid: %lx, rid: %u) failed\n", location.resourceName.size(), location.resourceName.c_str(),
-                                   uniqueId, remoteId);
+                CLogger::LogPrintf("Loading of resource '%.*s' (sid: %lx, rid: %u) failed\n", location.resourceName.size(), location.resourceName.c_str(),
+                                   scriptId, remoteId);
                 m_numErroneousResources++;
             }
             else
@@ -243,11 +243,11 @@ namespace mtasa
         // TODO: Add implementation here
     }
 
-    SArrayId ResourceManager::GenerateResourceUniqueIdentifier()
+    SArrayId ResourceManager::GenerateResourceScriptIdentifier()
     {
         return CIdArray::PopUniqueId(this, EIdClass::RESOURCE); }
 
-    void ResourceManager::RecycleResourceUniqueIdentifier(SArrayId id)
+    void ResourceManager::RecycleResourceScriptIdentifier(SArrayId id)
     {
         CIdArray::PushUniqueId(this, EIdClass::RESOURCE, id);
     }
@@ -270,14 +270,14 @@ namespace mtasa
     {
         m_resources.push_back(resource);
         m_nameToResource[resource->GetName()] = resource;
-        m_uniqueIdToResource[resource->GetUniqueIdentifier()] = resource;
+        m_scriptIdToResource[resource->GetScriptIdentifier()] = resource;
         m_remoteIdToResource[resource->GetRemoteIdentifier()] = resource;
     }
 
     void ResourceManager::OnResourceDelete(Resource* resource)
     {
         m_remoteIdToResource.erase(resource->GetRemoteIdentifier());
-        m_uniqueIdToResource.erase(resource->GetUniqueIdentifier());
+        m_scriptIdToResource.erase(resource->GetScriptIdentifier());
         m_nameToResource.erase(resource->GetName());
 
         if (!m_resources.empty())

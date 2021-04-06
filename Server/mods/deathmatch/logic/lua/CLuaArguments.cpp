@@ -402,7 +402,7 @@ CLuaArgument* CLuaArguments::PushAccount(CAccount* pAccount)
 CLuaArgument* CLuaArguments::PushResource(Resource* resource)
 {
     auto argument = new CLuaArgument;
-    argument->ReadScriptID(resource->GetUniqueIdentifier());
+    argument->ReadScriptID(resource->GetScriptIdentifier());
     m_Arguments.push_back(argument);
     return argument;
 }

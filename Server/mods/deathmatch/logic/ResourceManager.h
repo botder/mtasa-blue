@@ -57,8 +57,8 @@ namespace mtasa
         ~ResourceManager();
 
         Resource* GetResourceFromName(std::string_view resourceName);
-        Resource* GetResourceFromUniqueIdentifier(SArrayId identifier);
-        Resource* GetResourceFromRemoteIdentifier(std::uint16_t identifier);
+        Resource* GetResourceFromScriptIdentifier(SArrayId id);
+        Resource* GetResourceFromRemoteIdentifier(std::uint16_t id);
 
         CreateResourceError TryCreateResource(std::string_view resourceName, std::string_view relativeOrganizationPath, Resource*& newResource);
         RenameResourceError TryRenameResource(Resource* resource, std::string_view newResourceName, std::string_view newGroupDirectory);
@@ -102,8 +102,8 @@ namespace mtasa
         std::vector<Resource*>::const_iterator end() const { return m_resources.end(); }
 
     private:
-        SArrayId GenerateResourceUniqueIdentifier();
-        void     RecycleResourceUniqueIdentifier(SArrayId id);
+        SArrayId GenerateResourceScriptIdentifier();
+        void     RecycleResourceScriptIdentifier(SArrayId id);
 
         std::uint16_t GenerateResourceRemoteIdentifier();
         void          RecycleResourceRemoteIdentifier(std::uint16_t id);
@@ -117,7 +117,7 @@ namespace mtasa
 
         std::unordered_map<std::string, Resource*, LowercaseHash, LowercaseEqual> m_nameToResource;
 
-        std::unordered_map<SArrayId, Resource*>      m_uniqueIdToResource;
+        std::unordered_map<SArrayId, Resource*>      m_scriptIdToResource;
         std::unordered_map<std::uint16_t, Resource*> m_remoteIdToResource;
 
         std::vector<Resource*>     m_resources;

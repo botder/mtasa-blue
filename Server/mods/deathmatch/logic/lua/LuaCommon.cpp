@@ -101,14 +101,11 @@ void lua_pushaccount(lua_State* luaVM, CAccount* pAccount)
 void lua_pushresource(lua_State* luaVM, Resource* resource)
 {
     const char* className = nullptr;
-    CLuaMain*   luaContext = g_pGame->GetLuaManager()->GetLuaContext(luaVM);
 
-    if (luaContext != nullptr && luaContext->IsUsingOOP())
-    {
+    if (resource->IsUsingOOP())
         className = CLuaClassDefs::GetResourceClass(resource);
-    }
 
-    lua_pushobject(luaVM, className, reinterpret_cast<void*>(resource->GetUniqueIdentifier()));
+    lua_pushobject(luaVM, className, reinterpret_cast<void*>(resource->GetScriptIdentifier()));
 }
 
 void lua_pushtextdisplay(lua_State* luaVM, CTextDisplay* pDisplay)

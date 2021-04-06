@@ -28,6 +28,7 @@ project "Deathmatch"
 			"../../../Shared/publicsdk/include",
 			"../../../vendor/sparsehash/src/",
 			"logic",
+			"logic/resources",
 			"utils",
 			"."
 		}
@@ -35,6 +36,10 @@ project "Deathmatch"
 	defines { "SDK_WITH_BCRYPT" }
 	links {
 		"Lua_Server", "sqlite", "ehs", "cryptopp", "pme", "pcre", "json-c", "zip", "zlib", "blowfish_bcrypt",
+	}
+
+	vpaths {
+		["Resources/*"] = {"logic/resources/**.h", "logic/resources/**.cpp"},
 	}
 
 	vpaths {

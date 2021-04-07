@@ -750,8 +750,13 @@ namespace mtasa
             m_info[key] = value;
         }
 
-        return ProcessMetaIncludes(meta) && ProcessMetaMaps(meta) && ProcessMetaFiles(meta) && ProcessMetaScripts(meta) && ProcessMetaHttpFiles(meta) &&
-               ProcessMetaExports(meta) && ProcessMetaConfigs(meta);
+        bool success = (ProcessMetaIncludes(meta) && ProcessMetaMaps(meta) && ProcessMetaFiles(meta) && ProcessMetaScripts(meta) &&
+                        ProcessMetaHttpFiles(meta) && ProcessMetaExports(meta) && ProcessMetaConfigs(meta));
+
+        if (!success && !m_lastError.empty())
+            CLogger::ErrorPrintf("%.*s\n", m_lastError.size(), m_lastError.c_str());
+
+        return success;
     }
 
     bool Resource::ProcessMetaIncludes(const MetaFileParser& meta)
@@ -782,7 +787,6 @@ namespace mtasa
             if (!ContainsSourceFile(item.sourceFile))
             {
                 m_lastError = SString("Couldn't find map %.*s for resource %.*s", filePath.size(), filePath.data(), m_name.size(), m_name.c_str());
-                CLogger::ErrorPrintf("%.*s\n", m_lastError.size(), m_lastError.c_str());
                 return false;
             }
 
@@ -811,7 +815,6 @@ namespace mtasa
             if (!ContainsSourceFile(item.sourceFile))
             {
                 m_lastError = SString("Couldn't find file %.*s for resource %.*s", filePath.size(), filePath.data(), m_name.size(), m_name.c_str());
-                CLogger::ErrorPrintf("%.*s\n", m_lastError.size(), m_lastError.c_str());
                 return false;
             }
 
@@ -819,7 +822,6 @@ namespace mtasa
             {
                 m_lastError = SString("Client file path %.*s for resource %.*s is not supported on Windows", filePath.size(), filePath.data(), m_name.size(),
                                       m_name.c_str());
-                CLogger::ErrorPrintf("%.*s\n", m_lastError.size(), m_lastError.c_str());
                 return false;
             }
 
@@ -852,7 +854,6 @@ namespace mtasa
             if (!ContainsSourceFile(item.sourceFile))
             {
                 m_lastError = SString("Couldn't find script %.*s for resource %.*s", filePath.size(), filePath.data(), m_name.size(), m_name.c_str());
-                CLogger::ErrorPrintf("%.*s\n", m_lastError.size(), m_lastError.c_str());
                 return false;
             }
 
@@ -860,7 +861,6 @@ namespace mtasa
             {
                 m_lastError = SString("Client script path %.*s for resource %.*s is not supported on Windows", filePath.size(), filePath.data(),
                                       m_name.size(), m_name.c_str());
-                CLogger::ErrorPrintf("%.*s\n", m_lastError.size(), m_lastError.c_str());
                 return false;
             }
 
@@ -927,7 +927,6 @@ namespace mtasa
                 std::string filePath = item.sourceFile.string();
 
                 m_lastError = SString("Couldn't find html %.*s for resource %.*s", filePath.size(), filePath.data(), m_name.size(), m_name.c_str());
-                CLogger::ErrorPrintf("%.*s\n", m_lastError.size(), m_lastError.c_str());
                 return false;
             }
 
@@ -1009,7 +1008,6 @@ namespace mtasa
             if (!ContainsSourceFile(item.sourceFile))
             {
                 m_lastError = SString("Couldn't find config %.*s for resource %.*s", filePath.size(), filePath.data(), m_name.size(), m_name.c_str());
-                CLogger::ErrorPrintf("%.*s\n", m_lastError.size(), m_lastError.c_str());
                 return false;
             }
 
@@ -1017,7 +1015,6 @@ namespace mtasa
             {
                 m_lastError = SString("Client config path %.*s for resource %.*s is not supported on Windows", filePath.size(), filePath.data(),
                                       m_name.size(), m_name.c_str());
-                CLogger::ErrorPrintf("%.*s\n", m_lastError.size(), m_lastError.c_str());
                 return false;
             }
 

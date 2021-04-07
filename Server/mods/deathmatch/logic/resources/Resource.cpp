@@ -111,6 +111,7 @@ namespace mtasa
         if (!m_mapRootElement->CallEvent("onResourcePreStart", preStartArguments))
         {
             m_lastError = "Start cancelled by script";
+            CLogger::LogPrintf("Start up of resource %.*s cancelled early by script\n", m_name.size(), m_name.c_str());
             m_state = ResourceState::LOADED;
             return false;
         }
@@ -169,9 +170,10 @@ namespace mtasa
             return false;
         }
 
-        if (!PreProcessResourceFiles())
+        if (!CalculateFileMetaDatum() || IsAnyResourceFileBlocked())
         {
             m_state = ResourceState::LOADED;
+            CLogger::LogPrintf("Start up of resource %.*s cancelled by server\n", m_name.size(), m_name.c_str());
             return false;
         }
 
@@ -333,16 +335,19 @@ namespace mtasa
         {
             m_lastError = "Start up of resource cancelled by script";
             CLogger::LogPrintf("Start up of resource %.*s cancelled by script\n", m_name.size(), m_name.c_str());
-
             Stop();
-
             return false;
         }
 
         // Resource files may have been manipulated in the `onResourceStart` event
         // and we should regenerate checksums for changed files before sending these to every client
         // Clients will otherwise compare the outdated and cached resource file checksums
-        // TODO: ^ above
+        if (!CalculateFileMetaDatum() || IsAnyResourceFileBlocked())
+        {
+            CLogger::LogPrintf("Start up of resource %.*s cancelled by server\n", m_name.size(), m_name.c_str());
+            Stop();
+            return false;
+        }
 
         // TODO:
         // m_pResourceManager->ApplyMinClientRequirement(this, m_strMinClientRequirement);
@@ -576,7 +581,7 @@ namespace mtasa
         return iter == m_sourceDirectory.end();
     }
 
-    bool Resource::PreProcessResourceFiles()
+    bool Resource::CalculateFileMetaDatum()
     {
         if (m_resourceFiles.empty())
             return true;
@@ -606,9 +611,17 @@ namespace mtasa
                 {
                     failure = true;
 
-                    const fs::path& relativePath = file->GetRelativePath();
-                    const std::string& name = file->GetName();
-                    m_lastError = SString("File '%.*s' does not exist or is unreadable", name.size(), name.c_str());
+                    const std::string& fileName = file->GetName();
+
+                    if (file->Exists())
+                    {
+                        m_lastError = SString("File '%.*s' is unreadable", fileName.size(), fileName.c_str());
+                    }
+                    else
+                    {
+                        m_lastError = SString("File '%.*s' does not exist", fileName.size(), fileName.c_str());
+                    }
+                    
                     CLogger::LogPrintf("%.*s\n", m_lastError.size(), m_lastError.c_str());
                 }
             }
@@ -619,17 +632,20 @@ namespace mtasa
             tasks.clear();
         }
 
-        bool hasBlockedFiles = false;
+        return true;
+    }
+
+    bool Resource::IsAnyResourceFileBlocked()
+    {
+        bool result = false;
 
         for (const std::unique_ptr<ResourceFile>& file : m_resourceFiles)
         {
-            // Check if the file is blocked
-            std::string hash = CMD5Hasher::ConvertToHex(file->GetChecksum().md5);
-            std::string reason = m_resourceManager.GetBlockedFileReason(hash);
+            std::string reason = m_resourceManager.GetBlockedFileReason(file->GetChecksum());
 
             if (!reason.empty())
             {
-                hasBlockedFiles = true;
+                result = true;
 
                 const std::string& name = file->GetName();
                 m_lastError = SString("File '%.*s' is blocked (%.*s)", name.size(), name.c_str(), reason.size(), reason.c_str());
@@ -637,7 +653,7 @@ namespace mtasa
             }
         }
 
-        return !hasBlockedFiles;
+        return result;
     }
 
     bool Resource::CreateLuaContext()

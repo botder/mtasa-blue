@@ -27,6 +27,7 @@ namespace mtasa
 
     class Resource;
     class ResourceCommand;
+    class ResourceFileChecksum;
 
     enum class CreateResourceError
     {
@@ -62,7 +63,7 @@ namespace mtasa
         Resource* GetResourceFromScriptIdentifier(SArrayId id);
         Resource* GetResourceFromRemoteIdentifier(std::uint16_t id);
 
-        CreateResourceError TryCreateResource(std::string_view resourceName, std::string_view relativeOrganizationPath, Resource*& newResource);
+        CreateResourceError TryCreateResource(std::string_view resourceName, std::string_view newGroupDirectory, Resource*& newResource);
         RenameResourceError TryRenameResource(Resource* resource, std::string_view newResourceName, std::string_view newGroupDirectory);
         CloneResourceError  TryCloneResource(Resource* resource, std::string_view newResourceName, std::string_view newGroupDirectory, Resource*& newResource);
 
@@ -94,7 +95,7 @@ namespace mtasa
         void        SaveBlockedFileReasons() {}
         void        ClearBlockedFileReasons() {}
         void        AddBlockedFileReason(std::string_view fileHash, std::string_view reason) {}
-        std::string GetBlockedFileReason(const std::string& fileHash) { return ""; }
+        std::string GetBlockedFileReason(const ResourceFileChecksum& checksum);
 
     public:
         std::vector<Resource*>::iterator begin() { return m_resources.begin(); }

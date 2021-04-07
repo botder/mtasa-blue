@@ -88,7 +88,7 @@ bool CConsoleCommands::StartResource(CConsole* pConsole, const char* szArguments
         else
         {
             pEchoClient->SendConsole(
-                SString{"start: Resource '%s' start was requested (%s)", resourceName.size(), resourceName.data(), resource->GetLastError().c_str()});
+                SString{"start: Resource '%.*s' start was requested (%s)", resourceName.size(), resourceName.data(), resource->GetLastError().c_str()});
         }
     }
     else
@@ -346,6 +346,7 @@ bool CConsoleCommands::ResourceInfo(CConsole* pConsole, const char* szArguments,
 
     CLogger::LogPrintf("Files: %zu\n", resource->GetFileCount());
     CLogger::LogPrintf("== End ==\n");
+    return true;
 }
 
 bool CConsoleCommands::StopResource(CConsole* pConsole, const char* szArguments, CClient* pClient, CClient* pEchoClient)

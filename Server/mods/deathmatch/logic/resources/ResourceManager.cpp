@@ -99,7 +99,7 @@ namespace mtasa
         return nullptr;
     }
 
-    CreateResourceError ResourceManager::TryCreateResource(std::string_view resourceName, std::string_view relativeOrganizationPath, Resource*& newResource)
+    CreateResourceError ResourceManager::TryCreateResource(std::string_view resourceName, std::string_view newGroupDirectory, Resource*& newResource)
     {
         // TODO: Add implementation here
         return CreateResourceError::DUMMY_FAIL;
@@ -201,6 +201,13 @@ namespace mtasa
     void ResourceManager::OnPlayerJoin(CPlayer& player)
     {
         // TODO: Add implementation here
+    }
+
+    std::string ResourceManager::GetBlockedFileReason(const ResourceFileChecksum& checksum)
+    {
+        // TODO: Add implementation here
+        // std::array<char, 32> hash = CMD5Hasher::ConvertToHexArray(checksum.GetMD5());
+        return {};
     }
 
     SArrayId ResourceManager::GenerateResourceScriptIdentifier()

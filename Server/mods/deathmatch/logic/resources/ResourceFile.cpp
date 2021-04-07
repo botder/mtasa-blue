@@ -11,6 +11,7 @@
 #include "StdInc.h"
 #include "ResourceFile.h"
 #include "Resource.h"
+#include "ResourceFileChecksum.h"
 
 namespace fs = std::filesystem;
 
@@ -18,15 +19,19 @@ namespace mtasa
 {
     bool ResourceFile::CalculateFileMetaData()
     {
-        constexpr std::size_t GIBIBYTE = 1 * 1024 * 1024 * 1024;
+        fs::path        filePath{m_resource.GetSourceDirectory() / m_relativePath};
+        std::error_code errorCode;
 
-        std::string fileContent;
+        m_size = fs::file_size(filePath, errorCode);
+        m_exists = (errorCode.value() == 0);
 
-        if (!ReadEntireFile(m_resource.GetSourceDirectory() / m_relativePath, fileContent, GIBIBYTE))
+        if (!m_exists)
+        {
+            m_size = 0;
+            m_checksum.Reset();
             return false;
+        }
 
-        m_checksum = CChecksum::GenerateChecksumFromBuffer(fileContent.data(), static_cast<unsigned long>(fileContent.size()));
-        m_size = fileContent.size();
-        return true;
+        return m_checksum.Calculate(filePath);
     }
 }            // namespace mtasa

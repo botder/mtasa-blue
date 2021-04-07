@@ -104,15 +104,15 @@ namespace SharedUtil
         pBuffer[32] = '\0';
     }
 
-    std::string CMD5Hasher::ConvertToHex(const MD5& md5)
+    std::array<char, 32> CMD5Hasher::ConvertToHexArray(const std::array<std::uint8_t, 16>& md5) noexcept
     {
         static const char hex[17] = "0123456789ABCDEF";
 
-        std::string result(32, '\0');
-        
+        std::array<char, 32> result;
+
         for (std::size_t i = 0; i < 16; i++)
         {
-            unsigned char byte = md5.data[i];
+            std::uint8_t byte = md5[i];
             result[(i * 2) + 0] = hex[(byte >> 4) & 0xF];
             result[(i * 2) + 1] = hex[byte & 0xF];
         }

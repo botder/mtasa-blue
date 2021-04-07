@@ -10,7 +10,7 @@
 
 #pragma once
 
-#include "CChecksum.h"
+#include "ResourceFileChecksum.h"
 #include <filesystem>
 #include <cstdint>
 
@@ -63,10 +63,13 @@ namespace mtasa
         const std::filesystem::path& GetRelativePath() const { return m_relativePath; }
 
         const std::string& GetName() const { return m_name; }
-        std::size_t        GetSize() const { return m_size; }
-        const CChecksum&   GetChecksum() const { return m_checksum; }
 
+    public:
         bool CalculateFileMetaData();
+
+        bool                        Exists() const { return m_exists; }
+        std::uintmax_t              GetSize() const { return m_size; }
+        const ResourceFileChecksum& GetChecksum() const { return m_checksum; }
 
     protected:
         Resource&             m_resource;
@@ -74,7 +77,10 @@ namespace mtasa
         bool                  m_isRunning = false;
         std::filesystem::path m_relativePath;
         std::string           m_name;
-        std::size_t           m_size = 0;
-        CChecksum             m_checksum;
+
+    private:
+        bool                 m_exists = true;
+        std::uintmax_t       m_size = 0;
+        ResourceFileChecksum m_checksum;
     };
 }            // namespace mtasa

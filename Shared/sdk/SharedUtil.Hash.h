@@ -12,6 +12,8 @@
 
 #include "SharedUtil.IntTypes.h"
 #include "SString.h"
+#include <array>
+#include <cstdint>
 
 namespace EHashFunction
 {
@@ -53,8 +55,9 @@ namespace SharedUtil
         bool Calculate(const char* szFilename, MD5& md5Result);
         bool Calculate(const void* pBuffer, size_t sizeLength, MD5& md5Result);
 
-        static void        ConvertToHex(const MD5& Input, char* pBuffer);
-        static std::string ConvertToHex(const MD5& md5);
+        static void ConvertToHex(const MD5& Input, char* pBuffer);
+
+        static std::array<char, 32> ConvertToHexArray(const std::array<std::uint8_t, 16>& md5) noexcept;
 
         static SString CalculateHexString(const char* szFilename);
         static SString CalculateHexString(const void* pBuffer, size_t sizeLength);

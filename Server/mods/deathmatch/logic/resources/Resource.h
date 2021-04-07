@@ -254,7 +254,8 @@ namespace mtasa
         std::vector<ResourceFile*>                 m_clientFiles;
 
     private:
-        bool PreProcessResourceFiles();
+        bool CalculateFileMetaDatum();
+        bool IsAnyResourceFileBlocked();
 
         bool CreateLuaContext();
         void DeleteLuaContext();

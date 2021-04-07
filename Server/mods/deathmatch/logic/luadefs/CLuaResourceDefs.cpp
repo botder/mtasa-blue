@@ -150,16 +150,16 @@ int CLuaResourceDefs::createResource(lua_State* luaVM)
 {
     //  resource createResource ( string toName[, string organizationalDir ] )
     std::string_view resourceName;
-    std::string_view organizationPath;
+    std::string_view newGroupDirectory;
 
     CScriptArgReader argStream(luaVM);
     argStream.ReadStringView(resourceName);
-    argStream.ReadStringView(organizationPath, true);
+    argStream.ReadStringView(newGroupDirectory, true);
 
     if (!argStream.HasErrors())
     {
         Resource*           resource = nullptr;
-        CreateResourceError error = m_resourceManager->TryCreateResource(resourceName, organizationPath, resource);
+        CreateResourceError error = m_resourceManager->TryCreateResource(resourceName, newGroupDirectory, resource);
 
         if (error == CreateResourceError::NONE)
         {

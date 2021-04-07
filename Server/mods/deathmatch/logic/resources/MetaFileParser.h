@@ -15,6 +15,7 @@
 #include <filesystem>
 #include <unordered_map>
 #include <unordered_set>
+#include <string_view>
 
 namespace mtasa
 {
@@ -27,6 +28,8 @@ namespace mtasa
         MAP,
         HTML,
     };
+
+    std::string_view MetaFileItemTypeToString(MetaFileItemType type);
 
     class MetaFileVersion final
     {
@@ -125,11 +128,7 @@ namespace mtasa
 
         int downloadPriorityGroup = 0;
 
-        std::vector<MetaFileItem>       files;
-        std::vector<MetaFileItem>       configs;
-        std::vector<MetaFileItem>       scripts;
-        std::vector<MetaFileItem>       maps;
-        std::vector<MetaFileItem>       htmls;
+        std::vector<MetaFileItem>       items;
         std::vector<MetaDependencyItem> dependencies;
         std::vector<MetaExportItem>     exports;
 

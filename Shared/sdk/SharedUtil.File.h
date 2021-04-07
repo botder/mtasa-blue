@@ -115,6 +115,10 @@ namespace SharedUtil
     WString FromUTF8(const SString& strPath);
     SString ToUTF8(const WString& strPath);
 
+    // Check if the file path is allowed on a Microsoft Windows operating system
+    // See https://docs.microsoft.com/en-us/windows/win32/fileio/naming-a-file
+    bool IsWindowsCompatiblePath(const std::filesystem::path& path);
+
     namespace File
     {
         FILE* Fopen(const char* szFilename, const char* szMode);

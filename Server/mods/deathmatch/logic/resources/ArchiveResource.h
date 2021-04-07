@@ -37,7 +37,7 @@ namespace mtasa
         bool HasChanged() const override;
 
     protected:
-        bool ContainsSourceFile(const std::filesystem::path& relativePath) const override;
+        bool SourceFileExists(const std::filesystem::path& relativePath) const override;
 
     private:
         bool PreProcessArchive();

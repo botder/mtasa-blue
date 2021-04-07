@@ -14,6 +14,7 @@
 #include "SharedUtil.Misc.h"
 #include "SharedUtil.Buffer.h"
 #include <algorithm>
+#include <unordered_set>
 
 #ifdef WIN32
     #ifndef NOMINMAX
@@ -31,6 +32,8 @@
 #endif
 
 namespace fs = std::filesystem;
+
+using namespace std::string_literals;
 
 //
 // Returns true if the file exists
@@ -787,6 +790,36 @@ SString SharedUtil::ToUTF8(const WString& strPath)
 #else
     return UTF16ToMbUTF8(strPath);
 #endif
+}
+
+static std::unordered_set<std::string> reservedWindowsFileNames = {"CON"s,  "PRN"s,  "AUX"s,  "NUL"s,  "COM1"s, "COM2"s, "COM3"s, "COM4"s,
+                                                                   "COM5"s, "COM6"s, "COM7"s, "COM8"s, "COM9"s, "LPT1"s, "LPT2"s, "LPT3"s,
+                                                                   "LPT4"s, "LPT5"s, "LPT6"s, "LPT7"s, "LPT8"s, "LPT9"s};
+
+bool SharedUtil::IsWindowsCompatiblePath(const fs::path& path)
+{
+    std::string fileName = path.filename().string();
+
+    if (fileName.back() == '.' || fileName.back() == ' ')
+    {
+        return false;
+    }
+    else if (reservedWindowsFileNames.find(fileName) != reservedWindowsFileNames.end())
+    {
+        return false;
+    }
+    else
+    {
+        for (unsigned char c : fileName)
+        {
+            if (c < 32 || c == '<' || c == '>' || c == ':' || c == '"' || c == '/' || c == '\\' || c == '|' || c == '?' || c == '*')
+            {
+                return false;
+            }
+        }
+    }
+
+    return true;
 }
 
 #ifdef WIN32

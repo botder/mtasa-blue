@@ -29,6 +29,25 @@ static fs::path ProduceRelativeFilePath(const std::string& input)
 
 namespace mtasa
 {
+    std::string_view MetaFileItemTypeToString(MetaFileItemType type)
+    {
+        switch (type)
+        {
+            case MetaFileItemType::CONFIG:
+                return "config"sv;
+            case MetaFileItemType::SCRIPT:
+                return "script"sv;
+            case MetaFileItemType::MAP:
+                return "map"sv;
+            case MetaFileItemType::HTML:
+                return "html"sv;
+            case MetaFileItemType::UNKNOWN:
+            case MetaFileItemType::FILE:
+            default:
+                return "file"sv;
+        }
+    }
+
     std::string MetaFileParser::Parse(const fs::path& filePath)
     {
         std::unique_ptr<CXMLFile> document{g_pServerInterface->GetXML()->CreateXML(filePath.string().c_str())};
@@ -144,7 +163,7 @@ namespace mtasa
             return;
         }
 
-        files.push_back(std::move(item));
+        items.push_back(std::move(item));
     }
 
     void MetaFileParser::ProcessConfigNode(CXMLNode* node)
@@ -207,7 +226,7 @@ namespace mtasa
             return;
         }
 
-        configs.push_back(std::move(item));
+        items.push_back(std::move(item));
     }
 
     void MetaFileParser::ProcessScriptNode(CXMLNode* node)
@@ -291,7 +310,7 @@ namespace mtasa
             return;
         }
 
-        scripts.push_back(std::move(item));
+        items.push_back(std::move(item));
     }
 
     void MetaFileParser::ProcessMapNode(CXMLNode* node)
@@ -348,7 +367,7 @@ namespace mtasa
             return;
         }
 
-        maps.push_back(std::move(item));
+        items.push_back(std::move(item));
     }
 
     void MetaFileParser::ProcessHtmlNode(CXMLNode* node)
@@ -416,7 +435,7 @@ namespace mtasa
             return;
         }
 
-        htmls.push_back(std::move(item));
+        items.push_back(std::move(item));
     }
 
     void MetaFileParser::ProcessIncludeNode(CXMLNode* node)

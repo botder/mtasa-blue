@@ -46,7 +46,7 @@ namespace mtasa
         return Resource::HasChanged();
     }
 
-    bool ArchiveResource::ContainsSourceFile(const fs::path& relativePath) const
+    bool ArchiveResource::SourceFileExists(const fs::path& relativePath) const
     {
         return m_archiveSourceFiles.find(relativePath) != m_archiveSourceFiles.end();
     }

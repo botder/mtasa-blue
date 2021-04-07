@@ -46,6 +46,37 @@ namespace mtasa
         STOPPING,
     };
 
+    struct ResourceClientFunction
+    {
+        std::string  name;
+        std::uint8_t isHttpAccessible : 1;
+        std::uint8_t isACLRestricted : 1;
+
+        ResourceClientFunction() : isHttpAccessible{false}, isACLRestricted{false} {}
+    };
+
+    struct ResourceServerFunction
+    {
+        std::uint8_t isHttpAccessible : 1;
+        std::uint8_t isACLRestricted : 1;
+
+        ResourceServerFunction() : isHttpAccessible{false}, isACLRestricted{false} {}
+    };
+
+    struct ResourceDependencyVersion
+    {
+        std::uint32_t major = 0;
+        std::uint32_t minor = 0;
+        std::uint32_t revision = 0;
+    };
+
+    struct ResourceDependency
+    {
+        std::string               resourceName;
+        ResourceDependencyVersion minVersion;
+        ResourceDependencyVersion maxVersion;
+    };
+
     class Resource
     {
     public:
@@ -56,18 +87,24 @@ namespace mtasa
         ResourceManager&       GetManager() { return m_resourceManager; }
         const ResourceManager& GetManager() const { return m_resourceManager; }
 
-        void SetSourceDirectory(const std::filesystem::path& sourceDirectory)
-        {
-            m_sourceDirectory = sourceDirectory;
-            m_metaFile = sourceDirectory / "meta.xml";
-        }
-
+        void                         SetSourceDirectory(const std::filesystem::path& sourceDirectory) { m_sourceDirectory = sourceDirectory; }
         const std::filesystem::path& GetSourceDirectory() const { return m_sourceDirectory; }
-
-        void SetDynamicDirectory(const std::filesystem::path& dynamicDirectory) { m_dynamicDirectory = dynamicDirectory; }
 
         void                         SetGroupDirectory(const std::filesystem::path& groupDirectory) { m_groupDirectory = groupDirectory; }
         const std::filesystem::path& GetGroupDirectory() const { return m_groupDirectory; }
+
+        void SetDynamicDirectory(const std::filesystem::path& dynamicDirectory) { m_dynamicDirectory = dynamicDirectory; }
+
+        void     SetScriptIdentifier(SArrayId id) { m_scriptIdentifier = id; }
+        SArrayId GetScriptIdentifier() const { return m_scriptIdentifier; }
+
+        void          SetRemoteIdentifier(std::uint16_t id) { m_remoteIdentifier = id; }
+        std::uint16_t GetRemoteIdentifier() const { return m_remoteIdentifier; }
+
+        const std::string& GetName() const { return m_name; }
+        void               SetName(const std::string& name) { m_name = name; }
+
+        const std::string& GetLastError() const { return m_lastError; }
 
         ResourceState GetState() const { return m_state; }
         bool          IsStarting() const { return m_state == ResourceState::STARTING; }
@@ -76,17 +113,6 @@ namespace mtasa
         bool IsUsingOOP() const { return m_usingOOP; }
 
         int GetDownloadPriorityGroup() const { return m_downloadPriorityGroup; }
-
-        const std::string& GetName() const { return m_name; }
-        void               SetName(const std::string& name) { m_name = name; }
-
-        const std::string& GetLastError() const { return m_lastError; }
-
-        void     SetScriptIdentifier(SArrayId id) { m_scriptIdentifier = id; }
-        SArrayId GetScriptIdentifier() const { return m_scriptIdentifier; }
-
-        void          SetRemoteIdentifier(std::uint16_t id) { m_remoteIdentifier = id; }
-        std::uint16_t GetRemoteIdentifier() const { return m_remoteIdentifier; }
 
         const CMtaVersion& GetMinServerVersion() const noexcept { return m_minServerVersion; }
         const CMtaVersion& GetMinClientVerison() const noexcept { return m_minClientVersion; }
@@ -113,6 +139,8 @@ namespace mtasa
         void SetPersistent(bool isPersistent) { m_isPersistent = isPersistent; }
         bool IsPersistent() const { return m_isPersistent; }
 
+        void SetWasDeleted() { m_wasDeleted = true; }
+
         virtual bool IsArchived() const { return false; }
 
         virtual bool Unload();
@@ -129,9 +157,6 @@ namespace mtasa
         
         bool CallExportedFunction(const std::string& functionName, CLuaArguments& arguments, CLuaArguments& returnValues, Resource& sourceResource);
 
-        std::vector<std::string_view> GetExportedServerFunctions() const;
-        std::vector<std::string_view> GetExportedClientFunctions() const;
-
         std::time_t GetStartTime() const { return m_startedTime; }
         std::time_t GetLoadTime() const { return m_loadedTime; }
 
@@ -141,18 +166,15 @@ namespace mtasa
 
         CXMLNode* GetServerConfigFileRootNode(const std::filesystem::path& relativePath) const { return nullptr; }
 
-        std::size_t GetNoCacheClientScriptsCount() const { return m_noCacheClientScripts.size(); }
-
-        // Remove a resource default setting
         bool RemoveDefaultSetting(const std::string& settingName) { return false; }
-
-        // Set a resource default setting
         bool SetDefaultSetting(std::string_view name, std::string_view value) { return false; }
 
-        std::size_t GetDependentCount() const { return 0; }
-        std::size_t GetFileCount() const { return 0; }
+        std::vector<std::string_view> GetExportedServerFunctions() const;
+        std::vector<std::string_view> GetExportedClientFunctions() const;
 
-        void SetWasDeleted() { m_wasDeleted = true; }
+        std::size_t GetNoCacheClientScriptsCount() const { return m_noCacheClientScripts.size(); }
+        std::size_t GetDependentCount() const { return 0; }
+        std::size_t GetFileCount() const { return m_resourceFiles.size(); }
 
         // ??????????
         bool CheckFunctionRightCache(lua_CFunction f, bool* pbOutAllowed) { return false; }
@@ -163,8 +185,9 @@ namespace mtasa
         bool HandleAclRequestChange(const CAclRightName& strRightName, bool bAccess, const SString& strWho) { return true; }
 
     protected:
-        virtual bool ContainsSourceFile(const std::filesystem::path& relativePath) const;
+        virtual bool SourceFileExists(const std::filesystem::path& relativePath) const;
 
+    protected:
         ResourceManager&      m_resourceManager;
         ResourceState         m_state = ResourceState::NOT_LOADED;
         std::string           m_name;
@@ -172,86 +195,63 @@ namespace mtasa
         std::filesystem::path m_groupDirectory;
         std::filesystem::path m_sourceDirectory;
         std::filesystem::path m_dynamicDirectory;
-        std::filesystem::path m_metaFile;
-
-        bool m_syncElementsToClients = false;
-        bool m_isProtected = false;
-        bool m_isPersistent = false;
-        bool m_wasDeleted = false;
-
-        ResourceUseFlags m_useFlags;
 
         SArrayId      m_scriptIdentifier = INVALID_ARRAY_ID;
         std::uint16_t m_remoteIdentifier = 0xFFFF;
 
-        std::unordered_map<std::string, std::string> m_info;
+        bool m_isProtected = false;
+        bool m_isPersistent = false;
 
-        bool m_usingOOP = false;
-        int  m_downloadPriorityGroup = 0;
-
-        std::vector<std::filesystem::path>                         m_serverFilePaths;
-        std::vector<std::pair<std::filesystem::path, std::string>> m_clientFilePaths;
-
-        CLuaMain* m_luaContext = nullptr;
-
-        CDummy* m_mapRootElement = nullptr;
-        CDummy* m_element = nullptr;
-        CDummy* m_dynamicElementRoot = nullptr;
-
-        CElementGroup* m_elementGroup = nullptr;
-
-        CXMLNode* m_settingsNode = nullptr;
-        CXMLNode* m_tempSettingsNode = nullptr;
+    protected:
+        //
+        // This section is for member variables, which get set or filled in `Resource::Load`.
+        // These variables MUST be reset to their default values in `Resource::Unload`.
+        //
 
         std::time_t m_loadedTime = 0;
-        std::time_t m_startedTime = 0;
+        bool        m_usingOOP = false;
+        int         m_downloadPriorityGroup = 0;
 
+        std::unordered_map<std::string, std::string> m_info;
+        
         CMtaVersion m_minClientVersion;
         CMtaVersion m_minServerVersion;
         CMtaVersion m_metaMinClientVersion;
         CMtaVersion m_metaMinServerVersion;
 
-    protected:
-        struct DependencyVersion
-        {
-            std::uint32_t major = 0;
-            std::uint32_t minor = 0;
-            std::uint32_t revision = 0;
-        };
+        std::unique_ptr<CXMLNode> m_settingsNode;
 
-        struct Dependency
-        {
-            std::string       resourceName;
-            DependencyVersion minVersion;
-            DependencyVersion maxVersion;
-        };
-        std::vector<Dependency> m_dependencies;
+        std::vector<std::filesystem::path>                         m_serverFilePaths;
+        std::vector<std::pair<std::filesystem::path, std::string>> m_clientFilePaths;
 
-    protected:
-        struct ClientFunction
-        {
-            std::string  name;
-            std::uint8_t isHttpAccessible : 1;
-            std::uint8_t isACLRestricted : 1;
+        std::vector<ResourceDependency> m_dependencies;
 
-            ClientFunction() : isHttpAccessible{false}, isACLRestricted{false} {}
-        };
-        std::vector<ClientFunction> m_clientFunctions;
-
-        struct ServerFunction
-        {
-            std::uint8_t isHttpAccessible : 1;
-            std::uint8_t isACLRestricted : 1;
-
-            ServerFunction() : isHttpAccessible{false}, isACLRestricted{false} {}
-        };
-        std::unordered_map<std::string, ServerFunction> m_serverFunctions;
-
-    protected:
         std::vector<std::unique_ptr<ResourceFile>> m_resourceFiles;
         std::vector<ResourceHttpFile*>             m_httpFiles;
-        std::vector<ClientResourceScriptFile*>     m_noCacheClientScripts;
         std::vector<ResourceFile*>                 m_clientFiles;
+        std::vector<ClientResourceScriptFile*>     m_noCacheClientScripts;
+
+        std::vector<ResourceClientFunction>                     m_clientFunctions;
+        std::unordered_map<std::string, ResourceServerFunction> m_serverFunctions;
+
+    protected:
+        //
+        // This section is for member variables, which get set or filled in `Resource::Start`.
+        // These variables MUST be reset to their default values in `Resource::Stop`.
+        //
+
+        std::time_t      m_startedTime = 0;
+        ResourceUseFlags m_useFlags;
+
+        bool m_syncElementsToClients = false;
+        bool m_wasDeleted = false;
+
+        CDummy*        m_element = nullptr;
+        CDummy*        m_dynamicElementRoot = nullptr;
+        CElementGroup* m_elementGroup = nullptr;
+        CLuaMain*      m_luaContext = nullptr;
+
+        // CXMLNode*      m_tempSettingsNode = nullptr;
 
     private:
         bool CalculateFileMetaDatum();
@@ -267,12 +267,8 @@ namespace mtasa
         void AddClientFilePath(const std::filesystem::path& relativeFilePath);
 
         bool ProcessMeta(const MetaFileParser& meta);
-        bool ProcessMetaIncludes(const MetaFileParser& meta);
-        bool ProcessMetaMaps(const MetaFileParser& meta);
+        void ProcessMetaIncludes(const MetaFileParser& meta);
+        void ProcessMetaExports(const MetaFileParser& meta);
         bool ProcessMetaFiles(const MetaFileParser& meta);
-        bool ProcessMetaScripts(const MetaFileParser& meta);
-        bool ProcessMetaHttpFiles(const MetaFileParser& meta);
-        bool ProcessMetaExports(const MetaFileParser& meta);
-        bool ProcessMetaConfigs(const MetaFileParser& meta);
     };
 }            // namespace mtasa

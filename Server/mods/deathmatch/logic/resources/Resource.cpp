@@ -26,11 +26,7 @@ namespace fs = std::filesystem;
 
 namespace mtasa
 {
-    static bool IsWindowsCompatiblePath(const fs::path& relativePath);
-
-    Resource::Resource(ResourceManager& resourceManager) : m_resourceManager{resourceManager}
-    {
-        m_mapRootElement = g_pGame->GetMapManager()->GetRootElement(); }
+    Resource::Resource(ResourceManager& resourceManager) : m_resourceManager{resourceManager} {}
 
     Resource::~Resource() = default;
 
@@ -39,12 +35,8 @@ namespace mtasa
         if (m_state != ResourceState::LOADED)
             return false;
 
-        if (m_settingsNode != nullptr)
-        {
-            delete m_settingsNode;
-            m_settingsNode = nullptr;
-        }
-
+        std::exchange(m_serverFilePaths, {});
+        std::exchange(m_clientFilePaths, {});
         std::exchange(m_resourceFiles, {});
         std::exchange(m_clientFunctions, {});
         std::exchange(m_serverFunctions, {});
@@ -53,14 +45,15 @@ namespace mtasa
         std::exchange(m_clientFiles, {});
         std::exchange(m_dependencies, {});
         std::exchange(m_info, {});
+        m_settingsNode.reset();
         m_minServerVersion = ""s;
         m_metaMinServerVersion = ""s;
         m_minClientVersion = ""s;
         m_metaMinClientVersion = ""s;
-        m_usingOOP = false;
         m_downloadPriorityGroup = 0;
-        m_lastError = ""s;
+        m_usingOOP = false;
         m_loadedTime = 0;
+        m_lastError = ""s;
         m_state = ResourceState::NOT_LOADED;
         return true;
     }
@@ -71,8 +64,9 @@ namespace mtasa
             return false;
 
         std::error_code errorCode;
+        fs::path        metaFile = m_sourceDirectory / "meta.xml";
 
-        if (!fs::is_regular_file(m_metaFile, errorCode))
+        if (!fs::is_regular_file(metaFile, errorCode))
         {
             m_lastError = "Couldn't find meta.xml file for resource '"s + m_name + "'"s;
             CLogger::ErrorPrintf("%.*s\n", m_lastError.size(), m_lastError.c_str());
@@ -80,7 +74,7 @@ namespace mtasa
         }
 
         MetaFileParser meta{m_name};
-        std::string    parserError = meta.Parse(m_metaFile);
+        std::string    parserError = meta.Parse(metaFile);
 
         if (!parserError.empty())
         {
@@ -105,10 +99,12 @@ namespace mtasa
 
         m_state = ResourceState::STARTING;
 
+        CDummy* mapRootElement = g_pGame->GetMapManager()->GetRootElement();
+
         CLuaArguments preStartArguments;
         preStartArguments.PushResource(this);
 
-        if (!m_mapRootElement->CallEvent("onResourcePreStart", preStartArguments))
+        if (!mapRootElement->CallEvent("onResourcePreStart", preStartArguments))
         {
             m_lastError = "Start cancelled by script";
             CLogger::LogPrintf("Start up of resource %.*s cancelled early by script\n", m_name.size(), m_name.c_str());
@@ -153,7 +149,7 @@ namespace mtasa
 
         CGroups* entityGroup = g_pGame->GetGroups();
 
-        auto resourceRoot = std::make_unique<CDummy>(entityGroup, m_mapRootElement);
+        auto resourceRoot = std::make_unique<CDummy>(entityGroup, mapRootElement);
         resourceRoot->SetTypeName("resource");
         resourceRoot->SetName(m_name);
 
@@ -182,7 +178,7 @@ namespace mtasa
 
         m_elementGroup = new CElementGroup();
 
-        m_tempSettingsNode = g_pServerInterface->GetXML()->CreateDummyNode();
+        // m_tempSettingsNode = g_pServerInterface->GetXML()->CreateDummyNode();
 
         CreateLuaContext();
 
@@ -259,8 +255,8 @@ namespace mtasa
             DeleteLuaContext();
             m_startedTime = 0;
 
-            delete m_tempSettingsNode;
-            m_tempSettingsNode = nullptr;
+            // delete m_tempSettingsNode;
+            // m_tempSettingsNode = nullptr;
 
             delete m_elementGroup;
             m_elementGroup = nullptr;
@@ -277,7 +273,7 @@ namespace mtasa
 
         if (useFlags.useDependencies)
         {
-            for (Dependency& dependency : m_dependencies)
+            for (ResourceDependency& dependency : m_dependencies)
             {
                 // TODO: Add implementation here
                 // Shouldn't we start dependencies before starting our stuff?
@@ -413,11 +409,11 @@ namespace mtasa
         g_pGame->GetLuaManager()->GetLuaModuleManager()->ResourceStopped(m_luaContext->GetMainLuaState());
 
         // Remove the temporary XML storage node
-        if (m_tempSettingsNode != nullptr)
-        {
-            delete m_tempSettingsNode;
-            m_tempSettingsNode = nullptr;
-        }
+        // if (m_tempSettingsNode != nullptr)
+        // {
+        //     delete m_tempSettingsNode;
+        //     m_tempSettingsNode = nullptr;
+        // }
 
         // Destroy the element group attached directly to this resource
         if (m_elementGroup != nullptr)
@@ -450,6 +446,7 @@ namespace mtasa
         // Broadcast the packet to joined players
         g_pGame->GetPlayerManager()->BroadcastOnlyJoined(removePacket);
 
+        m_wasDeleted = false;
         m_state = ResourceState::LOADED;
         return true;
     }
@@ -497,7 +494,7 @@ namespace mtasa
             functionRight += functionName;
 
             CAccessControlListManager* aclManager = g_pGame->GetACLManager();
-            const ServerFunction&      function = iter->second;
+            const ResourceServerFunction&      function = iter->second;
             const std::string&         sourceResourceName = sourceResource.GetName();
 
             if (aclManager->CanObjectUseRight(sourceResourceName.c_str(), CAccessControlListGroupObject::OBJECT_TYPE_RESOURCE, m_name.c_str(),
@@ -529,7 +526,7 @@ namespace mtasa
     {
         std::vector<std::string_view> result;
 
-        for (const ClientFunction& function : m_clientFunctions)
+        for (const ResourceClientFunction& function : m_clientFunctions)
             result.push_back(function.name);
 
         return result;
@@ -553,7 +550,7 @@ namespace mtasa
     bool Resource::Exists() const
     {
         std::error_code errorCode;
-        return fs::is_regular_file(m_metaFile, errorCode);
+        return fs::is_regular_file(m_sourceDirectory / "meta.xml", errorCode);
     }
 
     bool Resource::HasChanged() const
@@ -562,7 +559,7 @@ namespace mtasa
         return false;
     }
 
-    bool Resource::ContainsSourceFile(const fs::path& relativePath) const
+    bool Resource::SourceFileExists(const fs::path& relativePath) const
     {
         if (relativePath.is_absolute())
             return false;
@@ -721,7 +718,7 @@ namespace mtasa
 
         m_usingOOP = meta.useOOP;
         m_downloadPriorityGroup = meta.downloadPriorityGroup;
-        m_settingsNode = meta.settingsNode;
+        m_settingsNode = std::unique_ptr<CXMLNode>(meta.settingsNode);
 
         if (meta.syncMapElementDataDefined)
         {
@@ -750,20 +747,23 @@ namespace mtasa
             m_info[key] = value;
         }
 
-        bool success = (ProcessMetaIncludes(meta) && ProcessMetaMaps(meta) && ProcessMetaFiles(meta) && ProcessMetaScripts(meta) &&
-                        ProcessMetaHttpFiles(meta) && ProcessMetaExports(meta) && ProcessMetaConfigs(meta));
+        ProcessMetaIncludes(meta);
+        ProcessMetaExports(meta);
 
-        if (!success && !m_lastError.empty())
+        if (!ProcessMetaFiles(meta) && !m_lastError.empty())
+        {
             CLogger::ErrorPrintf("%.*s\n", m_lastError.size(), m_lastError.c_str());
+            return false;
+        }
 
-        return success;
+        return true;
     }
 
-    bool Resource::ProcessMetaIncludes(const MetaFileParser& meta)
+    void Resource::ProcessMetaIncludes(const MetaFileParser& meta)
     {
         for (const MetaDependencyItem& item : meta.dependencies)
         {
-            Dependency dependency;
+            ResourceDependency dependency;
             dependency.resourceName = item.resourceName;
             dependency.minVersion.major = item.minVersion.major;
             dependency.minVersion.minor = item.minVersion.minor;
@@ -774,211 +774,15 @@ namespace mtasa
 
             m_dependencies.push_back(std::move(dependency));
         }
-
-        return true;
     }
-
-    bool Resource::ProcessMetaMaps(const MetaFileParser& meta)
-    {
-        for (const MetaFileItem& item : meta.maps)
-        {
-            std::string filePath = item.sourceFile.generic_string();
-
-            if (!ContainsSourceFile(item.sourceFile))
-            {
-                m_lastError = SString("Couldn't find map %.*s for resource %.*s", filePath.size(), filePath.data(), m_name.size(), m_name.c_str());
-                return false;
-            }
-
-            if (IsDuplicateServerFile(item.sourceFile))
-            {
-                CLogger::LogPrintf("WARNING: Duplicate map file in resource '%.*s': '%.*s'\n", m_name.size(), m_name.c_str(), filePath.size(), filePath.data());
-            }
-
-            auto file = std::make_unique<ResourceMapFile>(*this);
-            file->SetRelativePath(item.sourceFile);
-            file->SetDimension(item.dimension);
-            m_resourceFiles.push_back(std::move(file));
-
-            AddServerFilePath(item.sourceFile);
-        }
-
-        return true;
-    }
-
-    bool Resource::ProcessMetaFiles(const MetaFileParser& meta)
-    {
-        for (const MetaFileItem& item : meta.files)
-        {
-            std::string filePath = item.sourceFile.generic_string();
-
-            if (!ContainsSourceFile(item.sourceFile))
-            {
-                m_lastError = SString("Couldn't find file %.*s for resource %.*s", filePath.size(), filePath.data(), m_name.size(), m_name.c_str());
-                return false;
-            }
-
-            if (!IsWindowsCompatiblePath(item.sourceFile))
-            {
-                m_lastError = SString("Client file path %.*s for resource %.*s is not supported on Windows", filePath.size(), filePath.data(), m_name.size(),
-                                      m_name.c_str());
-                return false;
-            }
-
-            if (IsDuplicateClientFile(item.sourceFile))
-            {
-                CLogger::LogPrintf("WARNING: Ignoring duplicate client file in resource '%.*s': '%.*s'\n", m_name.size(), m_name.c_str(),
-                                   filePath.size(), filePath.data());
-                continue;
-            }
-
-            auto file = std::make_unique<ClientResourceFile>(*this);
-            file->SetRelativePath(item.sourceFile);
-            file->SetIsOptional(item.isClientOptional);
-
-            m_clientFiles.push_back(file.get());
-            m_resourceFiles.push_back(std::move(file));
-            
-            AddClientFilePath(item.sourceFile);
-        }
-
-        return true;
-    }
-
-    bool Resource::ProcessMetaScripts(const MetaFileParser& meta)
-    {
-        for (const MetaFileItem& item : meta.scripts)
-        {
-            std::string filePath = item.sourceFile.generic_string();
-            
-            if (!ContainsSourceFile(item.sourceFile))
-            {
-                m_lastError = SString("Couldn't find script %.*s for resource %.*s", filePath.size(), filePath.data(), m_name.size(), m_name.c_str());
-                return false;
-            }
-
-            if (item.isForClient && !IsWindowsCompatiblePath(item.sourceFile))
-            {
-                m_lastError = SString("Client script path %.*s for resource %.*s is not supported on Windows", filePath.size(), filePath.data(),
-                                      m_name.size(), m_name.c_str());
-                return false;
-            }
-
-            if (item.isForServer && IsDuplicateServerFile(item.sourceFile))
-            {
-                CLogger::LogPrintf("WARNING: Duplicate script file in resource '%.*s': '%.*s'\n", m_name.size(), m_name.c_str(), filePath.size(),
-                                   filePath.data());
-            }
-
-            bool createForClient = item.isForClient;
-
-            if (item.isForClient && IsDuplicateClientFile(item.sourceFile))
-            {
-                createForClient = false;
-
-                CLogger::LogPrintf("WARNING: Ignoring duplicate client script file in resource '%.*s': '%.*s'\n", m_name.size(), m_name.c_str(),
-                                   filePath.size(), filePath.data());
-            }
-
-            if (item.isForServer)
-            {
-                auto file = std::make_unique<ResourceScriptFile>(*this);
-                file->SetRelativePath(item.sourceFile);
-
-                m_resourceFiles.push_back(std::move(file));
-
-                AddServerFilePath(item.sourceFile);
-            }
-
-            if (createForClient)
-            {
-                auto file = std::make_unique<ClientResourceScriptFile>(*this);
-                file->SetRelativePath(item.sourceFile);
-                file->SetIsCachable(item.isClientCacheable);
-
-                if (item.isClientCacheable)
-                {
-                    m_clientFiles.push_back(file.get());
-                }
-                else
-                {
-                    m_noCacheClientScripts.push_back(file.get());
-                }
-
-                m_resourceFiles.push_back(std::move(file));
-
-                AddClientFilePath(item.sourceFile);
-            }
-        }
-
-        return true;
-    }
-
-    bool Resource::ProcessMetaHttpFiles(const MetaFileParser& meta)
-    {
-        bool hasDefaultHtmlPage = false;
-
-        for (const MetaFileItem& item : meta.htmls)
-        {
-            std::string filePath = item.sourceFile.generic_string();
-            
-            if (!ContainsSourceFile(item.sourceFile))
-            {
-                std::string filePath = item.sourceFile.string();
-
-                m_lastError = SString("Couldn't find html %.*s for resource %.*s", filePath.size(), filePath.data(), m_name.size(), m_name.c_str());
-                return false;
-            }
-
-            if (IsDuplicateServerFile(item.sourceFile))
-            {
-                CLogger::LogPrintf("WARNING: Duplicate html file in resource '%.*s': '%.*s'\n", m_name.size(), m_name.c_str(), filePath.size(),
-                                   filePath.data());
-            }
-
-            bool isDefault = item.isHttpDefault;
-
-            if (isDefault)
-            {
-                if (hasDefaultHtmlPage)
-                {
-                    isDefault = false;
-
-                    CLogger::LogPrintf("Only one html item can be default per resource, ignoring %.*s in %.*s\n", filePath.size(), filePath.data(),
-                                       m_name.size(), m_name.c_str());
-                }
-                else
-                {
-                    hasDefaultHtmlPage = true;
-                }
-            }
-
-            auto file = std::make_unique<ResourceHttpFile>(*this);
-            file->SetRelativePath(item.sourceFile);
-            file->SetIsRaw(item.isHttpRaw);
-            file->SetIsDefault(isDefault);
-            file->SetIsACLRestricted(item.isHttpRestricted);
-            file->SetIsUsingOOP(m_usingOOP);
-
-            m_httpFiles.push_back(file.get());
-            m_resourceFiles.push_back(std::move(file));
-
-            AddServerFilePath(item.sourceFile);
-        }
-
-        if (!hasDefaultHtmlPage && !m_httpFiles.empty())
-            m_httpFiles.front()->SetIsDefault(true);
-
-        return true;
-    }
-
-    bool Resource::ProcessMetaExports(const MetaFileParser& meta)
+    
+    void Resource::ProcessMetaExports(const MetaFileParser& meta)
     {
         for (const MetaExportItem& item : meta.exports)
         {
             if (item.isForServer)
             {
-                ServerFunction function;
+                ResourceServerFunction function;
                 function.isHttpAccessible = item.isHttpAccessible;
                 function.isACLRestricted = item.isACLRestricted;
 
@@ -987,7 +791,7 @@ namespace mtasa
 
             if (item.isForClient)
             {
-                ClientFunction function;
+                ResourceClientFunction function;
                 function.name = item.functionName;
                 function.isHttpAccessible = item.isHttpAccessible;
                 function.isACLRestricted = item.isACLRestricted;
@@ -995,98 +799,177 @@ namespace mtasa
                 m_clientFunctions.push_back(std::move(function));
             }
         }
-
-        return true;
     }
 
-    bool Resource::ProcessMetaConfigs(const MetaFileParser& meta)
+    bool Resource::ProcessMetaFiles(const MetaFileParser& meta)
     {
-        for (const MetaFileItem& item : meta.configs)
-        {
-            std::string filePath = item.sourceFile.generic_string();
+        bool hasDefaultHtmlPage = false;
 
-            if (!ContainsSourceFile(item.sourceFile))
+        for (const MetaFileItem& item : meta.items)
+        {
+            std::string      filePath = item.sourceFile.generic_string();
+            std::string_view typeString = MetaFileItemTypeToString(item.type);
+
+            if (!SourceFileExists(item.sourceFile))
             {
-                m_lastError = SString("Couldn't find config %.*s for resource %.*s", filePath.size(), filePath.data(), m_name.size(), m_name.c_str());
+                // Couldn't find <typeString> <filePath> for resource <resourceName>
+                m_lastError = SString("Couldn't find %.*s %.*s for resource %.*s", typeString.size(), typeString.data(), filePath.size(), filePath.data(),
+                                      m_name.size(), m_name.c_str());
                 return false;
             }
 
             if (item.isForClient && !IsWindowsCompatiblePath(item.sourceFile))
             {
-                m_lastError = SString("Client config path %.*s for resource %.*s is not supported on Windows", filePath.size(), filePath.data(),
-                                      m_name.size(), m_name.c_str());
+                // Client <typeString> path <filePath> for resource <resourceName> is not supported on Windows
+                m_lastError = SString("Client %.*s path %.*s for resource %.*s is not supported on Windows", typeString.size(), typeString.data(),
+                                      filePath.size(), filePath.data(), m_name.size(), m_name.c_str());
                 return false;
             }
 
-            if (item.isForServer && IsDuplicateServerFile(item.sourceFile))
+            bool createForServer = true;
+
+            if (item.isForServer)
             {
-                CLogger::LogPrintf("WARNING: Duplicate config file in resource '%.*s': '%.*s'\n", m_name.size(), m_name.c_str(), filePath.size(),
-                                   filePath.data());
+                if (IsDuplicateServerFile(item.sourceFile))
+                {
+                    // WARNING: Duplicate <typeString> file in resource '<resourceName>': '<filePath>'
+                    CLogger::LogPrintf("WARNING: Duplicate %.*s file in resource '%.*s': '%.*s'\n", typeString.size(), typeString.data(), m_name.size(),
+                                       m_name.c_str(), filePath.size(), filePath.data());
+                }
+                else
+                {
+                    AddServerFilePath(item.sourceFile);
+                }
             }
 
             bool createForClient = item.isForClient;
 
-            if (item.isForClient && IsDuplicateClientFile(item.sourceFile))
+            if (item.isForClient)
             {
-                createForClient = false;
-
-                CLogger::LogPrintf("WARNING: Ignoring duplicate client config file in resource '%.*s': '%.*s'\n", m_name.size(), m_name.c_str(),
-                                   filePath.size(), filePath.data());
-            }
-
-            if (item.isForServer)
-            {
-                auto file = std::make_unique<ResourceConfigFile>(*this);
-                file->SetRelativePath(item.sourceFile);
-
-                m_resourceFiles.push_back(std::move(file));
-
-                AddServerFilePath(item.sourceFile);
-            }
-
-            if (createForClient)
-            {
-                auto file = std::make_unique<ClientResourceConfigFile>(*this);
-                file->SetRelativePath(item.sourceFile);
-
-                m_clientFiles.push_back(file.get());
-                m_resourceFiles.push_back(std::move(file));
-
-                AddClientFilePath(item.sourceFile);
-            }
-        }
-
-        return true;
-    }
-
-    static std::unordered_set<std::string> reservedWindowsFileNames = {"CON"s,  "PRN"s,  "AUX"s,  "NUL"s,  "COM1"s, "COM2"s, "COM3"s, "COM4"s,
-                                                                       "COM5"s, "COM6"s, "COM7"s, "COM8"s, "COM9"s, "LPT1"s, "LPT2"s, "LPT3"s,
-                                                                       "LPT4"s, "LPT5"s, "LPT6"s, "LPT7"s, "LPT8"s, "LPT9"s};
-
-    // Check if the relative file path is allowed on a Microsoft Windows operating system
-    // See https://docs.microsoft.com/en-us/windows/win32/fileio/naming-a-file
-    static bool IsWindowsCompatiblePath(const fs::path& relativePath)
-    {
-        std::string fileName = relativePath.filename().string();
-
-        if (fileName.back() == '.' || fileName.back() == ' ')
-        {
-            return false;
-        }
-        else if (reservedWindowsFileNames.find(fileName) != reservedWindowsFileNames.end())
-        {
-            return false;
-        }
-        else
-        {
-            for (unsigned char c : fileName)
-            {
-                if (c < 32 || c == '<' || c == '>' || c == ':' || c == '"' || c == '/' || c == '\\' || c == '|' || c == '?' || c == '*')
+                if (IsDuplicateClientFile(item.sourceFile))
                 {
-                    return false;
+                    createForClient = false;
+
+                    // WARNING: Ignoring duplicate client <typeName> file in resource '<resourceName>': '<filePath>'
+                    CLogger::LogPrintf("WARNING: Ignoring duplicate client %.*s file in resource '%.*s': '%.*s'\n", typeString.size(), typeString.data(),
+                                       m_name.size(), m_name.c_str(), filePath.size(), filePath.data());
+                }
+                else
+                {
+                    AddClientFilePath(item.sourceFile);
+                }
+            }
+
+            switch (item.type)
+            {
+                case MetaFileItemType::MAP:
+                {
+                    if (!createForServer)
+                        break;
+
+                    auto file = std::make_unique<ResourceMapFile>(*this);
+                    file->SetRelativePath(item.sourceFile);
+                    file->SetDimension(item.dimension);
+
+                    m_resourceFiles.push_back(std::move(file));
+                    break;
+                }
+                case MetaFileItemType::FILE:
+                {
+                    if (!createForClient)
+                        break;
+
+                    auto file = std::make_unique<ClientResourceFile>(*this);
+                    file->SetRelativePath(item.sourceFile);
+                    file->SetIsOptional(item.isClientOptional);
+
+                    m_clientFiles.push_back(file.get());
+                    m_resourceFiles.push_back(std::move(file));
+                    break;
+                }
+                case MetaFileItemType::SCRIPT:
+                {
+                    if (createForServer)
+                    {
+                        auto file = std::make_unique<ResourceScriptFile>(*this);
+                        file->SetRelativePath(item.sourceFile);
+
+                        m_resourceFiles.push_back(std::move(file));
+                    }
+
+                    if (createForClient)
+                    {
+                        auto file = std::make_unique<ClientResourceScriptFile>(*this);
+                        file->SetRelativePath(item.sourceFile);
+                        file->SetIsCachable(item.isClientCacheable);
+
+                        if (item.isClientCacheable)
+                            m_clientFiles.push_back(file.get());
+                        else
+                            m_noCacheClientScripts.push_back(file.get());
+
+                        m_resourceFiles.push_back(std::move(file));
+                    }
+                    break;
+                }
+                case MetaFileItemType::HTML:
+                {
+                    if (!createForServer)
+                        break;
+
+                    bool isDefault = item.isHttpDefault;
+
+                    if (isDefault)
+                    {
+                        if (hasDefaultHtmlPage)
+                            isDefault = false;
+                        else
+                            hasDefaultHtmlPage = true;
+
+                        if (!isDefault)
+                        {
+                            // Only one html item can be default per resource, ignoring <filePath> in <resourceName>
+                            CLogger::LogPrintf("Only one html item can be default per resource, ignoring %.*s in %.*s\n", filePath.size(), filePath.data(),
+                                               m_name.size(), m_name.c_str());
+                        }
+                    }
+
+                    auto file = std::make_unique<ResourceHttpFile>(*this);
+                    file->SetRelativePath(item.sourceFile);
+                    file->SetIsRaw(item.isHttpRaw);
+                    file->SetIsDefault(isDefault);
+                    file->SetIsACLRestricted(item.isHttpRestricted);
+                    file->SetIsUsingOOP(m_usingOOP);
+
+                    m_httpFiles.push_back(file.get());
+                    m_resourceFiles.push_back(std::move(file));
+                    break;
+                }
+                case MetaFileItemType::CONFIG:
+                {
+                    if (createForServer)
+                    {
+                        auto file = std::make_unique<ResourceConfigFile>(*this);
+                        file->SetRelativePath(item.sourceFile);
+
+                        m_resourceFiles.push_back(std::move(file));
+                    }
+
+                    if (createForClient)
+                    {
+                        auto file = std::make_unique<ClientResourceConfigFile>(*this);
+                        file->SetRelativePath(item.sourceFile);
+
+                        m_clientFiles.push_back(file.get());
+                        m_resourceFiles.push_back(std::move(file));
+                    }
+                    break;
                 }
             }
         }
+
+        if (!hasDefaultHtmlPage && !m_httpFiles.empty())
+            m_httpFiles.front()->SetIsDefault(true);
 
         return true;
     }

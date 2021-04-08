@@ -46,6 +46,9 @@ namespace mtasa
 
         bool IsRunning() const { return m_isRunning; }
 
+        void SetIsValidatable(bool isValidatable) { m_isValidatable = isValidatable; }
+        bool IsValidatable() const { return m_isValidatable; }
+
         void SetRelativePath(const std::filesystem::path& relativePath)
         {
             m_relativePath = relativePath;
@@ -77,6 +80,7 @@ namespace mtasa
         ResourceFileType      m_type;
         std::string           m_name;
         std::filesystem::path m_relativePath;
+        bool                  m_isValidatable = false;
         bool                  m_isRunning = false;
         bool                  m_sourceFileExists = true;
         bool                  m_usingClientCache = false;

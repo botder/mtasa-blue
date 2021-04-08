@@ -32,6 +32,7 @@ namespace mtasa
     class ResourceFile;
     class ResourceHttpFile;
     class ResourceClientScriptFile;
+    class ResourceChecker;
 
     /* --> [NOT_LOADED] --(load)-->. [LOADED] --(start)--> [STARTING] .--(success)--> [RUNNING] .--(stop)--> [STOPPING] .
     *           |                  |  |    |                          |                         |                       |
@@ -188,6 +189,9 @@ namespace mtasa
         bool HandleAclRequestChangeCommand(const SString& strRightName, bool bAccess, const SString& strWho) { return true; }
         bool HandleAclRequestChange(const CAclRightName& strRightName, bool bAccess, const SString& strWho) { return true; }
 
+        std::vector<std::unique_ptr<ResourceFile>>::const_iterator begin() const noexcept { return m_resourceFiles.begin(); }
+        std::vector<std::unique_ptr<ResourceFile>>::const_iterator end() const noexcept { return m_resourceFiles.end(); }
+
     protected:
         virtual bool SourceFileExists(const std::filesystem::path& relativePath) const;
 
@@ -223,6 +227,8 @@ namespace mtasa
         
         CMtaVersion m_minClientVersion;
         CMtaVersion m_minServerVersion;
+        CMtaVersion m_minClientVersionFromSource;
+        CMtaVersion m_minServerVersionFromSource;
         CMtaVersion m_metaMinClientVersion;
         CMtaVersion m_metaMinServerVersion;
 
@@ -250,6 +256,8 @@ namespace mtasa
         std::time_t      m_startedTime = 0;
         ResourceUseFlags m_useFlags;
 
+        std::unique_ptr<ResourceChecker> m_checker;
+
         bool m_syncElementsToClients = false;
         bool m_wasDeleted = false;
 
@@ -263,6 +271,7 @@ namespace mtasa
     private:
         bool ComputeFileMetaDatum();
         bool IsAnyResourceFileBlocked();
+        bool IsVersionIncompatible();
 
         bool CreateLuaContext();
         void DeleteLuaContext();

@@ -11,6 +11,7 @@
 #include "StdInc.h"
 #include "Resource.h"
 #include "ResourceManager.h"
+#include "ResourceChecker.h"
 #include "MetaFileParser.h"
 #include "ResourceMapFile.h"
 #include "ResourceHttpFile.h"
@@ -49,6 +50,8 @@ namespace mtasa
         m_metaChecksum.Reset();
         m_minServerVersion = ""s;
         m_metaMinServerVersion = ""s;
+        m_minClientVersionFromSource = ""s;
+        m_minServerVersionFromSource = ""s;
         m_minClientVersion = ""s;
         m_metaMinClientVersion = ""s;
         m_downloadPriorityGroup = 0;
@@ -65,7 +68,7 @@ namespace mtasa
             return false;
 
         std::error_code errorCode;
-        fs::path        metaFile = m_sourceDirectory / "meta.xml";
+        fs::path        metaFile = m_sourceDirectory / "meta.xml"sv;
 
         if (!fs::is_regular_file(metaFile, errorCode))
         {
@@ -163,6 +166,18 @@ namespace mtasa
             return false;
         }
 
+        // TODO: Run resource checker to update m_minClientVersionFromSource / m_minServerVersionFromSource
+        m_checker = std::make_unique<ResourceChecker>(*this);
+        m_checker->RunAnalysis();
+
+        // Check if our version requirements are compatible with the current environment
+        if (IsVersionIncompatible())
+        {
+            CLogger::LogPrintf("Not starting resource  %.*s as %.*s\n", m_name.size(), m_name.c_str(), m_lastError.size(), m_lastError.c_str());
+            m_state = ResourceState::LOADED;
+            return false;
+        }
+
         // CheckForIssues
         // if (!m_bDoneUpgradeWarnings)
         // {
@@ -171,17 +186,7 @@ namespace mtasa
         //                                           m_strMinClientReason, m_strMinServerReason);
         // }
 
-        // MTA version check
-        // SString strStatus;
-        // 
-        // if (!GetCompatibilityStatus(strStatus))
-        // {
-        //     m_strFailureReason = SString("Not starting resource %s as %s\n", m_strResourceName.c_str(), strStatus.c_str());
-        //     CLogger::LogPrint(m_strFailureReason);
-        //     m_eState = EResourceState::Loaded;
-        //     return false;
-        // }
-        // else if (!strStatus.empty())
+        // if (!strStatus.empty())
         // {
         //     SString strReason = SString("WARNING: %s requires upgrade as %s\n", m_strResourceName.c_str(), *strStatus);
         //     CLogger::LogPrint(strReason);
@@ -599,7 +604,7 @@ namespace mtasa
     bool Resource::Exists() const
     {
         std::error_code errorCode;
-        return fs::is_regular_file(m_sourceDirectory / "meta.xml", errorCode);
+        return fs::is_regular_file(m_sourceDirectory / "meta.xml"sv, errorCode);
     }
 
     bool Resource::HasChanged() const
@@ -616,7 +621,7 @@ namespace mtasa
             }
         }
 
-        return m_metaChecksum.HasChanged(m_sourceDirectory / "meta.xml");
+        return m_metaChecksum.HasChanged(m_sourceDirectory / "meta.xml"sv);
     }
 
     bool Resource::SourceFileExists(const fs::path& relativePath) const
@@ -707,6 +712,59 @@ namespace mtasa
         }
 
         return result;
+    }
+
+    bool Resource::IsVersionIncompatible()
+    {
+        // Validate the meta.xml server and client version values
+        if (!IsValidVersionString(m_minServerVersion) || !IsValidVersionString(m_minClientVersion))
+        {
+            m_lastError = "<min_mta_version> section in the meta.xml contains invalid version strings"s;
+            return true;
+        }
+
+#if MTASA_VERSION_BUILD != 0
+        CMtaVersion serverVersion = CStaticFunctionDefinitions::GetVersionSortable();
+
+        if (m_minServerVersion > serverVersion)
+        {
+            m_lastError = "this server version is too low ("s + m_minServerVersion + " required)"s;
+            return true;
+        }
+
+        if (m_minServerVersionFromSource > serverVersion)
+        {
+            m_lastError = "server has come back from the future"s;
+            return true;
+        }
+#endif
+
+        // if (m_minClientVersionFromSource > m_minClientVersion)            // from meta.xml
+        // {
+        //     // <min_mta_version> section in the meta.xml is incorrect or missing (expected at least client <minClientVersionFromSource> because of '<minClientReason>')
+        // }
+        // else if (m_minServerVersionFromSource > m_minServerVersion)       // from meta.xml
+        // {
+        //     // <min_mta_version> section in the meta.xml is incorrect or missing (expected at least server <minServerVersionFromSource> because of '<minServerVersion>')
+        // }
+
+        // See if any connected client is below minimum requirements
+        CPlayerManager* playerManager = g_pGame->GetPlayerManager();
+        std::size_t     numIncompatiblePlayers = 0;
+
+        for (auto iter = playerManager->IterBegin(); iter != playerManager->IterEnd(); ++iter)
+        {
+            CPlayer* player = *iter;
+
+            if (player->IsJoined() && m_minClientVersion > player->GetPlayerVersion() && !player->ShouldIgnoreMinClientVersionChecks())
+                ++numIncompatiblePlayers;
+        }
+
+        if (numIncompatiblePlayers == 0)
+            return false;
+
+        m_lastError = std::to_string(numIncompatiblePlayers) + " connected player(s) below required client version " + m_minClientVersion;
+        return true;
     }
 
     bool Resource::CreateLuaContext()
@@ -937,6 +995,7 @@ namespace mtasa
 
                     auto file = std::make_unique<ResourceClientFile>(*this);
                     file->SetRelativePath(item.sourceFile);
+                    file->SetIsValidatable(item.isValidatable);
                     file->SetIsOptional(item.isClientOptional);
 
                     m_clientFiles.push_back(file.get());
@@ -949,6 +1008,7 @@ namespace mtasa
                     {
                         auto file = std::make_unique<ResourceScriptFile>(*this);
                         file->SetRelativePath(item.sourceFile);
+                        file->SetIsValidatable(item.isValidatable);
 
                         m_resourceFiles.push_back(std::move(file));
                     }
@@ -957,6 +1017,7 @@ namespace mtasa
                     {
                         auto file = std::make_unique<ResourceClientScriptFile>(*this, item.isClientCacheable);
                         file->SetRelativePath(item.sourceFile);
+                        file->SetIsValidatable(item.isValidatable);
 
                         if (item.isClientCacheable)
                             m_clientFiles.push_back(file.get());

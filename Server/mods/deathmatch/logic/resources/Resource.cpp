@@ -573,7 +573,11 @@ namespace mtasa
         return result;
     }
 
-    bool Resource::SetInfoValue(const std::string& key, const std::string& value, bool persistChanges) { return false; }
+    bool Resource::SetInfoValue(const std::string& key, const std::string& value, bool persistChanges)
+    {
+        // TODO: Add implementation here
+        return false;
+    }
 
     bool Resource::TryGetInfoValue(const std::string& key, std::string& value) const
     {
@@ -586,7 +590,11 @@ namespace mtasa
         return false;
     }
 
-    bool Resource::RemoveInfoValue(const std::string& key, bool persistChanges) { return false; }
+    bool Resource::RemoveInfoValue(const std::string& key, bool persistChanges)
+    {
+        // TODO: Add implementation here
+        return false;
+    }
 
     bool Resource::Exists() const
     {
@@ -596,11 +604,14 @@ namespace mtasa
 
     bool Resource::HasChanged() const
     {
+        if (m_state == ResourceState::NOT_LOADED)
+            return false;
+
         if (m_state == ResourceState::RUNNING)
         {
             for (const std::unique_ptr<ResourceFile>& resourceFile : m_resourceFiles)
             {
-                if (resourceFile->HasChanged())
+                if (resourceFile->IsRunning() && resourceFile->HasChanged())
                     return true;
             }
         }
@@ -873,7 +884,7 @@ namespace mtasa
 
             bool createForServer = item.isForServer;
 
-            if (item.isForServer)
+            if (createForServer)
             {
                 if (IsDuplicateServerFile(item.sourceFile))
                 {
@@ -889,7 +900,7 @@ namespace mtasa
 
             bool createForClient = item.isForClient;
 
-            if (item.isForClient)
+            if (createForClient)
             {
                 if (IsDuplicateClientFile(item.sourceFile))
                 {

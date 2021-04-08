@@ -65,7 +65,6 @@ namespace mtasa
 
     public:
         bool ComputeSourceFileMetaData();
-        bool ComputeCacheFileMetaData();
 
         bool           SourceFileExists() const { return m_sourceFileExists; }
         std::uintmax_t GetSize() const { return m_sourceFileSize; }

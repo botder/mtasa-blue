@@ -113,12 +113,4 @@ namespace mtasa
 
         return m_sourceChecksum.Compute(sourceFile);
     }
-
-    bool ResourceFile::ComputeCacheFileMetaData()
-    {
-        if (!m_usingClientCache)
-            return true;
-
-        return m_cacheChecksum.Compute(GetCacheFilePath());
-    }
 }            // namespace mtasa

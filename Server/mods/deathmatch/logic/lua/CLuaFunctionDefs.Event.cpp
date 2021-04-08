@@ -11,9 +11,12 @@
 
 #include "StdInc.h"
 #include "Resource.h"
+#include "ResourceFile.h"
 #include "ResourceManager.h"
 
 #define MIN_SERVER_REQ_TRIGGERCLIENTEVENT_SENDLIST          "1.3.0-9.04570"
+
+using namespace mtasa;
 
 int CLuaFunctionDefs::AddEvent(lua_State* luaVM)
 {
@@ -76,13 +79,11 @@ int CLuaFunctionDefs::AddEventHandler(lua_State* luaVM)
     {
         if (CLuaMain* luaContext = m_pLuaManager->GetLuaContext(luaVM); luaContext != nullptr)
         {
-            // TODO:
-            // CResourceFile* file = luaContext->GetResourceFile();
-            // if (file && file->GetType() == CResourceFile::RESOURCE_FILE_TYPE_HTML)
+            if (ResourceFile* file = luaContext->GetResourceFile(); file != nullptr && file->GetType() == ResourceFileType::SERVER_HTTP)
             {
                 argStream.SetCustomError("You cannot have event handlers in HTML scripts");
             }
-            // else
+            else
             {
                 // check if the handle is in use
                 if (pElement->GetEventManager()->HandleExists(luaContext, strName, iLuaFunction))

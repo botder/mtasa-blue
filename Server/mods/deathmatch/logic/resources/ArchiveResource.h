@@ -28,7 +28,9 @@ namespace mtasa
 
         bool IsArchived() const override { return true; }
 
-        bool Load() override { return PreProcessArchive() && Resource::Load(); }
+        bool Load() override;
+
+        bool Unload() override;
 
         bool Start(ResourceUseFlags useFlags = {}) override { return DecompressArchive() && Resource::Start(useFlags); }
 
@@ -43,6 +45,7 @@ namespace mtasa
         bool PreProcessArchive();
         bool DecompressArchive();
 
+        ResourceFileChecksum  m_archiveChecksum;
         std::filesystem::path m_sourceArchive;
 
         struct Hasher

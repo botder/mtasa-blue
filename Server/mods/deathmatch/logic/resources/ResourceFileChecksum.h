@@ -28,15 +28,22 @@ namespace mtasa
 
         bool IsCalculated() const { return m_crc != 0; }
 
-        bool Calculate(const std::filesystem::path& filePath);
+        bool Compute(const std::filesystem::path& filePath);
 
-        bool operator==(const ResourceFileChecksum& other)
+        bool HasChanged(const std::filesystem::path& filePath) const;
+
+        std::uint32_t                       GetCRC() const { return m_crc; }
+        const std::array<std::uint8_t, 16>& GetMD5() const { return m_md5; }
+
+        bool operator==(const ResourceFileChecksum& other) const noexcept
         {
             return m_crc == other.m_crc && m_md5 == other.m_md5;
         }
 
-        std::uint32_t                       GetCRC() const { return m_crc; }
-        const std::array<std::uint8_t, 16>& GetMD5() const { return m_md5; }
+        bool operator!=(const ResourceFileChecksum& other) const noexcept
+        {
+            return !(*this == other);
+        }
 
     private:
         std::uint32_t                   m_crc = 0;

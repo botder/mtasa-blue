@@ -14,10 +14,13 @@
 
 namespace mtasa
 {
-    class ClientResourceFile final : public ResourceFile
+    class ResourceClientFile final : public ResourceFile
     {
     public:
-        ClientResourceFile(Resource& resource) : ResourceFile(resource, ResourceFileType::CLIENT_FILE) {}
+        ResourceClientFile(Resource& resource) : ResourceFile(resource, ResourceFileType::CLIENT_FILE)
+        {
+            m_usingClientCache = true;
+        }
 
         void SetIsOptional(bool isOptional) { m_isOptional = isOptional; }
         bool IsOptional() const { return m_isOptional; }

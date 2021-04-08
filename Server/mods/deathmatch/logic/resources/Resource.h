@@ -11,6 +11,7 @@
 #pragma once
 
 #include "ResourceUseFlags.h"
+#include "ResourceFileChecksum.h"
 #include <string>
 #include <filesystem>
 #include <optional>
@@ -30,7 +31,7 @@ namespace mtasa
     class ResourceManager;
     class ResourceFile;
     class ResourceHttpFile;
-    class ClientResourceScriptFile;
+    class ResourceClientScriptFile;
 
     /* --> [NOT_LOADED] --(load)-->. [LOADED] --(start)--> [STARTING] .--(success)--> [RUNNING] .--(stop)--> [STOPPING] .
     *           |                  |  |    |                          |                         |                       |
@@ -87,11 +88,14 @@ namespace mtasa
         ResourceManager&       GetManager() { return m_resourceManager; }
         const ResourceManager& GetManager() const { return m_resourceManager; }
 
-        void                         SetSourceDirectory(const std::filesystem::path& sourceDirectory) { m_sourceDirectory = sourceDirectory; }
+        void                         SetSourceDirectory(const std::filesystem::path& directory) { m_sourceDirectory = directory; }
         const std::filesystem::path& GetSourceDirectory() const { return m_sourceDirectory; }
 
-        void                         SetGroupDirectory(const std::filesystem::path& groupDirectory) { m_groupDirectory = groupDirectory; }
+        void                         SetGroupDirectory(const std::filesystem::path& directory) { m_groupDirectory = directory; }
         const std::filesystem::path& GetGroupDirectory() const { return m_groupDirectory; }
+
+        void                         SetClientCacheDirectory(const std::filesystem::path& directory) { m_clientCacheDirectory = directory; }
+        const std::filesystem::path& GetClientCacheDirectory() const { return m_clientCacheDirectory; }
 
         void SetDynamicDirectory(const std::filesystem::path& dynamicDirectory) { m_dynamicDirectory = dynamicDirectory; }
 
@@ -194,6 +198,7 @@ namespace mtasa
         std::string           m_lastError;
         std::filesystem::path m_groupDirectory;
         std::filesystem::path m_sourceDirectory;
+        std::filesystem::path m_clientCacheDirectory;
         std::filesystem::path m_dynamicDirectory;
 
         SArrayId      m_scriptIdentifier = INVALID_ARRAY_ID;
@@ -212,6 +217,8 @@ namespace mtasa
         bool        m_usingOOP = false;
         int         m_downloadPriorityGroup = 0;
 
+        ResourceFileChecksum m_metaChecksum;
+
         std::unordered_map<std::string, std::string> m_info;
         
         CMtaVersion m_minClientVersion;
@@ -229,7 +236,7 @@ namespace mtasa
         std::vector<std::unique_ptr<ResourceFile>> m_resourceFiles;
         std::vector<ResourceHttpFile*>             m_httpFiles;
         std::vector<ResourceFile*>                 m_clientFiles;
-        std::vector<ClientResourceScriptFile*>     m_noCacheClientScripts;
+        std::vector<ResourceClientScriptFile*>     m_noCacheClientScripts;
 
         std::vector<ResourceClientFunction>                     m_clientFunctions;
         std::unordered_map<std::string, ResourceServerFunction> m_serverFunctions;
@@ -254,7 +261,7 @@ namespace mtasa
         // CXMLNode*      m_tempSettingsNode = nullptr;
 
     private:
-        bool CalculateFileMetaDatum();
+        bool ComputeFileMetaDatum();
         bool IsAnyResourceFileBlocked();
 
         bool CreateLuaContext();

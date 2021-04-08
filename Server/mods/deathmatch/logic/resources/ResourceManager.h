@@ -52,6 +52,7 @@ namespace mtasa
         static constexpr auto RESOURCES_DIRECTORY_NAME = "resources"sv;
         static constexpr auto CACHE_DIRECTORY_NAME = "resource-cache"sv;
         static constexpr auto ARCHIVE_DECOMPRESSION_DIRECTORY_NAME = "unzipped"sv;
+        static constexpr auto HTTP_CLIENT_CACHE_DIRECTORY_NAME = "http-client-files"sv;
 
     public:
         ResourceManager(const std::filesystem::path& baseDirectory);
@@ -122,6 +123,7 @@ namespace mtasa
     private:
         std::filesystem::path m_resourcesDirectory;
         std::filesystem::path m_archiveDecompressionDirectory;
+        std::filesystem::path m_httpClientCacheDirectory;
 
         std::unordered_map<std::string, Resource*, LowercaseHash, LowercaseEqual> m_nameToResource;
 

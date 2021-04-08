@@ -58,8 +58,10 @@ namespace mtasa
 
         fs::path resourceCacheDirectory = baseDirectory / CACHE_DIRECTORY_NAME;
         m_archiveDecompressionDirectory = resourceCacheDirectory / ARCHIVE_DECOMPRESSION_DIRECTORY_NAME;
+        m_httpClientCacheDirectory = resourceCacheDirectory / HTTP_CLIENT_CACHE_DIRECTORY_NAME;
 
         CreateDirectories(m_archiveDecompressionDirectory);
+        CreateDirectories(m_httpClientCacheDirectory);
         CreateResourceCacheReadme(resourceCacheDirectory);
     }
 
@@ -143,12 +145,7 @@ namespace mtasa
 
     void ResourceManager::RefreshResource(Resource* resource)
     {
-        if (resource->GetState() == ResourceState::NOT_LOADED)
-        {
-            // Try to load resource again, because it had loading issues last time
-            LoadErroneousResource(resource);
-        }
-        else if (!resource->Exists())
+        if (!resource->Exists())
         {
             // Destroy resource, because the source files don't exist anymore
             DestroyZombieResource(resource);
@@ -157,6 +154,11 @@ namespace mtasa
         {
             // Reload resource, because the source files have changed
             ReloadChangedResource(resource);
+        }
+        else if (resource->GetState() == ResourceState::NOT_LOADED)
+        {
+            // Try to load resource again, because it had loading issues last time
+            LoadErroneousResource(resource);
         }
     }
 
@@ -260,7 +262,7 @@ namespace mtasa
 
         if (!m_resources.empty())
         {
-            m_resources.erase(std::remove(m_resources.begin(), m_resources.end(), resource));
+            m_resources.erase(std::remove(m_resources.begin(), m_resources.end(), resource), m_resources.end());
         }
 
         if (!m_commandsQueue.empty())
@@ -329,6 +331,7 @@ namespace mtasa
             {
                 auto archiveResource = new ArchiveResource{*this};
                 archiveResource->SetSourceDirectory(m_archiveDecompressionDirectory / location.resourceName);
+                archiveResource->SetClientCacheDirectory(m_httpClientCacheDirectory / location.resourceName);
                 archiveResource->SetDynamicDirectory(fs::path{location.absolutePath}.replace_extension());
                 archiveResource->SetSourceArchive(location.absolutePath);
 
@@ -342,6 +345,7 @@ namespace mtasa
             }
 
             resource->SetName(location.resourceName);
+            resource->SetClientCacheDirectory(m_httpClientCacheDirectory / location.resourceName);
             resource->SetGroupDirectory(location.relativePath);
             resource->SetScriptIdentifier(scriptId);
             resource->SetRemoteIdentifier(remoteId);

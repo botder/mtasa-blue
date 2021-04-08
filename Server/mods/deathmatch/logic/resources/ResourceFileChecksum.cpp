@@ -10,6 +10,7 @@
 
 #include "StdInc.h"
 #include "ResourceFileChecksum.h"
+#include <optional>
 
 #define CRYPTOPP_ENABLE_NAMESPACE_WEAK 1
 #include <cryptopp/crc.h>
@@ -21,7 +22,11 @@ namespace fs = std::filesystem;
 
 namespace mtasa
 {
-    bool ResourceFileChecksum::Calculate(const fs::path& filePath)
+    using CRC32_MD5 = std::pair<std::uint32_t, std::array<std::uint8_t, 16>>;
+
+    std::optional<CRC32_MD5> ComputeHashes(const fs::path& filePath);
+
+    bool ResourceFileChecksum::Compute(const fs::path& filePath)
     {
         // Do not update the checksum if the file's last write time didn't change
         std::error_code    errorCode;
@@ -30,11 +35,41 @@ namespace mtasa
         if (!errorCode && lastWriteTime == m_lastWriteTime)
             return true;
 
-        // Reset the current checksums
-        m_crc = 0;
-        m_md5 = {};
+        std::optional<CRC32_MD5> hashes = ComputeHashes(filePath);
 
-        // Output strings for hash filters
+        if (hashes.has_value())
+        {
+            m_crc = hashes->first;
+            m_md5 = hashes->second;
+            m_lastWriteTime = lastWriteTime;
+            return true;
+        }
+        else
+        {
+            m_crc = 0;
+            m_md5 = {};
+            return false;
+        }
+    }
+
+    bool ResourceFileChecksum::HasChanged(const std::filesystem::path& filePath) const
+    {
+        std::error_code    errorCode;
+        fs::file_time_type lastWriteTime = fs::last_write_time(filePath, errorCode);
+
+        if (errorCode || lastWriteTime != m_lastWriteTime)
+            return true;
+
+        std::optional<CRC32_MD5> hashes = ComputeHashes(filePath);
+
+        if (!hashes.has_value())
+            return true;
+
+        return hashes->first != m_crc || hashes->second != m_md5;
+    }
+
+    std::optional<CRC32_MD5> ComputeHashes(const fs::path& filePath)
+    {
         std::string crcBytes;
         std::string md5Bytes;
 
@@ -58,15 +93,17 @@ namespace mtasa
         }
         catch (const CryptoPP::Exception&)
         {
-            return false;
+            return std::nullopt;
         }
 
-        if (crcBytes.size() != sizeof(m_crc) || md5Bytes.size() != m_md5.size())
-            return false;
+        std::uint32_t                crc = 0;
+        std::array<std::uint8_t, 16> md5;
 
-        std::copy(crcBytes.begin(), crcBytes.end(), reinterpret_cast<char*>(&m_crc));
-        std::copy(md5Bytes.begin(), md5Bytes.end(), reinterpret_cast<char*>(m_md5.data()));
-        m_lastWriteTime = lastWriteTime;
-        return true;
+        if (crcBytes.size() != sizeof(crc) || md5Bytes.size() != md5.size())
+            return std::nullopt;
+
+        std::copy(crcBytes.begin(), crcBytes.end(), reinterpret_cast<char*>(&crc));
+        std::copy(md5Bytes.begin(), md5Bytes.end(), reinterpret_cast<char*>(md5.data()));
+        return std::make_pair(crc, md5);
     }
 }            // namespace mtasa

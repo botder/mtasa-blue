@@ -34,6 +34,26 @@ namespace mtasa
                                              const std::string_view& fileName, std::byte* buffer, unsigned int bufferSize);
     static std::string_view   DecompressionErrorToString(DecompressionError decompressionError);
 
+    bool ArchiveResource::Load()
+    {
+        if (m_state != ResourceState::NOT_LOADED)
+            return false;
+
+        if (!m_archiveChecksum.Compute(m_sourceArchive))
+            return false;
+
+        return PreProcessArchive() && Resource::Load();
+    }
+
+    bool ArchiveResource::Unload()
+    {
+        if (m_state != ResourceState::LOADED)
+            return false;
+
+        m_archiveChecksum.Reset();
+        return Resource::Unload();
+    }
+
     bool ArchiveResource::Exists() const
     {
         std::error_code errorCode;
@@ -42,8 +62,7 @@ namespace mtasa
 
     bool ArchiveResource::HasChanged() const
     {
-        // TODO: Add implementation here
-        return Resource::HasChanged();
+        return m_archiveChecksum.HasChanged(m_sourceArchive) || Resource::HasChanged();
     }
 
     bool ArchiveResource::SourceFileExists(const fs::path& relativePath) const

@@ -14,9 +14,12 @@
 
 namespace mtasa
 {
-    class ClientResourceConfigFile final : public ResourceFile
+    class ResourceClientConfigFile final : public ResourceFile
     {
     public:
-        ClientResourceConfigFile(Resource& resource) : ResourceFile(resource, ResourceFileType::CLIENT_CONFIG) {}
+        ResourceClientConfigFile(Resource& resource) : ResourceFile(resource, ResourceFileType::CLIENT_CONFIG)
+        {
+            m_usingClientCache = true;
+        }
     };
 }            // namespace mtasa

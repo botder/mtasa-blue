@@ -16,9 +16,9 @@
 #include "ResourceHttpFile.h"
 #include "ResourceScriptFile.h"
 #include "ResourceConfigFile.h"
-#include "ClientResourceFile.h"
-#include "ClientResourceConfigFile.h"
-#include "ClientResourceScriptFile.h"
+#include "ResourceClientFile.h"
+#include "ResourceClientConfigFile.h"
+#include "ResourceClientScriptFile.h"
 #include "packets/CResourceStartPacket.h"
 #include "packets/CResourceStopPacket.h"
 
@@ -46,6 +46,7 @@ namespace mtasa
         std::exchange(m_dependencies, {});
         std::exchange(m_info, {});
         m_settingsNode.reset();
+        m_metaChecksum.Reset();
         m_minServerVersion = ""s;
         m_metaMinServerVersion = ""s;
         m_minClientVersion = ""s;
@@ -73,6 +74,13 @@ namespace mtasa
             return false;
         }
 
+        if (!m_metaChecksum.Compute(metaFile))
+        {
+            m_lastError = "Couldn't compute meta.xml file checksum for resource '"s + m_name + "'"s;
+            CLogger::ErrorPrintf("%.*s\n", m_lastError.size(), m_lastError.c_str());
+            return false;
+        }
+
         MetaFileParser meta{m_name};
         std::string    parserError = meta.Parse(metaFile);
 
@@ -85,7 +93,50 @@ namespace mtasa
         }
 
         if (!ProcessMeta(meta))
+        {
+            m_state = ResourceState::LOADED; // required for the call to `Resource::Unload`
+            Unload();
             return false;
+        }
+
+        // Clean up the client cache directory, if it exists
+        if (fs::exists(m_clientCacheDirectory, errorCode))
+        {
+            // Create a regular file list for the cache directory
+            std::vector<fs::path> files;
+
+            for (const fs::directory_entry& entry : fs::recursive_directory_iterator{m_clientCacheDirectory, errorCode})
+            {
+                if (entry.is_regular_file(errorCode))
+                {
+                    files.push_back(entry.path());
+                }
+            }
+
+            // Try to delete the cache directory, if there are no regular files or if we have no cachable client files
+            if (files.empty() || m_clientFiles.empty())
+            {
+                fs::remove(m_clientCacheDirectory, errorCode);
+            }
+            else
+            {
+                // Remove all cachable client files from the regular file list
+                for (const ResourceFile* resourceFile : m_clientFiles)
+                {
+                    if (files.empty())
+                        break;
+
+                    fs::path cachePath{m_clientCacheDirectory / resourceFile->GetRelativePath()};
+                    files.erase(std::remove(files.begin(), files.end(), cachePath), files.end());
+                }
+
+                // Delete the remaining files in the list
+                for (const fs::path& filePath : files)
+                {
+                    fs::remove(filePath, errorCode);
+                }
+            }
+        }
 
         time(&m_loadedTime);
         m_state = ResourceState::LOADED;
@@ -166,7 +217,7 @@ namespace mtasa
             return false;
         }
 
-        if (!CalculateFileMetaDatum() || IsAnyResourceFileBlocked())
+        if (!ComputeFileMetaDatum() || IsAnyResourceFileBlocked())
         {
             m_state = ResourceState::LOADED;
             CLogger::LogPrintf("Start up of resource %.*s cancelled by server\n", m_name.size(), m_name.c_str());
@@ -331,16 +382,6 @@ namespace mtasa
         {
             m_lastError = "Start up of resource cancelled by script";
             CLogger::LogPrintf("Start up of resource %.*s cancelled by script\n", m_name.size(), m_name.c_str());
-            Stop();
-            return false;
-        }
-
-        // Resource files may have been manipulated in the `onResourceStart` event
-        // and we should regenerate checksums for changed files before sending these to every client
-        // Clients will otherwise compare the outdated and cached resource file checksums
-        if (!CalculateFileMetaDatum() || IsAnyResourceFileBlocked())
-        {
-            CLogger::LogPrintf("Start up of resource %.*s cancelled by server\n", m_name.size(), m_name.c_str());
             Stop();
             return false;
         }
@@ -555,8 +596,16 @@ namespace mtasa
 
     bool Resource::HasChanged() const
     {
-        // TODO: Add implementation here
-        return false;
+        if (m_state == ResourceState::RUNNING)
+        {
+            for (const std::unique_ptr<ResourceFile>& resourceFile : m_resourceFiles)
+            {
+                if (resourceFile->HasChanged())
+                    return true;
+            }
+        }
+
+        return m_metaChecksum.HasChanged(m_sourceDirectory / "meta.xml");
     }
 
     bool Resource::SourceFileExists(const fs::path& relativePath) const
@@ -578,7 +627,7 @@ namespace mtasa
         return iter == m_sourceDirectory.end();
     }
 
-    bool Resource::CalculateFileMetaDatum()
+    bool Resource::ComputeFileMetaDatum()
     {
         if (m_resourceFiles.empty())
             return true;
@@ -589,12 +638,12 @@ namespace mtasa
         std::vector<std::future<FutureResult>> tasks;
         tasks.reserve(batchSize);
 
-        for (std::size_t i = 0; i < m_resourceFiles.size();)
+        for (std::size_t i = 0; i < m_resourceFiles.size(); /* manual increment */)
         {
             for (unsigned int b = 0; b < batchSize && i < m_resourceFiles.size(); i++, b++)
             {
                 ResourceFile*             file = m_resourceFiles[i].get();
-                std::future<FutureResult> task = SharedUtil::async([file] { return std::make_pair(file, file->CalculateFileMetaData()); });
+                std::future<FutureResult> task = SharedUtil::async([file] { return std::make_pair(file, file->ComputeSourceFileMetaData()); });
                 tasks.push_back(std::move(task));
             }
 
@@ -602,25 +651,21 @@ namespace mtasa
 
             for (std::future<FutureResult>& task : tasks)
             {
-                auto [file, success] = task.get();
+                auto [resourceFile, successful] = task.get();
 
-                if (!success)
-                {
-                    failure = true;
+                if (successful)
+                    continue;
 
-                    const std::string& fileName = file->GetName();
+                failure = true;
 
-                    if (file->Exists())
-                    {
-                        m_lastError = SString("File '%.*s' is unreadable", fileName.size(), fileName.c_str());
-                    }
-                    else
-                    {
-                        m_lastError = SString("File '%.*s' does not exist", fileName.size(), fileName.c_str());
-                    }
-                    
-                    CLogger::LogPrintf("%.*s\n", m_lastError.size(), m_lastError.c_str());
-                }
+                m_lastError = "File '" + resourceFile->GetName();
+
+                if (resourceFile->SourceFileExists())
+                    m_lastError += "' is unreadable";
+                else
+                    m_lastError += "' does not exist";
+
+                CLogger::LogPrintf("%.*s\n", m_lastError.size(), m_lastError.c_str());
             }
 
             if (failure)
@@ -638,7 +683,7 @@ namespace mtasa
 
         for (const std::unique_ptr<ResourceFile>& file : m_resourceFiles)
         {
-            std::string reason = m_resourceManager.GetBlockedFileReason(file->GetChecksum());
+            std::string reason = m_resourceManager.GetBlockedFileReason(file->GetSourceChecksum());
 
             if (!reason.empty())
             {
@@ -826,7 +871,7 @@ namespace mtasa
                 return false;
             }
 
-            bool createForServer = true;
+            bool createForServer = item.isForServer;
 
             if (item.isForServer)
             {
@@ -879,7 +924,7 @@ namespace mtasa
                     if (!createForClient)
                         break;
 
-                    auto file = std::make_unique<ClientResourceFile>(*this);
+                    auto file = std::make_unique<ResourceClientFile>(*this);
                     file->SetRelativePath(item.sourceFile);
                     file->SetIsOptional(item.isClientOptional);
 
@@ -899,9 +944,8 @@ namespace mtasa
 
                     if (createForClient)
                     {
-                        auto file = std::make_unique<ClientResourceScriptFile>(*this);
+                        auto file = std::make_unique<ResourceClientScriptFile>(*this, item.isClientCacheable);
                         file->SetRelativePath(item.sourceFile);
-                        file->SetIsCachable(item.isClientCacheable);
 
                         if (item.isClientCacheable)
                             m_clientFiles.push_back(file.get());
@@ -957,7 +1001,7 @@ namespace mtasa
 
                     if (createForClient)
                     {
-                        auto file = std::make_unique<ClientResourceConfigFile>(*this);
+                        auto file = std::make_unique<ResourceClientConfigFile>(*this);
                         file->SetRelativePath(item.sourceFile);
 
                         m_clientFiles.push_back(file.get());

@@ -11,22 +11,20 @@
 #pragma once
 
 #include "ResourceFile.h"
-#include <string>
 
 namespace mtasa
 {
-    class ClientResourceScriptFile final : public ResourceFile
+    class ResourceClientScriptFile final : public ResourceFile
     {
     public:
-        ClientResourceScriptFile(Resource& resource) : ResourceFile(resource, ResourceFileType::CLIENT_SCRIPT) {}
-
-        void SetIsCachable(bool isCachable) { m_isCachable = isCachable; }
-        bool IsCachable() const { return m_isCachable; }
+        ResourceClientScriptFile(Resource& resource, bool isClientCachable) : ResourceFile(resource, ResourceFileType::CLIENT_SCRIPT)
+        {
+            m_usingClientCache = isClientCachable;
+        }
 
         const std::string& GetCompressedSource() const { return m_compressedSource; }
 
     private:
-        bool        m_isCachable = true;
         std::string m_compressedSource;
     };
 }            // namespace mtasa

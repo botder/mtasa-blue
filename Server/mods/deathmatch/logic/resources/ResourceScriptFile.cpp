@@ -28,7 +28,7 @@ namespace mtasa
 
         if (!fileContent.empty())
         {
-            m_resource.GetLuaContext()->LoadScriptFromBuffer(fileContent.data(), fileContent.size(), m_name.c_str());
+            m_resource.GetLuaContext()->LoadScriptFromBuffer(fileContent.data(), static_cast<unsigned int>(fileContent.size()), m_name.c_str());
         }
 
         m_isRunning = true;

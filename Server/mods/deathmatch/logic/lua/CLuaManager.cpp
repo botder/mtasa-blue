@@ -70,7 +70,7 @@ void CLuaManager::DeleteLuaContext(CLuaMain* luaContext)
             keyBinds->RemoveAllKeys(luaContext);
     }
 
-    m_luaContexts.erase(std::remove(m_luaContexts.begin(), m_luaContexts.end(), luaContext));
+    m_luaContexts.erase(std::remove(m_luaContexts.begin(), m_luaContexts.end(), luaContext), m_luaContexts.end());
 
     delete luaContext;
 }

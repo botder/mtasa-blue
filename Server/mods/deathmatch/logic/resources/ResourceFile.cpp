@@ -54,7 +54,7 @@ namespace mtasa
             // Compare the source and cache file checksums and, if they differ, copy the source file to the cache (again)
             if (m_cacheChecksum != m_sourceChecksum)
             {
-                if (!fs::copy_file(GetSourceFilePath(), cacheFile, errorCode))
+                if (!fs::copy_file(GetSourceFilePath(), cacheFile, fs::copy_options::overwrite_existing, errorCode))
                     return false;
 
                 if (!m_cacheChecksum.Compute(cacheFile))

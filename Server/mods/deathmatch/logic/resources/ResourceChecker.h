@@ -29,7 +29,6 @@ namespace mtasa
         void AnalyseLuaFile(const ResourceFile& resourceFile, bool isForClient);
         void AnalyseRegularFile(const ResourceFile& resourceFile);
         void AnalyseImageFile(const ResourceFile& resourceFile);
-        void AnalyseRenderWareFile(const ResourceFile& resourceFile);
 
     private:
         Resource&   m_resource;

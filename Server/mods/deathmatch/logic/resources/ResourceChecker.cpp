@@ -16,6 +16,8 @@
 
 namespace mtasa
 {
+    extern bool IsRenderWareFileHierarchyCorrupt(const std::filesystem::path& filePath);
+
     void ResourceChecker::RunAnalysis()
     {
         // Check meta.xml
@@ -69,34 +71,31 @@ namespace mtasa
         }
         else if (extension == ".txd"sv || extension == ".dff"sv)
         {
-            AnalyseRenderWareFile(resourceFile);
+            if (IsRenderWareFileHierarchyCorrupt(resourceFile.GetSourceFilePath()))
+            {
+                // TODO: LOG: WARNING: File '<fileName>' in resource '<resourceName>' contains errors.\n
+            }
         }
     }
 
     void ResourceChecker::AnalyseImageFile(const ResourceFile& resourceFile)
     {
-        if (std::FILE* stream = File::Fopen(resourceFile.GetSourceFilePath().string().c_str(), "rb"); stream != nullptr)
+        std::unique_ptr<std::FILE, decltype(&fclose)> stream{File::Fopen(resourceFile.GetSourceFilePath().string().c_str(), "rb"), &fclose};
+
+        if (stream == nullptr)
+            return;
+
+        std::uint64_t header = 0;
+
+        if (fread(&header, sizeof(header), 1, stream.get()) == 1)
         {
-            std::uint64_t header = 0;
+            static constexpr std::uint64_t PNG_HEADER{0x0A'1A'0A'0D'47'4E'50'89};
+            static constexpr std::uint64_t JPG_HEADER{0x00'00'00'00'00'FF'D8'FF};
 
-            if (fread(&header, sizeof(header), 1, stream) == 1)
+            if (header != PNG_HEADER && (header & JPG_HEADER) != JPG_HEADER)
             {
-                static constexpr std::uint64_t PNG_HEADER{0x0A'1A'0A'0D'47'4E'50'89};
-                static constexpr std::uint64_t JPG_HEADER{0x00'00'00'00'00'FF'D8'FF};
-
-                if (header != PNG_HEADER && (header & JPG_HEADER) != JPG_HEADER)
-                {
-                    // LOG: WARNING: File '<fileName>' in resource '<resourceName>' is invalid.\n
-                    bool breakmepoint = true;
-                }
+                // TODO: LOG: WARNING: File '<fileName>' in resource '<resourceName>' is invalid.\n
             }
-
-            fclose(stream);
         }
-    }
-
-    void ResourceChecker::AnalyseRenderWareFile(const ResourceFile& resourceFile)
-    {
-        // TODO: Add implementation here
     }
 }            // namespace mtasa

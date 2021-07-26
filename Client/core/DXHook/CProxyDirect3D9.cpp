@@ -10,11 +10,17 @@
  *****************************************************************************/
 
 #include "StdInc.h"
+
 HRESULT HandleCreateDeviceResult(HRESULT hResult, IDirect3D9* pDirect3D, UINT Adapter, D3DDEVTYPE DeviceType, HWND hFocusWindow, DWORD BehaviorFlags,
                                  D3DPRESENT_PARAMETERS* pPresentationParameters, IDirect3DDevice9** ppReturnedDeviceInterface);
+
 std::vector<IDirect3D9*> ms_CreatedDirect3D9List;
+
 bool CreateDeviceSecondCallCheck(HRESULT& hOutResult, IDirect3D9* pDirect3D, UINT Adapter, D3DDEVTYPE DeviceType, HWND hFocusWindow, DWORD BehaviorFlags,
                                  D3DPRESENT_PARAMETERS* pPresentationParameters, IDirect3DDevice9** ppReturnedDeviceInterface);
+
+static HRESULT CreateDisplayAdapterDevice(IDirect3D9* pDirect3D9, UINT Adapter, D3DDEVTYPE DeviceType, HWND hFocusWindow, DWORD BehaviorFlags,
+                                          D3DPRESENT_PARAMETERS* pPresentationParameters, IDirect3DDevice9** ppReturnedDeviceInterface);
 
 CProxyDirect3D9::CProxyDirect3D9(IDirect3D9* pInterface)
 {
@@ -178,7 +184,7 @@ HRESULT CProxyDirect3D9::CreateDevice(UINT Adapter, D3DDEVTYPE DeviceType, HWND 
     GetVideoModeManager()->PreCreateDevice(pPresentationParameters);
 
     // Create our object.
-    hResult = m_pDevice->CreateDevice(Adapter, DeviceType, hFocusWindow, BehaviorFlags, pPresentationParameters, ppReturnedDeviceInterface);
+    hResult = CreateDisplayAdapterDevice(m_pDevice, Adapter, DeviceType, hFocusWindow, BehaviorFlags, pPresentationParameters, ppReturnedDeviceInterface);
 
     // Check if the result is correct (a custom d3d9.dll could return D3D_OK with a null pointer)
     if (hResult == D3D_OK && *ppReturnedDeviceInterface == nullptr)
@@ -311,7 +317,7 @@ HRESULT CreateDeviceInsist(uint uiMinTries, uint uiTimeout, IDirect3D9* pDirect3
     do
     {
         ms_uiCreationAttempts++;
-        hResult = pDirect3D->CreateDevice(Adapter, DeviceType, hFocusWindow, BehaviorFlags, pPresentationParameters, ppReturnedDeviceInterface);
+        hResult = CreateDisplayAdapterDevice(pDirect3D, Adapter, DeviceType, hFocusWindow, BehaviorFlags, pPresentationParameters, ppReturnedDeviceInterface);
 
         // Check if the result is correct (a custom d3d9.dll could return D3D_OK with a null pointer)
         if (hResult == D3D_OK && *ppReturnedDeviceInterface == nullptr)
@@ -689,7 +695,7 @@ bool CreateDeviceSecondCallCheck(HRESULT& hOutResult, IDirect3D9* pDirect3D, UIN
     if (++uiCreateCount == 1)
         return false;
     WriteDebugEvent(SString(" Passing through call #%d to CreateDevice", uiCreateCount));
-    hOutResult = pDirect3D->CreateDevice(Adapter, DeviceType, hFocusWindow, BehaviorFlags, pPresentationParameters, ppReturnedDeviceInterface);
+    hOutResult = CreateDisplayAdapterDevice(pDirect3D, Adapter, DeviceType, hFocusWindow, BehaviorFlags, pPresentationParameters, ppReturnedDeviceInterface);
     return true;
 }
 
@@ -811,6 +817,54 @@ HRESULT HandleCreateDeviceResult(HRESULT hResult, IDirect3D9* pDirect3D, UINT Ad
     return hResult;
 }
 
+static HRESULT CreateDisplayAdapterDevice(IDirect3D9* pDirect3D9, UINT Adapter, D3DDEVTYPE DeviceType, HWND hFocusWindow, DWORD BehaviorFlags,
+                                          D3DPRESENT_PARAMETERS* pPresentationParameters, IDirect3DDevice9** ppReturnedDeviceInterface)
+{
+    IDirect3D9Ex* pDirect3D9Ex = nullptr;
+    HRESULT       hr = pDirect3D9->QueryInterface(IID_PPV_ARGS(&pDirect3D9Ex));
+
+    if (FAILED(hr) || !pDirect3D9Ex)
+        return pDirect3D9->CreateDevice(Adapter, DeviceType, hFocusWindow, BehaviorFlags, pPresentationParameters, ppReturnedDeviceInterface);
+
+    pDirect3D9Ex->Release();
+
+    D3DDISPLAYMODEEX fullscreenDisplayMode;
+    bool             isWindowed = (pPresentationParameters->Windowed != FALSE);
+
+    if (!isWindowed)
+    {
+        ZeroMemory(&fullscreenDisplayMode, sizeof(fullscreenDisplayMode));
+        fullscreenDisplayMode.Size = sizeof(fullscreenDisplayMode);
+        fullscreenDisplayMode.Format = pPresentationParameters->BackBufferFormat;
+        fullscreenDisplayMode.Width = pPresentationParameters->BackBufferWidth;
+        fullscreenDisplayMode.Height = pPresentationParameters->BackBufferHeight;
+        fullscreenDisplayMode.RefreshRate = pPresentationParameters->FullScreen_RefreshRateInHz;
+        fullscreenDisplayMode.ScanLineOrdering = D3DSCANLINEORDERING_PROGRESSIVE;
+    }
+
+    D3DPRESENT_PARAMETERS params = *pPresentationParameters;
+    params.SwapEffect = D3DSWAPEFFECT_FLIPEX;
+    params.MultiSampleQuality = 0;
+    params.MultiSampleType = D3DMULTISAMPLE_NONE;
+    params.Flags &= ~D3DPRESENTFLAG_LOCKABLE_BACKBUFFER;
+
+    if (params.BackBufferCount < 2)
+        params.BackBufferCount = 2;
+
+    D3DDISPLAYMODEEX*   pFullscreenDisplayMode = (isWindowed ? nullptr : &fullscreenDisplayMode);
+    IDirect3DDevice9Ex* pDevice = nullptr;
+
+    hr = pDirect3D9Ex->CreateDeviceEx(Adapter, DeviceType, hFocusWindow, BehaviorFlags, &params, pFullscreenDisplayMode, &pDevice);
+
+    if (SUCCEEDED(hr))
+    {
+        *ppReturnedDeviceInterface = pDevice;
+        *pPresentationParameters = params;
+    }
+
+    return hr;
+}
+
 namespace
 {
     DWORD                 BehaviorFlagsOrig = 0;
@@ -842,7 +896,8 @@ void CCore::OnPreCreateDevice(IDirect3D9* pDirect3D, UINT Adapter, D3DDEVTYPE De
         WriteDebugEvent("  Test unmodified:");
         WriteDebugEvent(ToString(Adapter, DeviceType, hFocusWindow, BehaviorFlags, *pPresentationParameters));
         IDirect3DDevice9* pReturnedDeviceInterface = NULL;
-        HRESULT hResult = pDirect3D->CreateDevice(Adapter, DeviceType, hFocusWindow, BehaviorFlags, pPresentationParameters, &pReturnedDeviceInterface);
+        HRESULT           hResult =
+            CreateDisplayAdapterDevice(pDirect3D, Adapter, DeviceType, hFocusWindow, BehaviorFlags, pPresentationParameters, &pReturnedDeviceInterface);
         SAFE_RELEASE(pReturnedDeviceInterface);
         WriteDebugEvent(SString("  Unmodified result is: %08x", hResult));
     }

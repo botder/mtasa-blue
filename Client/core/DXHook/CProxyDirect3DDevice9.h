@@ -159,8 +159,9 @@ interface CProxyDirect3DDevice9 : public IDirect3DDevice9
     virtual HRESULT __stdcall CreateQuery(D3DQUERYTYPE Type, IDirect3DQuery9 * *ppQuery);
 
 private:
-    IDirect3DDevice9* m_pDevice;
-    CDirect3DData*    m_pData;
+    IDirect3DDevice9*   m_pDevice;
+    IDirect3DDevice9Ex* m_pDeviceEx;
+    CDirect3DData*      m_pData;
 
 public:
     //
@@ -549,6 +550,8 @@ public:
     // Debugging
     void SetCallType(SCallState::eD3DCallType callType, uint uiNumArgs = 0, ...);
 };
+
+bool IsDirect3D9ExDevice(IDirect3DDevice9* device);
 
 extern CProxyDirect3DDevice9*                  g_pProxyDevice;
 extern CProxyDirect3DDevice9::SD3DDeviceState* g_pDeviceState;

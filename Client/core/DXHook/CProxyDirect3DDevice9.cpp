@@ -23,6 +23,17 @@ CProxyDirect3DDevice9::CProxyDirect3DDevice9(IDirect3DDevice9* pDevice)
     // Set our wrapped device.
     m_pDevice = pDevice;
 
+    HRESULT hr = pDevice->QueryInterface(IID_PPV_ARGS(&m_pDeviceEx));
+
+    if (SUCCEEDED(hr) && m_pDeviceEx)
+    {
+        m_pDeviceEx->Release();
+    }
+    else
+    {
+        m_pDeviceEx = nullptr;
+    }
+
     // Get CDirect3DData pointer.
     m_pData = CDirect3DData::GetSingletonPtr();
 
@@ -383,30 +394,60 @@ VOID CProxyDirect3DDevice9::GetGammaRamp(UINT iSwapChain, D3DGAMMARAMP* pRamp)
 HRESULT CProxyDirect3DDevice9::CreateTexture(UINT Width, UINT Height, UINT Levels, DWORD Usage, D3DFORMAT Format, D3DPOOL Pool, IDirect3DTexture9** ppTexture,
                                              HANDLE* pSharedHandle)
 {
+    if (m_pDeviceEx && Pool == D3DPOOL_MANAGED)
+    {
+        Pool = D3DPOOL_DEFAULT;
+        Usage |= D3DUSAGE_DYNAMIC;
+    }
+
     return CDirect3DEvents9::CreateTexture(m_pDevice, Width, Height, Levels, Usage, Format, Pool, ppTexture, pSharedHandle);
 }
 
 HRESULT CProxyDirect3DDevice9::CreateVolumeTexture(UINT Width, UINT Height, UINT Depth, UINT Levels, DWORD Usage, D3DFORMAT Format, D3DPOOL Pool,
                                                    IDirect3DVolumeTexture9** ppVolumeTexture, HANDLE* pSharedHandle)
 {
+    if (m_pDeviceEx && Pool == D3DPOOL_MANAGED)
+    {
+        Pool = D3DPOOL_DEFAULT;
+        Usage |= D3DUSAGE_DYNAMIC;
+    }
+
     return m_pDevice->CreateVolumeTexture(Width, Height, Depth, Levels, Usage, Format, Pool, ppVolumeTexture, pSharedHandle);
 }
 
 HRESULT CProxyDirect3DDevice9::CreateCubeTexture(UINT EdgeLength, UINT Levels, DWORD Usage, D3DFORMAT Format, D3DPOOL Pool,
                                                  IDirect3DCubeTexture9** ppCubeTexture, HANDLE* pSharedHandle)
 {
+    if (m_pDeviceEx && Pool == D3DPOOL_MANAGED)
+    {
+        Pool = D3DPOOL_DEFAULT;
+        Usage |= D3DUSAGE_DYNAMIC;
+    }
+
     return m_pDevice->CreateCubeTexture(EdgeLength, Levels, Usage, Format, Pool, ppCubeTexture, pSharedHandle);
 }
 
 HRESULT CProxyDirect3DDevice9::CreateVertexBuffer(UINT Length, DWORD Usage, DWORD FVF, D3DPOOL Pool, IDirect3DVertexBuffer9** ppVertexBuffer,
                                                   HANDLE* pSharedHandle)
 {
+    if (m_pDeviceEx && Pool == D3DPOOL_MANAGED)
+    {
+        Pool = D3DPOOL_DEFAULT;
+        Usage |= D3DUSAGE_DYNAMIC;
+    }
+
     return CDirect3DEvents9::CreateVertexBuffer(m_pDevice, Length, Usage, FVF, Pool, ppVertexBuffer, pSharedHandle);
 }
 
 HRESULT CProxyDirect3DDevice9::CreateIndexBuffer(UINT Length, DWORD Usage, D3DFORMAT Format, D3DPOOL Pool, IDirect3DIndexBuffer9** ppIndexBuffer,
                                                  HANDLE* pSharedHandle)
 {
+    if (m_pDeviceEx && Pool == D3DPOOL_MANAGED)
+    {
+        Pool = D3DPOOL_DEFAULT;
+        Usage |= D3DUSAGE_DYNAMIC;
+    }
+
     return CDirect3DEvents9::CreateIndexBuffer(m_pDevice, Length, Usage, Format, Pool, ppIndexBuffer, pSharedHandle);
 }
 
@@ -968,4 +1009,18 @@ void CProxyDirect3DDevice9::SetCallType(SCallState::eD3DCallType callType, uint 
             DeviceState.CallState.args[i] = va_arg(vl, int);
         va_end(vl);
     }
+}
+
+bool IsDirect3D9ExDevice(IDirect3DDevice9* device)
+{
+    IDirect3DDevice9Ex* deviceEx = nullptr;
+    HRESULT             hr = device->QueryInterface(IID_PPV_ARGS(&deviceEx));
+
+    if (SUCCEEDED(hr) && deviceEx)
+    {
+        deviceEx->Release();
+        return true;
+    }
+
+    return false;
 }

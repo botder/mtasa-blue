@@ -31,6 +31,8 @@
 #include <d3dx9.h>
 #undef max
 
+static bool IsDirect3D9ExDevice(IDirect3DDevice9* device);
+
 // Start of CEGUI namespace section
 namespace CEGUI
 {
@@ -68,10 +70,20 @@ void DirectX9Texture::loadFromFile(const String& filename, const String& resourc
 	RawDataContainer texFile;
 	System::getSingleton().getResourceProvider()->loadRawDataContainer(filename, texFile, resourceGroup);
 
+	IDirect3DDevice9* pDevice = ((DirectX9Renderer*)getRenderer())->getDevice();
+	DWORD             Usage = 0;
+    D3DPOOL           Pool = D3DPOOL_MANAGED;
+
+    if (IsDirect3D9ExDevice(pDevice))
+    {
+        Usage = D3DUSAGE_DYNAMIC;
+        Pool = D3DPOOL_DEFAULT;
+    }
+
 	D3DXIMAGE_INFO texInfo;
-	HRESULT hr = D3DXCreateTextureFromFileInMemoryEx(((DirectX9Renderer*)getRenderer())->getDevice(), texFile.getDataPtr(),
-            static_cast<UINT>(texFile.getSize()), D3DX_DEFAULT_NONPOW2, D3DX_DEFAULT_NONPOW2, 1, 0, D3DFMT_UNKNOWN, D3DPOOL_MANAGED,
-            D3DX_DEFAULT, D3DX_DEFAULT, 0, &texInfo, NULL, &d_d3dtexture);
+    HRESULT        hr =
+        D3DXCreateTextureFromFileInMemoryEx(pDevice, texFile.getDataPtr(), static_cast<UINT>(texFile.getSize()), D3DX_DEFAULT_NONPOW2, D3DX_DEFAULT_NONPOW2, 1,
+                                            Usage, D3DFMT_UNKNOWN, Pool, D3DX_DEFAULT, D3DX_DEFAULT, 0, &texInfo, NULL, &d_d3dtexture);
 	
 	System::getSingleton().getResourceProvider()->unloadRawDataContainer(texFile);
 	
@@ -107,8 +119,18 @@ void DirectX9Texture::loadFromMemory(const void* buffPtr, uint buffWidth, uint b
 	uint tex_size = ceguimax(buffWidth, buffHeight);
 
 	// create a texture
+	IDirect3DDevice9* pDevice = ((DirectX9Renderer*)getRenderer())->getDevice();
+    DWORD             Usage = 0;
+    D3DPOOL           Pool = D3DPOOL_MANAGED;
+
+    if (IsDirect3D9ExDevice(pDevice))
+    {
+        Usage = D3DUSAGE_DYNAMIC;
+        Pool = D3DPOOL_DEFAULT;
+    }
+
 	// TODO: Check resulting pixel format and react appropriately.
-	HRESULT hr = D3DXCreateTexture(((DirectX9Renderer*)getRenderer())->getDevice(), tex_size, tex_size, 1, 0, D3DFMT_A8R8G8B8, D3DPOOL_MANAGED, &d_d3dtexture);
+    HRESULT hr = D3DXCreateTexture(pDevice, tex_size, tex_size, 1, Usage, D3DFMT_A8R8G8B8, Pool, &d_d3dtexture);
 
 	if (FAILED(hr))
 	{
@@ -208,7 +230,17 @@ void DirectX9Texture::setD3DTextureSize(uint size)
 {
 	freeD3DTexture();
 
-	HRESULT hr = D3DXCreateTexture(((DirectX9Renderer*)getRenderer())->getDevice(), size, size, 1, 0, D3DFMT_A8R8G8B8, D3DPOOL_MANAGED, &d_d3dtexture);
+	IDirect3DDevice9* pDevice = ((DirectX9Renderer*)getRenderer())->getDevice();
+    DWORD             Usage = 0;
+    D3DPOOL           Pool = D3DPOOL_MANAGED;
+
+    if (IsDirect3D9ExDevice(pDevice))
+    {
+        Usage = D3DUSAGE_DYNAMIC;
+        Pool = D3DPOOL_DEFAULT;
+    }
+
+	HRESULT hr = D3DXCreateTexture(pDevice, size, size, 1, Usage, D3DFMT_A8R8G8B8, Pool, &d_d3dtexture);
 
 	if (FAILED(hr))
 	{
@@ -275,3 +307,17 @@ void DirectX9Texture::postD3DReset(void)
 }
 
 } // End of  CEGUI namespace section
+
+bool IsDirect3D9ExDevice(IDirect3DDevice9* device)
+{
+    IDirect3DDevice9Ex* deviceEx = nullptr;
+    HRESULT             hr = device->QueryInterface(IID_PPV_ARGS(&deviceEx));
+
+    if (SUCCEEDED(hr) && deviceEx)
+    {
+        deviceEx->Release();
+        return true;
+    }
+
+    return false;
+}

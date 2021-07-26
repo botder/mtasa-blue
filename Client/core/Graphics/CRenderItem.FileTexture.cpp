@@ -110,18 +110,27 @@ void CFileTextureItem::CreateUnderlyingData(const SString& strFilename, bool bMi
     m_uiSurfaceSizeX = imageInfo.Width;
     m_uiSurfaceSizeY = imageInfo.Height;
 
+    DWORD   Usage = 0;
+    D3DPOOL Pool = D3DPOOL_MANAGED;
+
+    if (IsDirect3D9ExDevice(m_pDevice))
+    {
+        Usage = D3DUSAGE_DYNAMIC;
+        Pool = D3DPOOL_DEFAULT;
+    }
+
     if (imageInfo.ResourceType == D3DRTYPE_VOLUMETEXTURE)
     {
         // It's a volume texture!
-        if (FAILED(D3DXCreateVolumeTextureFromFileEx(m_pDevice, strFilename, uiSizeX, uiSizeY, D3DX_DEFAULT, iMipMaps, 0, D3DFormat, D3DPOOL_MANAGED,
-                                                     D3DX_DEFAULT, D3DX_DEFAULT, 0, NULL, NULL, (IDirect3DVolumeTexture9**)&m_pD3DTexture)))
+        if (FAILED(D3DXCreateVolumeTextureFromFileEx(m_pDevice, strFilename, uiSizeX, uiSizeY, D3DX_DEFAULT, iMipMaps, Usage, D3DFormat, Pool, D3DX_DEFAULT,
+                                                     D3DX_DEFAULT, 0, NULL, NULL, (IDirect3DVolumeTexture9**)&m_pD3DTexture)))
             return;
     }
     else if (imageInfo.ResourceType == D3DRTYPE_CUBETEXTURE)
     {
         // It's a cubemap texture!
-        if (FAILED(D3DXCreateCubeTextureFromFileEx(m_pDevice, strFilename, uiSizeX, iMipMaps, 0, D3DFormat, D3DPOOL_MANAGED, D3DX_DEFAULT, D3DX_DEFAULT, 0,
-                                                   NULL, NULL, (IDirect3DCubeTexture9**)&m_pD3DTexture)))
+        if (FAILED(D3DXCreateCubeTextureFromFileEx(m_pDevice, strFilename, uiSizeX, iMipMaps, Usage, D3DFormat, Pool, D3DX_DEFAULT, D3DX_DEFAULT, 0, NULL, NULL,
+                                                   (IDirect3DCubeTexture9**)&m_pD3DTexture)))
             return;
     }
     else
@@ -134,8 +143,8 @@ void CFileTextureItem::CreateUnderlyingData(const SString& strFilename, bool bMi
         if (uiSizeY == D3DX_DEFAULT)
             uiSizeY = D3DX_DEFAULT_NONPOW2;
 
-        if (FAILED(D3DXCreateTextureFromFileEx(m_pDevice, strFilename, uiSizeX, uiSizeY, iMipMaps, 0, D3DFormat, D3DPOOL_MANAGED, D3DX_DEFAULT, D3DX_DEFAULT, 0,
-                                               NULL, NULL, (IDirect3DTexture9**)&m_pD3DTexture)))
+        if (FAILED(D3DXCreateTextureFromFileEx(m_pDevice, strFilename, uiSizeX, uiSizeY, iMipMaps, Usage, D3DFormat, Pool, D3DX_DEFAULT, D3DX_DEFAULT, 0, NULL,
+                                               NULL, (IDirect3DTexture9**)&m_pD3DTexture)))
             return;
 
         // Update surface size if it's a normal texture
@@ -174,6 +183,14 @@ void CFileTextureItem::CreateUnderlyingData(const CPixels* pInPixels, bool bMipM
     D3DXIMAGE_INFO imageInfo;
     D3DFORMAT      D3DFormat = (D3DFORMAT)format;
     int            iMipMaps = bMipMaps ? D3DX_DEFAULT : 1;
+    DWORD          Usage = 0;
+    D3DPOOL        Pool = D3DPOOL_MANAGED;
+
+    if (IsDirect3D9ExDevice(m_pDevice))
+    {
+        Usage = D3DUSAGE_DYNAMIC;
+        Pool = D3DPOOL_DEFAULT;
+    }
 
     if (FAILED(D3DXCreateTextureFromFileInMemoryEx(m_pDevice,                     //__in     LPDIRECT3DDEVICE9 pDevice,
                                                    pPixels->GetData(),            //__in     LPCVOID pSrcData,
@@ -181,9 +198,9 @@ void CFileTextureItem::CreateUnderlyingData(const CPixels* pInPixels, bool bMipM
                                                    D3DX_DEFAULT,                  //__in     UINT Width,
                                                    D3DX_DEFAULT,                  //__in     UINT Height,
                                                    iMipMaps,                      //__in     UINT MipLevels,
-                                                   0,                             //__in     DWORD Usage,
+                                                   Usage,                         //__in     DWORD Usage,
                                                    D3DFormat,                     //__in     D3DFORMAT Format,
-                                                   D3DPOOL_MANAGED,               //__in     D3DPOOL Pool,
+                                                   Pool,                          //__in     D3DPOOL Pool,
                                                    D3DX_DEFAULT,                  //__in     DWORD Filter,
                                                    D3DX_DEFAULT,                  //__in     DWORD MipFilter,
                                                    0,                             //__in     D3DCOLOR ColorKey,
@@ -220,6 +237,14 @@ void CFileTextureItem::CreateUnderlyingData(bool bMipMaps, uint uiSizeX, uint ui
 
     D3DFORMAT D3DFormat = (D3DFORMAT)format;
     int       iMipMaps = bMipMaps ? D3DX_DEFAULT : 1;
+    DWORD     Usage = 0;
+    D3DPOOL   Pool = D3DPOOL_MANAGED;
+
+    if (IsDirect3D9ExDevice(m_pDevice))
+    {
+        Usage = D3DUSAGE_DYNAMIC;
+        Pool = D3DPOOL_DEFAULT;
+    }
 
     m_uiSizeX = uiSizeX;
     m_uiSizeY = uiSizeY;
@@ -233,9 +258,9 @@ void CFileTextureItem::CreateUnderlyingData(bool bMipMaps, uint uiSizeX, uint ui
                                            uiSizeY,                    //__in   UINT Height,
                                            uiVolumeDepth,              //__in   UINT Depth,
                                            iMipMaps,                   //__in   UINT MipLevels,
-                                           0,                          //__in   DWORD Usage,
+                                           Usage,                      //__in   DWORD Usage,
                                            D3DFormat,                  //__in   D3DFORMAT Format,
-                                           D3DPOOL_MANAGED,            //__in   D3DPOOL Pool,
+                                           Pool,                       //__in   D3DPOOL Pool,
                                            (IDirect3DVolumeTexture9**)&m_pD3DTexture)))
             return;
     }
@@ -244,9 +269,9 @@ void CFileTextureItem::CreateUnderlyingData(bool bMipMaps, uint uiSizeX, uint ui
         if (FAILED(D3DXCreateCubeTexture(m_pDevice,                  //__in   LPDIRECT3DDEVICE9 pDevice,
                                          uiSizeX,                    //__in   UINT Width,
                                          iMipMaps,                   //__in   UINT MipLevels,
-                                         0,                          //__in   DWORD Usage,
+                                         Usage,                      //__in   DWORD Usage,
                                          D3DFormat,                  //__in   D3DFORMAT Format,
-                                         D3DPOOL_MANAGED,            //__in   D3DPOOL Pool,
+                                         Pool,                       //__in   D3DPOOL Pool,
                                          (IDirect3DCubeTexture9**)&m_pD3DTexture)))
             return;
     }
@@ -256,9 +281,9 @@ void CFileTextureItem::CreateUnderlyingData(bool bMipMaps, uint uiSizeX, uint ui
                                      uiSizeX,                    //__in   UINT Width,
                                      uiSizeY,                    //__in   UINT Height,
                                      iMipMaps,                   //__in   UINT MipLevels,
-                                     0,                          //__in   DWORD Usage,
+                                     Usage,                      //__in   DWORD Usage,
                                      D3DFormat,                  //__in   D3DFORMAT Format,
-                                     D3DPOOL_MANAGED,            //__in   D3DPOOL Pool,
+                                     Pool,                       //__in   D3DPOOL Pool,
                                      (IDirect3DTexture9**)&m_pD3DTexture)))
             return;
 

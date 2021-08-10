@@ -154,6 +154,7 @@ public:
     bool        DeletePoly(CWaterPoly* pPoly);
 
     bool GetWaterLevel(const CVector& vecPosition, float* pfLevel, bool bCheckWaves, CVector* pvecUnknown);
+    bool GetWaterLevelNoWaves(const CVector& position, CVector& level) override;
 
     bool SetWorldWaterLevel(float fLevel, void* pChangeSource, bool bIncludeWorldNonSeaLevel, bool bIncludeWorldSeaLevel, bool bIncludeOutsideWorldLevel);
     bool SetPositionWaterLevel(const CVector& vecPosition, float fLevel, void* pChangeSource);

@@ -10,6 +10,9 @@
  *****************************************************************************/
 
 #include "StdInc.h"
+#include "lua/CLuaFunctionParser.h"
+
+static std::variant<bool, CLuaMultiReturn<float, float, float>> GetWaterLevelNoWaves(CVector position);
 
 void CLuaWaterDefs::LoadFunctions()
 {
@@ -26,6 +29,7 @@ void CLuaWaterDefs::LoadFunctions()
 
         {"getWaterColor", GetWaterColor},
         {"getWaterLevel", GetWaterLevel},
+        {"getWaterLevelNoWaves", ArgumentParser<GetWaterLevelNoWaves>},
         {"getWaterVertexPosition", GetWaterVertexPosition},
         {"isWaterDrawnLast", IsWaterDrawnLast},
     };
@@ -397,6 +401,16 @@ int CLuaWaterDefs::GetWaterLevel(lua_State* luaVM)
 
     lua_pushboolean(luaVM, false);
     return 1;
+}
+
+static std::variant<bool, CLuaMultiReturn<float, float, float>> GetWaterLevelNoWaves(CVector position)
+{
+    CVector level;
+
+    if (!g_pGame->GetWaterManager()->GetWaterLevelNoWaves(position, level))
+        return false;
+
+    return std::tuple(level.fZ, level.fX, level.fY);
 }
 
 int CLuaWaterDefs::GetWaterVertexPosition(lua_State* luaVM)

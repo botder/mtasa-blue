@@ -732,6 +732,13 @@ bool CWaterManagerSA::GetWaterLevel(const CVector& vecPosition, float* pfLevel, 
     return ((GetWaterLevel_t)FUNC_GetWaterLevel)(vecPosition.fX, vecPosition.fY, vecPosition.fZ, pfLevel, bCheckWaves, pvecUnknown);
 }
 
+bool CWaterManagerSA::GetWaterLevelNoWaves(const CVector& position, CVector& level)
+{
+    using Signature = bool(__cdecl*)(float, float, float, float *, float *, float *);
+    const auto function = reinterpret_cast<Signature>(0x6E8580);
+    return function(position.fX, position.fY, position.fZ, &level.fZ, &level.fX, &level.fY);
+}
+
 bool CWaterManagerSA::SetPositionWaterLevel(const CVector& vecPosition, float fLevel, void* pChangeSource)
 {
     // Specific water poly

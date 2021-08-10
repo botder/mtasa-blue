@@ -65,19 +65,8 @@ struct CFileObjectInstance
 CObjectSA::CObjectSA(CObjectSAInterface* objectInterface)
 {
     DEBUG_TRACE("CObjectSA::CObjectSA(CObjectSAInterface * objectInterface)");
-    this->SetInterface(objectInterface);
-    m_ucAlpha = 255;
-
-    // Setup some flags
-    this->BeingDeleted = FALSE;
-    this->DoNotRemoveFromGame = FALSE;
-
-    if (m_pInterface)
-    {
-        ResetScale();
-        CheckForGangTag();
-        m_pInterface->bStreamingDontDelete = true;
-    }
+    SetInterface(objectInterface);
+    Reset();
 }
 
 CObjectSA::CObjectSA(DWORD dwModel, bool bBreakingDisabled)
@@ -268,6 +257,20 @@ CObjectSA::~CObjectSA()
         ((CPoolsSA*)pGame->GetPools())->RemoveObject((CObject*)(CObjectSA*)this);
 
         // OutputDebugString("Destroying Object\n");
+    }
+}
+
+void CObjectSA::Reset()
+{
+    m_ucAlpha = 255;
+    BeingDeleted = FALSE;
+    DoNotRemoveFromGame = FALSE;
+
+    if (m_pInterface)
+    {
+        ResetScale();
+        CheckForGangTag();
+        m_pInterface->bStreamingDontDelete = true;
     }
 }
 

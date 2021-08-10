@@ -1,73 +1,39 @@
 /*****************************************************************************
  *
- *  PROJECT:     Multi Theft Auto v1.0
+ *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
  *  FILE:        game_sa/CProjectileSA.cpp
- *  PURPOSE:     Projectile entity
+ *  PURPOSE:     Source file for projectile entity class
  *
- *  Multi Theft Auto is available from http://www.multitheftauto.com/
+ *  Multi Theft Auto is available from https://multitheftauto.com/
  *
  *****************************************************************************/
 
 #include "StdInc.h"
+#include "CProjectileSA.h"
 
-CProjectileSA::CProjectileSA(CProjectileSAInterface* projectileInterface) : CObjectSA(projectileInterface)
+CProjectileSA::CProjectileSA() : CObjectSA(nullptr)
 {
-    internalInterface = projectileInterface;
-    projectileInfo = NULL;
-    this->BeingDeleted = false;
-    this->DoNotRemoveFromGame = false;
-    this->internalInterface->bStreamingDontDelete = true;
-    this->internalInterface->bDontStream = true;
-    this->internalInterface->bRemoveFromWorld = false;
-    m_bDestroyed = false;
 }
 
 CProjectileSA::~CProjectileSA()
 {
-    DEBUG_TRACE("CProjectileSA::~CProjectileSA( )");
-
-    this->BeingDeleted = true;
-    /*
-    //OutputDebugString("Attempting to destroy Object\n");
-    if(!this->BeingDeleted && DoNotRemoveFromGame == false)
-    {
-        DWORD dwInterface = (DWORD)this->GetInterface();
-
-        CWorldSA * world = (CWorldSA *)pGame->GetWorld();
-        world->Remove(this->GetInterface());
-
-        DWORD dwThis = (DWORD)this->GetInterface();
-        DWORD dwFunc = this->GetInterface()->vtbl->Remove;
-        _asm
-        {
-            mov     ecx, dwThis
-            call    dwFunc
-        }
-
-        dwFunc = this->GetInterface()->vtbl->SCALAR_DELETING_DESTRUCTOR; // we use the vtbl so we can be type independent
-        _asm
-        {
-            mov     ecx, dwThis
-            push    1           //delete too
-            call    dwFunc
-        }
-
-        this->BeingDeleted = true;
-        //((CPoolsSA *)pGame->GetPools())->RemoveObject((CObject *)(CObjectSA *)this);
-        //this->BeingDeleted = false;
-        //delete this;
-        //OutputDebugString("Destroying Object\n");
-    }*/
+    BeingDeleted = true;
     Destroy();
 }
 
 void CProjectileSA::Destroy(bool bBlow)
 {
-    if (m_bDestroyed == false)
+    if (m_pInterface && !m_isDestroyed)
     {
-        pGame->GetProjectileInfo()->RemoveProjectile(projectileInfo, this, bBlow);
-        m_bDestroyed = true;
+        m_isDestroyed = true;
+
+        if (bBlow)
+            pGame->GetProjectileInfo()->RemoveProjectile(m_projectileInfo, this);
+        else
+            pGame->GetProjectileInfo()->RemoveIfThisIsAProjectile(this);
+
+        m_pInterface = nullptr;
     }
 }
 
@@ -127,4 +93,18 @@ bool CProjectileSA::CorrectPhysics()
         }
     }
     return false;
+}
+
+void CProjectileSA::SetProjectileInterface(CProjectileSAInterface* projectile)
+{
+    m_pInterface = projectile;
+    m_isDestroyed = (projectile == nullptr);
+
+    Reset();
+
+    if (m_pInterface)
+    {
+        m_pInterface->bDontStream = true;
+        m_pInterface->bRemoveFromWorld = false;
+    }
 }

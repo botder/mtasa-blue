@@ -135,6 +135,8 @@ public:
     CObjectSA(DWORD dwModel, bool bBreakingDisabled);
     ~CObjectSA();
 
+    void Reset();
+
     CObjectSAInterface* GetObjectInterface() { return (CObjectSAInterface*)GetInterface(); }
 
     void  Explode();

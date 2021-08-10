@@ -1,35 +1,83 @@
 /*****************************************************************************
  *
- *  PROJECT:     Multi Theft Auto v1.0
+ *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
  *  FILE:        sdk/game/CProjectileInfo.h
  *  PURPOSE:     Projectile entity information interface
  *
- *  Multi Theft Auto is available from http://www.multitheftauto.com/
+ *  Multi Theft Auto is available from https://multitheftauto.com/
  *
  *****************************************************************************/
 
 #pragma once
 
-class CProjectile;
-class CPlayerPed;
+#include <cstdint>
+
+struct CProjectileInfoSAInterface;
+class CProjectileSAInterface;
+
 class CProjectileInfo
 {
+protected:
+    ~CProjectileInfo() = default;
+
 public:
-    virtual bool             AddProjectile(CEntity* creator, eWeaponType eWeapon, CVector vecOrigin, float fForce, CVector* target, CEntity* targetEntity) = 0;
-    virtual CProjectile*     GetProjectile(DWORD ID) = 0;
-    virtual CProjectile*     GetProjectile(void* projectilePointer) = 0;                      // hack, don't use please
-    virtual CProjectileInfo* GetProjectileInfo(void* projectileInfoInterface) = 0;            // don't use
-    virtual void             RemoveProjectile(CProjectileInfo* pProjectileInfo, CProjectile* pProjectile, bool bBlow = true) = 0;
-    virtual CProjectileInfo* GetNextFreeProjectileInfo() = 0;
-    virtual CProjectileInfo* GetProjectileInfo(DWORD Index) = 0;
-    virtual void             RemoveAllProjectiles() = 0;
+    // static method
+    virtual void Initialise() = 0;
 
-    virtual CEntity* GetTarget() = 0;
-    virtual void     SetTarget(CEntity* pEntity) = 0;
+    // static method
+    virtual void Shutdown() = 0;
 
-    virtual bool IsActive() = 0;
+    // static method
+    virtual void Update() = 0;
 
-    virtual void  SetCounter(DWORD dwCounter) = 0;
-    virtual DWORD GetCounter() = 0;
+    // static method
+    virtual bool AddProjectile(CEntity* creator, eWeaponType weapon, CVector origin, float force, CVector* targetPosition, CEntity* targetEntity) = 0;
+
+    // static method
+    virtual CProjectileInfo* GetProjectileInfo(std::int32_t index) = 0;
+
+    // static method
+    virtual bool IsProjectileInRange(float minX, float maxX, float minY, float maxY, float minZ, float maxZ, bool destroyProjectiles) = 0;
+
+    // static method
+    virtual void RemoveAllProjectiles() = 0;
+
+    // static method
+    virtual void RemoveDetonatorProjectiles() = 0;
+
+    // static method
+    virtual bool RemoveIfThisIsAProjectile(CObject* projectile) = 0;
+
+    // static method
+    virtual void RemoveNotAdd(CEntity* creator, eWeaponType weapon, CVector origin) = 0;
+
+    // static method
+    virtual void RemoveProjectile(CProjectileInfo* projectileInfo, CProjectile* projectile) = 0;
+
+    // static method (for multiplayer_sa hook)
+    virtual CProjectile* OnProjectileCreate(std::int32_t index, CProjectileSAInterface* projectile) = 0;
+
+public:
+    virtual CProjectileInfoSAInterface* GetInterface() const = 0;
+
+    virtual void RemoveFXSystem(bool destroyFxSystem) = 0;
+
+    virtual bool IsActive() const = 0;
+
+    virtual eWeaponType GetWeaponType() const = 0;
+
+    virtual void SetCreator(CEntity* creator) = 0;
+
+    virtual CEntity* GetCreator() const = 0;
+
+    virtual void SetTarget(CEntity* target) = 0;
+
+    virtual CEntity* GetTarget() const = 0;
+
+    virtual void SetDestroyTime(std::int32_t destroyTime) = 0;
+
+    virtual std::int32_t GetDestroyTime() const = 0;
+
+    virtual CFxSystem* GetFxSystem() const = 0;
 };

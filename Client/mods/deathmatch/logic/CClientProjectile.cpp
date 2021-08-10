@@ -99,9 +99,8 @@ CClientProjectile::~CClientProjectile()
     if (m_pProjectile)
     {
         // Make sure we're destroyed
-        delete m_pProjectile;
-
-        m_pProjectile = NULL;
+        m_pProjectile->Destroy(false);
+        m_pProjectile = nullptr;
     }
 
     CClientEntityRefManager::RemoveEntityRefs(0, &m_pCreator, &m_pTarget, NULL);
@@ -117,9 +116,8 @@ void CClientProjectile::Unlink()
         if (m_pProjectile)
         {
             // Make sure we're destroyed
-            delete m_pProjectile;
-
-            m_pProjectile = NULL;
+            m_pProjectile->Destroy(false);
+            m_pProjectile = nullptr;
         }
     }
 }
@@ -304,17 +302,15 @@ void CClientProjectile::SetModel(unsigned short usModel)
         m_pProjectile->SetModelIndex(usModel);
 }
 
-void CClientProjectile::SetCounter(DWORD dwCounter)
+void CClientProjectile::SetCounter(std::int32_t counter)
 {
-    if (m_pProjectile)
-        m_pProjectileInfo->SetCounter(dwCounter);
+    if (m_pProjectileInfo)
+        m_pProjectileInfo->SetDestroyTime(counter);
 }
 
-DWORD CClientProjectile::GetCounter()
+std::int32_t CClientProjectile::GetCounter()
 {
-    if (m_pProjectile)
-        return m_pProjectileInfo->GetCounter();
-    return 0;
+    return m_pProjectileInfo ? m_pProjectileInfo->GetDestroyTime() : 0;
 }
 
 CClientEntity* CClientProjectile::GetSatchelAttachedTo()

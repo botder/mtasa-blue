@@ -1016,8 +1016,7 @@ void ProcessProjectile()
         GetProjectileTarget(pPools);
 
         CProjectileInfo* projectileInfo = pGameInterface->GetProjectileInfo()->GetProjectileInfo(dwProjectileInfoIndex);
-        CProjectile*     projectile = pGameInterface->GetProjectileInfo()->GetProjectile(pProjectile);
-        projectile->SetProjectileInfo(projectileInfo);
+        CProjectile*     projectile = pGameInterface->GetProjectileInfo()->OnProjectileCreate(dwProjectileInfoIndex, pProjectile);
         m_pProjectileHandler(pOwner, projectile, projectileInfo, projectileWeaponType, projectileOrigin, projectileForce, projectileTarget,
                              projectileTargetEntity);
         projectileTargetEntity = NULL;

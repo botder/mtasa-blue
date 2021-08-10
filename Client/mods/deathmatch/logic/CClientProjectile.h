@@ -83,8 +83,8 @@ public:
     void           SetVelocity(CVector& vecVelocity);
     unsigned short GetModel();
     void           SetModel(unsigned short usModel);
-    void           SetCounter(DWORD dwCounter);
-    DWORD          GetCounter();
+    void           SetCounter(std::int32_t counter);
+    std::int32_t   GetCounter();
     CClientEntity* GetCreator() { return m_pCreator; }
     CClientEntity* GetTargetEntity() { return m_pTarget; }
     eWeaponType    GetWeaponType() { return m_weaponType; }

@@ -14,8 +14,6 @@
 #include <game/CProjectileInfo.h>
 #include "CProjectileSA.h"
 #include "Common.h"
-#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
 
 #define PROJECTILE_COUNT                    32
 #define PROJECTILE_INFO_COUNT               32
@@ -30,20 +28,17 @@
 
 #define VTBL_CProjectile 0x867030
 
-//#pragma pack(push,1)
-class CProjectileInfoSAInterface
+struct CProjectileInfoSAInterface
 {
-public:
-    eWeaponType         dwProjectileType;
-    CEntitySAInterface* pEntProjectileOwner;
-    CEntitySAInterface* pEntProjectileTarget;
-    DWORD               dwCounter;
-    BYTE                bProjectileActive;
-    BYTE                bPad[3];
-    CVector             OldCoors;
-    DWORD               dwUnk;
+    eWeaponType           m_type;
+    CEntitySAInterface*   m_creator;
+    CEntitySAInterface*   m_target;
+    std::int32_t          m_destroyTime;
+    BYTE                  m_isActive;
+    CVector               m_lastPosition;
+    CFxSystemSAInterface* m_fxSystem;
 };
-//#pragma pack(pop)
+static_assert(sizeof(CProjectileInfoSAInterface) == 0x24, "Invalid size for CProjectileInfoSAInterface");
 
 class CProjectileInfoSA : public CProjectileInfo
 {
@@ -76,6 +71,6 @@ public:
 
     bool IsActive();
 
-    void  SetCounter(DWORD dwCounter) { internalInterface->dwCounter = dwCounter + pGame->GetSystemTime(); }
-    DWORD GetCounter() { return internalInterface->dwCounter - pGame->GetSystemTime(); }
+    void  SetCounter(DWORD dwCounter) { internalInterface->m_destroyTime = dwCounter + pGame->GetSystemTime(); }
+    DWORD GetCounter() { return internalInterface->m_destroyTime - pGame->GetSystemTime(); }
 };

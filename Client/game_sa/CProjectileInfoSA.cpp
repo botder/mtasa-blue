@@ -98,7 +98,7 @@ CProjectileInfo* CProjectileInfoSA::GetNextFreeProjectileInfo()
 {
     for (int i = 0; i < PROJECTILE_INFO_COUNT; i++)
     {
-        if (projectileInfo[i]->internalInterface->dwProjectileType == 0)
+        if (projectileInfo[i]->internalInterface->m_type == 0)
             return projectileInfo[i];
     }
     return NULL;
@@ -171,7 +171,7 @@ bool CProjectileInfoSA::AddProjectile(CEntity* creator, eWeaponType eWeapon, CVe
 
 CEntity* CProjectileInfoSA::GetTarget()
 {
-    CEntitySAInterface* pTargetInterface = internalInterface->pEntProjectileTarget;
+    CEntitySAInterface* pTargetInterface = internalInterface->m_target;
     CEntity*            pTarget = NULL;
     if (pTargetInterface)
     {
@@ -198,10 +198,10 @@ void CProjectileInfoSA::SetTarget(CEntity* pEntity)
 {
     CEntitySA* pEntitySA = dynamic_cast<CEntitySA*>(pEntity);
     if (pEntitySA)
-        internalInterface->pEntProjectileTarget = pEntitySA->GetInterface();
+        internalInterface->m_target = pEntitySA->GetInterface();
 }
 
 bool CProjectileInfoSA::IsActive()
 {
-    return (internalInterface->bProjectileActive == 1 && internalInterface->dwProjectileType != 0);
+    return (internalInterface->m_isActive == 1 && internalInterface->m_type != 0);
 }

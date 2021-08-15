@@ -1073,7 +1073,7 @@ uint CPoolsSA::GetModelIdFromClump(RpClump* pRpClump)
     for (uint i = 1; i < NUMBER_OF_MODELS; i++)
     {
         CBaseModelInfoSAInterface* m_pInterface = ppModelInfo[i];
-        if (m_pInterface && m_pInterface->pRwObject == (RwObject*)pRpClump)
+        if (m_pInterface && m_pInterface->m_rwClump == pRpClump)
         {
             return i;
         }

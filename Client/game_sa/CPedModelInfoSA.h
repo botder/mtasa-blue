@@ -14,12 +14,12 @@
 #include "CModelInfoSA.h"
 #include <game/CPedModelInfo.h>
 
-class ePedStats;
-typedef long AssocGroupID;
-
 #define     FUNC_SetMotionAnimGroup                         0x5b3580
 #define     FUNC_CPedModelInfo_Constructor                  0x4c57a0
 #define     VAR_CPedModelInfo_VTBL                          0x85bdc0
+
+#if 0
+typedef long AssocGroupID;
 
 // CPedModelInfo:
 // +36 = Motion anim group (AssocGroupID, long)
@@ -58,6 +58,7 @@ public:
     short        sLastVoice;                     // 64   Last voice
     short        sNextVoice;                     // 66   Next voice
 };
+#endif
 
 class CPedModelInfoSA : public CModelInfoSA, public CPedModelInfo
 {

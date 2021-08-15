@@ -260,12 +260,12 @@ bool CModelInfoSA::IsVehicle() const
 
     // NOTE(botder): m_pInterface might be a nullptr here, we can't use it
     CBaseModelInfoSAInterface* model = ppModelInfo[m_dwModelID];
-    return model != nullptr && reinterpret_cast<intptr_t>(model->VFTBL) == vftable_CVehicleModelInfo;
+    return model != nullptr && model->m_vftableAddress == vftable_CVehicleModelInfo;
 }
 
 bool CModelInfoSA::IsPlayerModel()
 {
-    return (GetInterface() && GetInterface()->pColModel && GetInterface()->pColModel == (CColModelSAInterface*)VAR_CTempColModels_ModelPed1);
+    return (GetInterface() && GetInterface()->m_colModel && GetInterface()->m_colModel == (CColModelSAInterface*)VAR_CTempColModels_ModelPed1);
 }
 
 BOOL CModelInfoSA::IsUpgrade()
@@ -312,19 +312,7 @@ char* CModelInfoSA::GetNameIfVehicle()
 
 uint CModelInfoSA::GetAnimFileIndex()
 {
-    DWORD dwFunc = m_pInterface->VFTBL->GetAnimFileIndex;
-    DWORD dwThis = (DWORD)m_pInterface;
-    uint  uiReturn = 0;
-    if (dwFunc)
-    {
-        _asm
-        {
-            mov     ecx, dwThis
-            call    dwFunc
-            mov     uiReturn, eax
-        }
-    }
-    return uiReturn;
+    return m_pInterface->m_vftable->GetAnimFileIndex(m_pInterface);
 }
 
 VOID CModelInfoSA::Request(EModelRequestType requestType, const char* szTag)
@@ -406,16 +394,16 @@ VOID CModelInfoSA::Remove()
     if (m_bAddedRefForCollision)
     {
         m_bAddedRefForCollision = false;
-        if (m_pInterface->usNumberOfRefs > 0)
-            m_pInterface->usNumberOfRefs--;
+        if (m_pInterface->m_numRefs > 0)
+            m_pInterface->m_numRefs--;
     }
 
     // Remove our reference
-    if (m_pInterface->usNumberOfRefs > 0)
-        m_pInterface->usNumberOfRefs--;
+    if (m_pInterface->m_numRefs > 0)
+        m_pInterface->m_numRefs--;
 
     // No references left?
-    if (m_pInterface->usNumberOfRefs == 0)
+    if (m_pInterface->m_numRefs == 0)
     {
         // We have a custom model?
         if (m_pCustomClump)
@@ -458,7 +446,7 @@ BOOL CModelInfoSA::IsLoaded()
         {
             assert(m_dwReferences > 0);
             m_pInterface = ppModelInfo[m_dwModelID];
-            m_pInterface->usNumberOfRefs++;
+            m_pInterface->m_numRefs++;
             m_dwPendingInterfaceRef = 0;
         }
         return true;
@@ -480,7 +468,7 @@ BOOL CModelInfoSA::DoIsLoaded()
         if (bLoaded)
         {
             // Check rw object is there
-            if (!m_pInterface || !m_pInterface->pRwObject)
+            if (!m_pInterface || !m_pInterface->m_rwObject)
                 return false;
         }
     }
@@ -561,7 +549,7 @@ unsigned short CModelInfoSA::GetTextureDictionaryID()
 {
     m_pInterface = ppModelInfo[m_dwModelID];
     if (m_pInterface)
-        return m_pInterface->usTextureDictionary;
+        return m_pInterface->m_texDictionary;
 
     return 0;
 }
@@ -570,14 +558,14 @@ void CModelInfoSA::SetTextureDictionaryID(unsigned short usID)
 {
     m_pInterface = ppModelInfo[m_dwModelID];
     if (m_pInterface)
-        m_pInterface->usTextureDictionary = usID;
+        m_pInterface->m_texDictionary = usID;
 }
 
 float CModelInfoSA::GetLODDistance()
 {
     m_pInterface = ppModelInfo[m_dwModelID];
     if (m_pInterface)
-        return m_pInterface->fLodDistanceUnscaled;
+        return m_pInterface->m_unscaledLodDistance;
 
     return 0.0f;
 }
@@ -585,35 +573,40 @@ float CModelInfoSA::GetLODDistance()
 bool CModelInfoSA::SetTime(char cHourOn, char cHourOff)
 {
     m_pInterface = ppModelInfo[m_dwModelID];
+
     if (!m_pInterface)
         return false;
 
-    if (GetModelType() != eModelInfoType::TIME)
+    CTimeInfoSAInterface* timeInfo = m_pInterface->m_vftable->GetTimeInfo(m_pInterface);
+
+    if (!timeInfo)
         return false;
 
-    CTimeInfoSAInterface* pTime = &static_cast<CTimeModelInfoSAInterface*>(m_pInterface)->timeInfo;
+    if (!MapContains(ms_ModelDefaultModelTimeInfo, timeInfo))
+    {
+        auto copy = new CTimeInfoSAInterface(*timeInfo);
+        MapSet(ms_ModelDefaultModelTimeInfo, timeInfo, copy);
+    }
 
-    if (!MapContains(ms_ModelDefaultModelTimeInfo, pTime))
-        MapSet(ms_ModelDefaultModelTimeInfo, pTime, new CTimeInfoSAInterface(pTime->m_nTimeOn, pTime->m_nTimeOff, pTime->m_wOtherTimeModel));
-
-    pTime->m_nTimeOn = cHourOn;
-    pTime->m_nTimeOff = cHourOff;
+    timeInfo->m_timeOn = cHourOn;
+    timeInfo->m_timeOff = cHourOff;
     return true;
 }
 
 bool CModelInfoSA::GetTime(char& cHourOn, char& cHourOff)
 {
     m_pInterface = ppModelInfo[m_dwModelID];
+
     if (!m_pInterface)
         return false;
 
-    if (GetModelType() != eModelInfoType::TIME)
+    CTimeInfoSAInterface* timeInfo = m_pInterface->m_vftable->GetTimeInfo(m_pInterface);
+
+    if (!timeInfo)
         return false;
 
-    CTimeInfoSAInterface* pTime = &static_cast<CTimeModelInfoSAInterface*>(m_pInterface)->timeInfo;
-
-    cHourOn = pTime->m_nTimeOn;
-    cHourOff = pTime->m_nTimeOff;
+    cHourOn = timeInfo->m_timeOn;
+    cHourOff = timeInfo->m_timeOff;
     return true;
 }
 
@@ -621,8 +614,8 @@ void CModelInfoSA::StaticResetModelTimes()
 {
     for (auto const& x : ms_ModelDefaultModelTimeInfo)
     {
-        x.first->m_nTimeOn = x.second->m_nTimeOn;
-        x.first->m_nTimeOff = x.second->m_nTimeOff;
+        x.first->m_timeOn = x.second->m_timeOn;
+        x.first->m_timeOff = x.second->m_timeOff;
     }
     ms_ModelDefaultModelTimeInfo.clear();
 }
@@ -675,8 +668,8 @@ void CModelInfoSA::SetLODDistance(float fDistance, bool bOverrideMaxDistance)
     {
         // Save default value if not done yet
         if (!MapContains(ms_ModelDefaultLodDistanceMap, m_dwModelID))
-            MapSet(ms_ModelDefaultLodDistanceMap, m_dwModelID, m_pInterface->fLodDistanceUnscaled);
-        m_pInterface->fLodDistanceUnscaled = fDistance;
+            MapSet(ms_ModelDefaultLodDistanceMap, m_dwModelID, m_pInterface->m_unscaledLodDistance);
+        m_pInterface->m_unscaledLodDistance = fDistance;
     }
 }
 
@@ -687,7 +680,7 @@ void CModelInfoSA::StaticResetLodDistances()
     {
         CBaseModelInfoSAInterface* pInterface = ppModelInfo[iter->first];
         if (pInterface)
-            pInterface->fLodDistanceUnscaled = iter->second;
+            pInterface->m_unscaledLodDistance = iter->second;
     }
 
     ms_ModelDefaultLodDistanceMap.clear();
@@ -803,7 +796,7 @@ void CModelInfoSA::ModelAddRef(EModelRequestType requestType, const char* szTag)
         if (IsLoaded())
         {
             m_pInterface = ppModelInfo[m_dwModelID];
-            m_pInterface->usNumberOfRefs++;
+            m_pInterface->m_numRefs++;
         }
         else
             m_dwPendingInterfaceRef = 1;
@@ -833,7 +826,7 @@ void CModelInfoSA::RemoveRef(bool bRemoveExtraGTARef)
     if (bRemoveExtraGTARef)
     {
         // Remove ref added by GTA.
-        if (m_pInterface->usNumberOfRefs > 1)
+        if (m_pInterface->m_numRefs > 1)
         {
             DWORD                      dwFunction = FUNC_RemoveRef;
             CBaseModelInfoSAInterface* pInterface = m_pInterface;
@@ -860,9 +853,9 @@ void CModelInfoSA::SetAlphaTransparencyEnabled(BOOL bEnabled)
     {
         if (!MapContains(ms_ModelDefaultAlphaTransparencyMap, m_dwModelID))
         {
-            MapSet(ms_ModelDefaultAlphaTransparencyMap, m_dwModelID, (BYTE)(m_pInterface->bAlphaTransparency));
+            MapSet(ms_ModelDefaultAlphaTransparencyMap, m_dwModelID, (BYTE)(m_pInterface->m_drawLast));
         }
-        m_pInterface->bAlphaTransparency = bEnabled;
+        m_pInterface->m_drawLast = bEnabled;
     }
 }
 
@@ -871,7 +864,7 @@ bool CModelInfoSA::IsAlphaTransparencyEnabled()
     m_pInterface = ppModelInfo[m_dwModelID];
     if (m_pInterface)
     {
-        return m_pInterface->bAlphaTransparency;
+        return m_pInterface->m_drawLast;
     }
     return false;
 }
@@ -883,7 +876,7 @@ void CModelInfoSA::StaticResetAlphaTransparencies()
         CBaseModelInfoSAInterface* pInterface = ppModelInfo[iter->first];
         if (pInterface)
         {
-            pInterface->bAlphaTransparency = iter->second;
+            pInterface->m_drawLast = iter->second;
         }
     }
 
@@ -898,7 +891,7 @@ void CModelInfoSA::ResetAlphaTransparency()
         BYTE* pbEnabled = MapFind(ms_ModelDefaultAlphaTransparencyMap, m_dwModelID);
         if (pbEnabled)
         {
-            m_pInterface->bAlphaTransparency = *pbEnabled;
+            m_pInterface->m_drawLast = *pbEnabled;
             MapRemove(ms_ModelDefaultAlphaTransparencyMap, m_dwModelID);
         }
     }
@@ -999,12 +992,12 @@ unsigned int CModelInfoSA::GetNumRemaps()
 
 void* CModelInfoSA::GetVehicleSuspensionData()
 {
-    return GetInterface()->pColModel->m_data->m_suspensionLines;
+    return GetInterface()->m_colModel->m_data->m_suspensionLines;
 }
 
 void* CModelInfoSA::SetVehicleSuspensionData(void* pSuspensionLines)
 {
-    CColDataSA* pColData = GetInterface()->pColModel->m_data;
+    CColDataSA* pColData = GetInterface()->m_colModel->m_data;
     void*       pOrigSuspensionLines = pColData->m_suspensionLines;
     pColData->m_suspensionLines = reinterpret_cast<CColLineSA*>(pSuspensionLines);
     return pOrigSuspensionLines;
@@ -1025,7 +1018,7 @@ bool CModelInfoSA::GetVehicleDummyPositions(std::array<CVector, VEHICLE_DUMMY_CO
     if (!IsVehicle())
         return false;
 
-    CVector* dummyPositions = reinterpret_cast<CVehicleModelInfoSAInterface*>(m_pInterface)->pVisualInfo->vecDummies;
+    CVector* dummyPositions = reinterpret_cast<CVehicleModelInfoSAInterface*>(m_pInterface)->m_vehicleStructure->m_dummyPositions;
     std::copy(dummyPositions, dummyPositions + positions.size(), positions.begin());
     return true;
 }
@@ -1051,7 +1044,7 @@ CVector CModelInfoSA::GetVehicleDummyDefaultPosition(eVehicleDummies eDummy)
         Request(BLOCKING, "GetVehicleDummyDefaultPosition");
 
     auto modelInfo = reinterpret_cast<CVehicleModelInfoSAInterface*>(m_pInterface);
-    return modelInfo->pVisualInfo->vecDummies[eDummy];
+    return modelInfo->m_vehicleStructure->m_dummyPositions[eDummy];
 }
 
 CVector CModelInfoSA::GetVehicleDummyPosition(eVehicleDummies eDummy)
@@ -1064,7 +1057,7 @@ CVector CModelInfoSA::GetVehicleDummyPosition(eVehicleDummies eDummy)
         Request(BLOCKING, "GetVehicleDummyPosition");
 
     auto pVehicleModel = reinterpret_cast<CVehicleModelInfoSAInterface*>(m_pInterface);
-    return pVehicleModel->pVisualInfo->vecDummies[eDummy];
+    return pVehicleModel->m_vehicleStructure->m_dummyPositions[eDummy];
 }
 
 void CModelInfoSA::SetVehicleDummyPosition(eVehicleDummies eDummy, const CVector& vecPosition)
@@ -1082,17 +1075,17 @@ void CModelInfoSA::SetVehicleDummyPosition(eVehicleDummies eDummy, const CVector
     {
         ms_ModelDefaultDummiesPosition.insert({m_dwModelID, std::map<eVehicleDummies, CVector>()});
         // Increment this model references count, so we don't unload it before we have a chance to reset the positions
-        m_pInterface->usNumberOfRefs++;
+        m_pInterface->m_numRefs++;
     }
 
     auto pVehicleModel = reinterpret_cast<CVehicleModelInfoSAInterface*>(m_pInterface);
     if (ms_ModelDefaultDummiesPosition[m_dwModelID].find(eDummy) == ms_ModelDefaultDummiesPosition[m_dwModelID].end())
     {
-        ms_ModelDefaultDummiesPosition[m_dwModelID][eDummy] = pVehicleModel->pVisualInfo->vecDummies[eDummy];
+        ms_ModelDefaultDummiesPosition[m_dwModelID][eDummy] = pVehicleModel->m_vehicleStructure->m_dummyPositions[eDummy];
     }
 
     // Set dummy position
-    pVehicleModel->pVisualInfo->vecDummies[eDummy] = vecPosition;
+    pVehicleModel->m_vehicleStructure->m_dummyPositions[eDummy] = vecPosition;
 }
 
 void CModelInfoSA::ResetVehicleDummies(bool bRemoveFromDummiesMap)
@@ -1107,11 +1100,11 @@ void CModelInfoSA::ResetVehicleDummies(bool bRemoveFromDummiesMap)
     auto pVehicleModel = reinterpret_cast<CVehicleModelInfoSAInterface*>(m_pInterface);
     for (const auto& dummy : ms_ModelDefaultDummiesPosition[m_dwModelID])
     {
-        if (pVehicleModel->pVisualInfo != nullptr)
-            pVehicleModel->pVisualInfo->vecDummies[dummy.first] = dummy.second;
+        if (pVehicleModel->m_vehicleStructure != nullptr)
+            pVehicleModel->m_vehicleStructure->m_dummyPositions[dummy.first] = dummy.second;
     }
     // Decrement reference counter, since we reverted all position changes, the model can be safely unloaded
-    pVehicleModel->usNumberOfRefs--;
+    pVehicleModel->m_numRefs--;
 
     if (bRemoveFromDummiesMap)
         ms_ModelDefaultDummiesPosition.erase(m_dwModelID);
@@ -1142,9 +1135,9 @@ float CModelInfoSA::GetVehicleWheelSize(eResizableVehicleWheelGroup eWheelGroup)
     switch (eWheelGroup)
     {
         case eResizableVehicleWheelGroup::FRONT_AXLE:
-            return pVehicleModel->fWheelSizeFront;
+            return pVehicleModel->m_wheelSizeFront;
         case eResizableVehicleWheelGroup::REAR_AXLE:
-            return pVehicleModel->fWheelSizeRear;
+            return pVehicleModel->m_wheelSizeRear;
     }
 
     return 0.0f;
@@ -1163,19 +1156,19 @@ void CModelInfoSA::SetVehicleWheelSize(eResizableVehicleWheelGroup eWheelGroup, 
 
     // Store default wheel sizes in map
     if (!MapFind(ms_VehicleModelDefaultWheelSizes, m_dwModelID))
-        MapSet(ms_VehicleModelDefaultWheelSizes, m_dwModelID, std::make_pair(pVehicleModel->fWheelSizeFront, pVehicleModel->fWheelSizeRear));
+        MapSet(ms_VehicleModelDefaultWheelSizes, m_dwModelID, std::make_pair(pVehicleModel->m_wheelSizeFront, pVehicleModel->m_wheelSizeRear));
 
     switch (eWheelGroup)
     {
         case eResizableVehicleWheelGroup::FRONT_AXLE:
-            pVehicleModel->fWheelSizeFront = fWheelSize;
+            pVehicleModel->m_wheelSizeFront = fWheelSize;
             break;
         case eResizableVehicleWheelGroup::REAR_AXLE:
-            pVehicleModel->fWheelSizeRear = fWheelSize;
+            pVehicleModel->m_wheelSizeRear = fWheelSize;
             break;
         case eResizableVehicleWheelGroup::ALL_WHEELS:
-            pVehicleModel->fWheelSizeFront = fWheelSize;
-            pVehicleModel->fWheelSizeRear = fWheelSize;
+            pVehicleModel->m_wheelSizeFront = fWheelSize;
+            pVehicleModel->m_wheelSizeRear = fWheelSize;
             break;
     }
 }
@@ -1201,8 +1194,8 @@ void CModelInfoSA::ResetVehicleWheelSizes(std::pair<float, float>* defaultSizes)
         return;
 
     auto pVehicleModel = reinterpret_cast<CVehicleModelInfoSAInterface*>(m_pInterface);
-    pVehicleModel->fWheelSizeFront = sizesPair->first;
-    pVehicleModel->fWheelSizeRear = sizesPair->second;
+    pVehicleModel->m_wheelSizeFront = sizesPair->first;
+    pVehicleModel->m_wheelSizeRear = sizesPair->second;
 }
 
 void CModelInfoSA::ResetAllVehiclesWheelSizes()
@@ -1289,8 +1282,8 @@ void CModelInfoSA::SetColModel(CColModel* pColModel)
         // If no collision model has been set before, store the original in case we want to restore it
         if (!m_pOriginalColModelInterface)
         {
-            m_pOriginalColModelInterface = m_pInterface->pColModel;
-            m_originalFlags = m_pInterface->flags;
+            m_pOriginalColModelInterface = m_pInterface->m_colModel;
+            m_originalBaseFlags = m_pInterface->m_baseFlags;
         }
 
         // Apply some low-level hacks
@@ -1299,9 +1292,9 @@ void CModelInfoSA::SetColModel(CColModel* pColModel)
         CBaseModelInfo_SetColModel(m_pInterface, pColModelInterface, true);
         CColAccel_addCacheCol(m_dwModelID, pColModelInterface);
 
-        // SetColModel sets bDoWeOwnTheColModel if the last parameter is truthy
-        m_pInterface->bDoWeOwnTheColModel = false;
-        m_pInterface->bCollisionWasStreamedWithModel = false;
+        // SetColModel sets `m_ownsColModel` if the last parameter is truthy
+        m_pInterface->m_ownsColModel = false;
+        m_pInterface->m_wasCollisionStreamedWithModel = false;
 
         // Set some lighting for this collision if not already present
         CColDataSA* pColData = pColModelInterface->m_data;
@@ -1330,22 +1323,22 @@ void CModelInfoSA::RestoreColModel()
     if (m_pInterface && m_pOriginalColModelInterface && m_pCustomColModel)
     {
         CBaseModelInfo_SetColModel(m_pInterface, m_pOriginalColModelInterface, true);
-        CColAccel_addCacheCol(m_dwModelID, m_pInterface->pColModel);
+        CColAccel_addCacheCol(m_dwModelID, m_pInterface->m_colModel);
 
-        m_pInterface->flags = m_originalFlags;
+        m_pInterface->m_baseFlags = m_originalBaseFlags;
 
         // Force the game to load the original collision model data, if we applied a custom collision model before
         // there was any object/building, which would've provoked CColStore to request it.
-        if (!m_pInterface->pColModel->m_data && m_dwReferences > 1)
+        if (!m_pInterface->m_colModel->m_data && m_dwReferences > 1)
         {
-            pGame->GetStreaming()->RemoveModel(RESOURCE_ID_COL + m_pInterface->pColModel->m_sphere.m_collisionSlot);
+            pGame->GetStreaming()->RemoveModel(RESOURCE_ID_COL + m_pInterface->m_colModel->m_sphere.m_collisionSlot);
         }
     }
 
     // We currently have no custom model loaded
     m_pCustomColModel = nullptr;
     m_pOriginalColModelInterface = nullptr;
-    m_originalFlags = 0;
+    m_originalBaseFlags = 0;
 
     // Remove ref added for collision
     if (m_bAddedRefForCollision)
@@ -1382,7 +1375,7 @@ void CModelInfoSA::AddColRef()
     }
     else
     {
-        originalColModel = GetInterface()->pColModel;
+        originalColModel = GetInterface()->m_colModel;
     }
 
     if (originalColModel)
@@ -1403,7 +1396,7 @@ void CModelInfoSA::RemoveColRef()
     }
     else
     {
-        originalColModel = GetInterface()->pColModel;
+        originalColModel = GetInterface()->m_colModel;
     }
 
     if (originalColModel)
@@ -1415,9 +1408,9 @@ void CModelInfoSA::RemoveColRef()
 void CModelInfoSA::GetVoice(short* psVoiceType, short* psVoiceID)
 {
     if (psVoiceType)
-        *psVoiceType = GetPedModelInfoInterface()->sVoiceType;
+        *psVoiceType = GetPedModelInfoInterface()->m_audioPedType;
     if (psVoiceID)
-        *psVoiceID = GetPedModelInfoInterface()->sFirstVoice;
+        *psVoiceID = GetPedModelInfoInterface()->m_firstVoice;
 }
 
 void CModelInfoSA::GetVoice(const char** pszVoiceType, const char** pszVoice)
@@ -1432,10 +1425,10 @@ void CModelInfoSA::GetVoice(const char** pszVoiceType, const char** pszVoice)
 
 void CModelInfoSA::SetVoice(short sVoiceType, short sVoiceID)
 {
-    GetPedModelInfoInterface()->sVoiceType = sVoiceType;
-    GetPedModelInfoInterface()->sFirstVoice = sVoiceID;
-    GetPedModelInfoInterface()->sLastVoice = sVoiceID;
-    GetPedModelInfoInterface()->sNextVoice = sVoiceID;
+    GetPedModelInfoInterface()->m_audioPedType = sVoiceType;
+    GetPedModelInfoInterface()->m_firstVoice = sVoiceID;
+    GetPedModelInfoInterface()->m_lastVoice = sVoiceID;
+    GetPedModelInfoInterface()->m_nextVoice = sVoiceID;
 }
 
 void CModelInfoSA::SetVoice(const char* szVoiceType, const char* szVoice)
@@ -1475,10 +1468,10 @@ void CModelInfoSA::MakeObjectModel(ushort usBaseID)
 
     CBaseModelInfoSAInterface* pBaseObjectInfo = ppModelInfo[usBaseID];
     MemCpyFast(m_pInterface, pBaseObjectInfo, sizeof(CBaseModelInfoSAInterface));
-    m_pInterface->usNumberOfRefs = 0;
-    m_pInterface->pRwObject = nullptr;
-    m_pInterface->usUnknown = 65535;
-    m_pInterface->usDynamicIndex = 65535;
+    m_pInterface->m_numRefs = 0;
+    m_pInterface->m_rwObject = nullptr;
+    m_pInterface->m_2DEffectIndex = 65535;
+    m_pInterface->m_dynamicIndex = 65535;
 
     ppModelInfo[m_dwModelID] = m_pInterface;
 
@@ -1492,11 +1485,11 @@ void CModelInfoSA::MakeVehicleAutomobile(ushort usBaseID)
 
     CBaseModelInfoSAInterface* pBaseObjectInfo = (CBaseModelInfoSAInterface*)ppModelInfo[usBaseID];
     MemCpyFast(m_pInterface, pBaseObjectInfo, sizeof(CVehicleModelInfoSAInterface));
-    m_pInterface->usNumberOfRefs = 0;
-    m_pInterface->pRwObject = nullptr;
-    m_pInterface->pVisualInfo = nullptr;
-    m_pInterface->usUnknown = 65535;
-    m_pInterface->usDynamicIndex = 65535;
+    m_pInterface->m_numRefs = 0;
+    m_pInterface->m_rwObject = nullptr;
+    m_pInterface->m_vehicleStructure = nullptr;
+    m_pInterface->m_2DEffectIndex = 65535;
+    m_pInterface->m_dynamicIndex = 65535;
 
     ppModelInfo[m_dwModelID] = m_pInterface;
 
@@ -1683,12 +1676,12 @@ void CModelInfoSA::SetObjectPropertiesGroup(unsigned short usNewGroup)
     if (!MapFind(ms_OriginalObjectPropertiesGroups, m_dwModelID))
         MapSet(ms_OriginalObjectPropertiesGroups, m_dwModelID, usOrgGroup);
 
-    GetInterface()->usDynamicIndex = usNewGroup;
+    GetInterface()->m_dynamicIndex = usNewGroup;
 }
 
 unsigned short CModelInfoSA::GetObjectPropertiesGroup()
 {
-    unsigned short usGroup = GetInterface()->usDynamicIndex;
+    unsigned short usGroup = GetInterface()->m_dynamicIndex;
     if (usGroup == 0xFFFF)
         usGroup = 0;
 
@@ -1700,7 +1693,7 @@ void CModelInfoSA::RestoreObjectPropertiesGroup()
     unsigned short* usGroupInMap = MapFind(ms_OriginalObjectPropertiesGroups, m_dwModelID);
     if (usGroupInMap)
     {
-        GetInterface()->usDynamicIndex = *usGroupInMap;
+        GetInterface()->m_dynamicIndex = *usGroupInMap;
         MapRemove(ms_OriginalObjectPropertiesGroups, m_dwModelID);
     }
 }
@@ -1709,14 +1702,14 @@ void CModelInfoSA::RestoreAllObjectsPropertiesGroups()
 {
     for (const auto& pair : ms_OriginalObjectPropertiesGroups)
     {
-        pGame->GetModelInfo(pair.first)->GetInterface()->usDynamicIndex = pair.second;
+        pGame->GetModelInfo(pair.first)->GetInterface()->m_dynamicIndex = pair.second;
     }
     ms_OriginalObjectPropertiesGroups.clear();
 }
 
 eModelInfoType CModelInfoSA::GetModelType()
 {
-    return ((eModelInfoType(*)())m_pInterface->VFTBL->GetModelType)();
+    return static_cast<eModelInfoType>(m_pInterface->m_vftable->GetModelType(m_pInterface));
 }
 
 bool CModelInfoSA::IsTowableBy(CModelInfo* towingModel)
@@ -1770,21 +1763,21 @@ bool CModelInfoSA::ForceUnload()
 {
     CBaseModelInfoSAInterface* pModelInfoSAInterface = GetInterface();
 
-    // Need to have at least one ref to delete pRwObject
-    if (pModelInfoSAInterface->usNumberOfRefs == 0 && pModelInfoSAInterface->pRwObject != NULL)
+    // Need to have at least one ref to delete m_rwObject
+    if (pModelInfoSAInterface->m_numRefs == 0 && pModelInfoSAInterface->m_rwObject != NULL)
     {
-        pModelInfoSAInterface->usNumberOfRefs++;
+        pModelInfoSAInterface->m_numRefs++;
     }
 
     // Keep removing refs from the model until is it gone
     uint uiLimit = 100;
-    while (pModelInfoSAInterface->usNumberOfRefs > 0 && uiLimit--)
+    while (pModelInfoSAInterface->m_numRefs > 0 && uiLimit--)
     {
         RemoveRef();
     }
 
     // Did it work?
-    if (pModelInfoSAInterface->usNumberOfRefs > 0 || pModelInfoSAInterface->pRwObject != NULL)
+    if (pModelInfoSAInterface->m_numRefs > 0 || pModelInfoSAInterface->m_rwObject != NULL)
         return false;
 
     // If success, then remove txd

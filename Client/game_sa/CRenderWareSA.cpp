@@ -247,7 +247,7 @@ RpClump* CRenderWareSA::ReadDFF(const SString& strFilename, const SString& buffe
     // Set correct TXD as materials are processed at the same time
     if (usModelID != 0)
     {
-        unsigned short usTxdId = ((CBaseModelInfoSAInterface**)ARRAY_ModelInfo)[usModelID]->usTextureDictionary;
+        unsigned short usTxdId = ((CBaseModelInfoSAInterface**)ARRAY_ModelInfo)[usModelID]->m_texDictionary;
         SetTextureDict(usTxdId);
     }
 
@@ -352,8 +352,8 @@ bool CRenderWareSA::DoContainTheSameGeometry(RpClump* pClumpA, RpClump* pClumpB,
 // Replaces a vehicle/weapon/ped model
 void CRenderWareSA::ReplaceModel(RpClump* pNew, unsigned short usModelID, DWORD dwSetClumpFunction)
 {
-    auto CVehicleModelInfo_CVehicleStructure_Destructor = (void(__thiscall*) (CVehicleModelVisualInfoSAInterface * pThis))0x4C7410;
-    auto CVehicleModelInfo_CVehicleStructure_release = (void(__cdecl*) (CVehicleModelVisualInfoSAInterface * pThis))0x4C9580;
+    auto CVehicleModelInfo_CVehicleStructure_Destructor = (void(__thiscall*) (CVehicleStructureSAInterface * pThis))0x4C7410;
+    auto CVehicleModelInfo_CVehicleStructure_release = (void(__cdecl*) (CVehicleStructureSAInterface * pThis))0x4C9580;
     auto CBaseModelInfo_SetClump = (void(__thiscall*) (CBaseModelInfoSAInterface * pThis, RpClump * clump))dwSetClumpFunction;
 
     CModelInfo* pModelInfo = pGame->GetModelInfo(usModelID);
@@ -378,12 +378,12 @@ void CRenderWareSA::ReplaceModel(RpClump* pNew, unsigned short usModelID, DWORD 
             if (dwSetClumpFunction == FUNC_LoadVehicleModel)
             {
                 auto pVehicleModelInfoInterface = (CVehicleModelInfoSAInterface*)pModelInfo->GetInterface();
-                if (pVehicleModelInfoInterface->pVisualInfo)
+                if (pVehicleModelInfoInterface->m_vehicleStructure)
                 {
-                    auto pVisualInfo = pVehicleModelInfoInterface->pVisualInfo;
+                    auto pVisualInfo = pVehicleModelInfoInterface->m_vehicleStructure;
                     CVehicleModelInfo_CVehicleStructure_Destructor(pVisualInfo);
                     CVehicleModelInfo_CVehicleStructure_release(pVisualInfo);
-                    pVehicleModelInfoInterface->pVisualInfo = nullptr;
+                    pVehicleModelInfoInterface->m_vehicleStructure = nullptr;
                 }
             }
 
@@ -493,7 +493,7 @@ void CRenderWareSA::ReplaceAllAtomicsInModel(RpClump* pNew, unsigned short usMod
 
             // Replace the atomics
             SAtomicsReplacer data;
-            data.usTxdID = ((CBaseModelInfoSAInterface**)ARRAY_ModelInfo)[usModelID]->usTextureDictionary;
+            data.usTxdID = ((CBaseModelInfoSAInterface**)ARRAY_ModelInfo)[usModelID]->m_texDictionary;
             data.pClump = pCopy;
 
             MemPutFast<DWORD>((DWORD*)DWORD_AtomicsReplacerModelID, usModelID);
@@ -700,7 +700,7 @@ ushort CRenderWareSA::GetTXDIDForModelID(ushort usModelID)
         if (usModelID >= pGame->GetBaseIDforTXD() || !((CBaseModelInfoSAInterface**)ARRAY_ModelInfo)[usModelID])
             return 0;
 
-        return ((CBaseModelInfoSAInterface**)ARRAY_ModelInfo)[usModelID]->usTextureDictionary;
+        return ((CBaseModelInfoSAInterface**)ARRAY_ModelInfo)[usModelID]->m_texDictionary;
     }
 }
 

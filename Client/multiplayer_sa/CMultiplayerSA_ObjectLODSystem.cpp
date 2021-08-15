@@ -27,7 +27,7 @@ namespace
 
     float CalculateLowLodFadeAlpha(CBaseModelInfoSAInterface* pModelInfo, float fDist)
     {
-        float fModelDrawDistance = pModelInfo->fLodDistanceUnscaled * LOW_LOD_DRAW_DISTANCE_SCALE + 20.f;
+        float fModelDrawDistance = pModelInfo->m_unscaledLodDistance * LOW_LOD_DRAW_DISTANCE_SCALE + 20.f;
         float fFadeWidth = 20.f + fModelDrawDistance / 50.f;
         float fFadeFar = fModelDrawDistance;
         float fFadeNear = fFadeFar - fFadeWidth;
@@ -37,7 +37,7 @@ namespace
     struct
     {
         bool                       bValid;
-        float                      fLodDistanceUnscaled;
+        float                      unscaledLodDistance;
         CBaseModelInfoSAInterface* pModelInfo;
     } saved = {false, 0.f, NULL};
 }            // namespace
@@ -53,8 +53,8 @@ void OnMY_CRenderer_SetupEntityVisibility_Pre(CEntitySAInterface* pEntity, float
     {
         SetGlobalDrawDistanceScale(LOW_LOD_DRAW_DISTANCE_SCALE * 2);
         saved.pModelInfo = ((CBaseModelInfoSAInterface**)ARRAY_ModelInfo)[pEntity->m_nModelIndex];
-        saved.fLodDistanceUnscaled = saved.pModelInfo->fLodDistanceUnscaled;
-        saved.pModelInfo->fLodDistanceUnscaled *= LOW_LOD_DRAW_DISTANCE_SCALE / GetDrawDistanceSetting();
+        saved.unscaledLodDistance = saved.pModelInfo->m_unscaledLodDistance;
+        saved.pModelInfo->m_unscaledLodDistance *= LOW_LOD_DRAW_DISTANCE_SCALE / GetDrawDistanceSetting();
         saved.bValid = true;
     }
     else
@@ -66,7 +66,7 @@ void OnMY_CRenderer_SetupEntityVisibility_Post(int result, CEntitySAInterface* p
     if (saved.bValid)
     {
         SetGlobalDrawDistanceScale(1);
-        saved.pModelInfo->fLodDistanceUnscaled = saved.fLodDistanceUnscaled;
+        saved.pModelInfo->m_unscaledLodDistance = saved.unscaledLodDistance;
         saved.bValid = false;
 
         // Doing any distance fading?
@@ -178,7 +178,7 @@ int OnMY_CVisibilityPlugins_CalculateFadingAtomicAlpha_Pre(CBaseModelInfoSAInter
     {
         // Apply custom distance fade
         float fAlpha = CalculateLowLodFadeAlpha(pModelInfo, fDist);
-        fAlpha *= pModelInfo->ucAlpha;
+        fAlpha *= pModelInfo->m_alpha;
         return Clamp<int>(0, (int)fAlpha, 255);
     }
     return -1;

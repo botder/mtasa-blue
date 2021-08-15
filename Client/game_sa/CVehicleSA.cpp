@@ -2199,7 +2199,7 @@ void* CVehicleSA::GetPrivateSuspensionLines()
     if (m_pSuspensionLines == NULL)
     {
         CModelInfo* pModelInfo = pGame->GetModelInfo(GetModelIndex());
-        CColDataSA* pColData = pModelInfo->GetInterface()->pColModel->m_data;
+        CColDataSA* pColData = pModelInfo->GetInterface()->m_colModel->m_data;
         if (pModelInfo->IsMonsterTruck())
         {
             // Monster truck suspension data is 0x90 BYTES rather than 0x80 (some extra stuff I guess)
@@ -2223,7 +2223,7 @@ void* CVehicleSA::GetPrivateSuspensionLines()
 void CVehicleSA::CopyGlobalSuspensionLinesToPrivate()
 {
     CModelInfo* pModelInfo = pGame->GetModelInfo(GetModelIndex());
-    CColDataSA* pColData = pModelInfo->GetInterface()->pColModel->m_data;
+    CColDataSA* pColData = pModelInfo->GetInterface()->m_colModel->m_data;
     if (pModelInfo->IsMonsterTruck())
     {
         // Monster trucks are 0x90 bytes not 0x80
@@ -2746,15 +2746,15 @@ bool CVehicleSA::SetPlateText(const SString& strText)
     CVehicleModelInfoSAInterface* pVehicleModelInfo = (CVehicleModelInfoSAInterface*)pModelInfo->GetInterface();
 
     // Copy text
-    strncpy(pVehicleModelInfo->plateText, *strText, 8);
+    strncpy(pVehicleModelInfo->m_customCarPlateText, *strText, 8);
 
     // Check if changeable
-    if (!pVehicleModelInfo->pPlateMaterial)
+    if (!pVehicleModelInfo->m_customCarPlateMaterial)
         return false;
 
     // Release texture ref, if was custom before
     RwTexture*& pOldTexture = GetVehicleInterface()->m_pCustomPlateTexture;
-    if (pOldTexture && pOldTexture != pVehicleModelInfo->pPlateMaterial->texture)
+    if (pOldTexture && pOldTexture != pVehicleModelInfo->m_customCarPlateMaterial->texture)
     {
         RwTextureDestroy(pOldTexture);
         pOldTexture = NULL;

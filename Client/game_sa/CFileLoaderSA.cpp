@@ -106,7 +106,7 @@ bool CFileLoader_LoadAtomicFile(RwStream *stream, unsigned int modelId)
         RpClumpDestroy(pReadClump);
     }
 
-    if (!pBaseModelInfo->pRwObject)
+    if (!pBaseModelInfo->m_rwAtomic)
     {
         return false;
     }
@@ -129,7 +129,8 @@ RpAtomic* CFileLoader_SetRelatedModelInfoCB(RpAtomic* atomic, SRelatedModelInfo*
     GetNameAndDamage(frameNodeName, (char*)&name, bDamage);
     CVisibilityPlugins_SetAtomicRenderCallback(atomic, 0);
 
-    RpAtomic* pOldAtomic = reinterpret_cast<RpAtomic*>(pBaseModelInfo->pRwObject);
+    RpAtomic* pOldAtomic = pBaseModelInfo->m_rwAtomic;
+
     if (bDamage)
     {
         auto pDamagableModelInfo = reinterpret_cast<CDamagableModelInfo*>(pAtomicModelInfo);

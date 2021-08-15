@@ -54,7 +54,7 @@ void      OnMy_CClothesDeleteRwObject()
     ushort                     usModelID = 0;
     CBaseModelInfoSAInterface* pModelInfo = ((CBaseModelInfoSAInterface**)ARRAY_ModelInfo)[usModelID];
     // Save RwObject of model 0
-    pSavedModel0RwObject = pModelInfo->pRwObject;
+    pSavedModel0RwObject = pModelInfo->m_rwObject;
 }
 
 // Hook info

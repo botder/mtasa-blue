@@ -44,7 +44,7 @@ void OnMY_CAutomobile_CustomCarPlate_BeforeRenderingStart(CVehicleSAInterface* p
         {
             RpMaterial* pMaterial = pPlateInfo->plateMaterialList[i];
             // Only do replace if it's not the material that GTA is handling
-            if (pMaterial != pVehicleModelInfo->pPlateMaterial)
+            if (pMaterial != pVehicleModelInfo->m_customCarPlateMaterial)
             {
                 RwTexture* pOldTexture = pMaterial->texture;
                 pOldTexture->refs++;
@@ -99,7 +99,7 @@ void OnMY_CAutomobile_CustomCarPlate_AfterRenderingStop(CVehicleModelInfoSAInter
             RpMaterial* pMaterial = pPlateInfo->plateMaterialList[i];
             RwTexture*  pOldTexture = ms_SavedTextureList[i];
             // Only do restore if it's not the one that GTA handled
-            if (pMaterial != pVehicleModelInfo->pPlateMaterial)
+            if (pMaterial != pVehicleModelInfo->m_customCarPlateMaterial)
             {
                 assert(pOldTexture);
                 RpMaterialSetTexture(pMaterial, pOldTexture);

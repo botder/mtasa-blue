@@ -14,9 +14,9 @@
 CPedModelInfoSAInterface::CPedModelInfoSAInterface()
 {
     MemSetFast(this, 0, sizeof(CPedModelInfoSAInterface));
-    VFTBL = (CBaseModelInfo_SA_VTBL*)VAR_CPedModelInfo_VTBL;
-    pColModel = (CColModelSAInterface*)VAR_CTempColModels_ModelPed1;
-    MemPutFast<DWORD>(&pad, 0xFFFFFFFF);
+    m_vftableAddress = VAR_CPedModelInfo_VTBL;
+    m_vftable->Init(this);
+    m_colModel = (CColModelSAInterface*)VAR_CTempColModels_ModelPed1;
 }
 
 CPedModelInfoSA::CPedModelInfoSA() : CModelInfoSA()

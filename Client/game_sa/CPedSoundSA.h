@@ -36,9 +36,10 @@ enum
     PED_TYPE_EMG,
     PED_TYPE_PLAYER,
     PED_TYPE_GANG,
-    PED_TYPE_GFD
+    PED_TYPE_GFD,
+    PED_TYPE_SPC,
 };
-
+    
 #define NUM_GEN_VOICES     209
 #define NUM_EMG_VOICES     46
 #define NUM_PLAYER_VOICES  20

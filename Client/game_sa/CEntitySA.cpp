@@ -40,7 +40,7 @@ void CEntitySAInterface::UpdateRpHAnim()
 
 CRect* CEntitySAInterface::GetBoundRect_(CRect* pRect)
 {
-    CColModelSAInterface* colModel = CModelInfoSAInterface::GetModelInfo(m_nModelIndex)->pColModel;
+    CColModelSAInterface* colModel = CModelInfoSAInterface::GetModelInfo(m_nModelIndex)->m_colModel;
     CVector               vecMin = colModel->m_bounds.m_vecMin;
     CVector               vecMax = colModel->m_bounds.m_vecMax;
     CRect                 rect;

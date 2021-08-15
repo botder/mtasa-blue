@@ -832,7 +832,7 @@ void CGameSA::SetupSpecialCharacters()
 void CGameSA::FixModelCol(uint iFixModel, uint iFromModel)
 {
     CBaseModelInfoSAInterface* pFixModelInterface = ModelInfo[iFixModel].GetInterface();
-    if (!pFixModelInterface || pFixModelInterface->pColModel)
+    if (!pFixModelInterface || pFixModelInterface->m_colModel)
         return;
 
     CBaseModelInfoSAInterface* pAviableModelInterface = ModelInfo[iFromModel].GetInterface();
@@ -840,7 +840,7 @@ void CGameSA::FixModelCol(uint iFixModel, uint iFromModel)
     if (!pAviableModelInterface)
         return;
 
-    pFixModelInterface->pColModel = pAviableModelInterface->pColModel;
+    pFixModelInterface->m_colModel = pAviableModelInterface->m_colModel;
 }
 
 void CGameSA::SetupBrokenModels()

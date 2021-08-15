@@ -17,6 +17,9 @@
 #include "net/SimHeaders.h"
 #include <signal.h>
 
+#include "SharedUtil.Network.h"
+#include "SharedUtil.Network.hpp"
+
 #define MAX_BULLETSYNC_DISTANCE 400.0f
 #define MAX_EXPLOSION_SYNC_DISTANCE 400.0f
 #define MAX_PROJECTILE_SYNC_DISTANCE 400.0f
@@ -724,11 +727,9 @@ bool CGame::Start(int iArgumentCount, char* szArguments[])
     if (m_pMainConfig->GetAseInternetListenEnabled())
     {
         // Check if IP is one of the most common private IP addresses
-        in_addr serverIp;
-        serverIp.s_addr = inet_addr(strServerIP);
-        uchar a = ((uchar*)&serverIp.s_addr)[0];
-        uchar b = ((uchar*)&serverIp.s_addr)[1];
-        if (a == 10 || a == 127 || (a == 169 && b == 254) || (a == 192 && b == 168))
+        IPAddress ipAddress(strServerIP.c_str(), IPAddressFamily::IPv4);
+
+        if (ipAddress.IsPrivate())
         {
             CLogger::LogPrintf("WARNING: Private IP '%s' with ase enabled! Use: <serverip>auto</serverip>\n", *strServerIP);
         }

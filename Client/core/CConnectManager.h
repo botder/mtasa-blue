@@ -14,6 +14,7 @@
 #include <ctime>
 #include <gui/CGUI.h>
 #include <ServerBrowser/CServerInfo.h>
+#include "SharedUtil.Network.h"
 
 class CConnectManager
 {
@@ -30,7 +31,7 @@ public:
 
     void OnServerExists();
 
-    static void OpenServerFirewall(in_addr Address, ushort usHttpPort = 80, bool bHighPriority = false);
+    static void OpenServerFirewall(IPAddress address, ushort usHttpPort = 80, bool bHighPriority = false);
 
     static bool StaticProcessPacket(unsigned char ucPacketID, class NetBitStreamInterface& bitStream);
 
@@ -43,18 +44,17 @@ public:
 private:
     bool Event_OnCancelClick(CGUIElement* pElement);
 
-    in_addr        m_Address;
-    std::string    m_strHost;
-    unsigned short m_usPort;
-    std::string    m_strNick;
-    std::string    m_strPassword;
-    bool           m_bIsDetectingVersion;
-    bool           m_bIsConnecting;
-    bool           m_bReconnect;
-    bool           m_bSave;
-    time_t         m_tConnectStarted;
-    bool           m_bHasTriedSecondConnect;
-    SString        m_strDiscordSecretJoin;
+    IPEndPoint  m_endPoint;
+    std::string m_strHost;
+    std::string m_strNick;
+    std::string m_strPassword;
+    bool        m_bIsDetectingVersion;
+    bool        m_bIsConnecting;
+    bool        m_bReconnect;
+    bool        m_bSave;
+    time_t      m_tConnectStarted;
+    bool        m_bHasTriedSecondConnect;
+    SString     m_strDiscordSecretJoin;
 
     GUI_CALLBACK* m_pOnCancelClick;
 

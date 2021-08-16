@@ -87,12 +87,13 @@ void CServerList::Pulse()
     // If a query is going to be done this pass, try to find high priority items first
     if (iNumQueries > 0)
     {
-        std::vector<SAddressPort> endpointList;
+        std::vector<IPEndPoint> endpointList;
         CCore::GetSingleton().GetLocalGUI()->GetMainMenu()->GetServerBrowser()->GetVisibleEndPointList(endpointList);
 
-        for (std::vector<SAddressPort>::iterator iter = endpointList.begin(); iter != endpointList.end(); ++iter)
+        for (std::vector<IPEndPoint>::iterator iter = endpointList.begin(); iter != endpointList.end(); ++iter)
         {
-            CServerListItem* pServer = m_Servers.Find((in_addr&)iter->m_ulIp, iter->m_usPort);
+            CServerListItem* pServer = m_Servers.Find(*iter);
+
             if (pServer && pServer->WaitingToSendQuery())
             {
                 std::string strResult = pServer->Pulse((int)(uiQueriesSent /*+ uiQueriesResent*/) < iNumQueries, bRemoveNonResponding);
@@ -162,17 +163,17 @@ void CServerList::Pulse()
 }
 
 // Return true if did add
-bool CServerList::AddUnique(in_addr Address, ushort usGamePort, bool addAtFront)
+bool CServerList::AddUnique(const IPEndPoint& endPoint, bool addAtFront)
 {
-    if (m_Servers.Find(Address, usGamePort))
+    if (m_Servers.Find(endPoint))
         return false;
-    m_Servers.AddUnique(Address, usGamePort, addAtFront);
+    m_Servers.AddUnique(endPoint, addAtFront);
     return true;
 }
 
-bool CServerList::Remove(in_addr Address, ushort usGamePort)
+bool CServerList::Remove(const IPEndPoint& endPoint)
 {
-    return m_Servers.Remove(Address, usGamePort);
+    return m_Servers.Remove(endPoint);
 }
 
 void CServerList::Refresh()
@@ -304,7 +305,7 @@ void CServerListLAN::Pulse()
             {
                 unsigned short usPort = (unsigned short)atoi(&szBuffer[strlen(SERVER_LIST_SERVER_BROADCAST_STR) + 1]);
                 // Add the server if doesn't already exist
-                AddUnique(m_Remote.sin_addr, usPort - SERVER_LIST_QUERY_PORT_OFFSET);
+                AddUnique(IPEndPoint(IPv4Address(&m_Remote), usPort - SERVER_LIST_QUERY_PORT_OFFSET));
             }
 
     // Scan our already known servers
@@ -390,7 +391,7 @@ std::string CServerListItem::Pulse(bool bCanSendQuery, bool bRemoveNonResponding
                 m_bDoneTcpSend = true;
                 if ((m_ucSpecialFlags & ASE_SPECIAL_FLAG_DENY_TCP_SEND) == 0)
                 {
-                    CConnectManager::OpenServerFirewall(Address, m_usHttpPort, false);
+                    CConnectManager::OpenServerFirewall(endPoint.GetAddress(), m_usHttpPort, false);
                     m_bDoPostTcpQuery = 1;
                 }
             }
@@ -459,13 +460,13 @@ std::string CServerListItem::Pulse(bool bCanSendQuery, bool bRemoveNonResponding
 
 unsigned short CServerListItem::GetQueryPort()
 {
-    return usGamePort + SERVER_LIST_QUERY_PORT_OFFSET;
+    return endPoint.GetPort() + SERVER_LIST_QUERY_PORT_OFFSET;
 }
 
 void CServerListItem::Query()
-{            // Performs a query according to ASE protocol
-
-    queryReceiver.RequestQuery(Address, GetQueryPort());
+{
+    // Performs a query according to ASE protocol
+    queryReceiver.RequestQuery(IPEndPoint(endPoint.GetAddress(), GetQueryPort()));
 }
 
 bool CServerListItem::ParseQuery()
@@ -475,7 +476,7 @@ bool CServerListItem::ParseQuery()
         return false;
 
     // Get IP as string
-    strHost = inet_ntoa(Address);
+    strHost = endPoint.GetAddress().ToString();
 
     nPing = info.pingTime;
 
@@ -541,15 +542,14 @@ void CServerListItemList::DeleteAll()
     dassert(m_List.size() == m_AddressMap.size());
 }
 
-CServerListItem* CServerListItemList::Find(in_addr Address, ushort usGamePort)
+CServerListItem* CServerListItemList::Find(const IPEndPoint& endPoint)
 {
-    SAddressPort key(Address, usGamePort);
-    if (CServerListItem* pItem = MapFindRef(m_AddressMap, key))
+    if (CServerListItem* pItem = MapFindRef(m_AddressMap, endPoint))
     {
         if (!CServerListItem::StaticIsValid(pItem))
         {
             // Bodge to fix invalid entry in map
-            Remove(Address, usGamePort);
+            Remove(endPoint);
             pItem = NULL;
         }
         return pItem;
@@ -557,25 +557,23 @@ CServerListItem* CServerListItemList::Find(in_addr Address, ushort usGamePort)
     return NULL;
 }
 
-CServerListItem* CServerListItemList::AddUnique(in_addr Address, ushort usGamePort, bool bAtFront)
+CServerListItem* CServerListItemList::AddUnique(const IPEndPoint& endPoint, bool bAtFront)
 {
-    SAddressPort key(Address, usGamePort);
-    if (MapContains(m_AddressMap, key))
+    if (MapContains(m_AddressMap, endPoint))
         return NULL;
-    CServerListItem* pItem = new CServerListItem(Address, usGamePort, this, bAtFront);
+    CServerListItem* pItem = new CServerListItem(endPoint, this, bAtFront);
     return pItem;
 }
 
 // Only called from CServerListItem constructor
 void CServerListItemList::AddNewItem(CServerListItem* pItem, bool bAtFront)
 {
-    SAddressPort key(pItem->Address, pItem->usGamePort);
-    if (MapContains(m_AddressMap, key))
+    if (MapContains(m_AddressMap, pItem->endPoint))
     {
         dassert(0);
         return;
     }
-    MapSet(m_AddressMap, key, pItem);
+    MapSet(m_AddressMap, pItem->endPoint, pItem);
     pItem->uiTieBreakPosition = 5000;
     if (!m_List.empty())
     {
@@ -590,16 +588,14 @@ void CServerListItemList::AddNewItem(CServerListItem* pItem, bool bAtFront)
         m_List.push_back(pItem);
 }
 
-bool CServerListItemList::Remove(in_addr Address, ushort usGamePort)
+bool CServerListItemList::Remove(const IPEndPoint& endPoint)
 {
-    SAddressPort     key(Address, usGamePort);
-    CServerListItem* pItem = MapFindRef(m_AddressMap, key);
+    CServerListItem* pItem = MapFindRef(m_AddressMap, endPoint);
     if (pItem)
     {
-        assert(pItem->Address.s_addr == Address.s_addr);
-        assert(pItem->usGamePort == usGamePort);
+        assert(pItem->endPoint == endPoint);
         delete pItem;
-        assert(!MapFindRef(m_AddressMap, key));
+        assert(!MapFindRef(m_AddressMap, endPoint));
         return true;
     }
     return false;
@@ -608,43 +604,37 @@ bool CServerListItemList::Remove(in_addr Address, ushort usGamePort)
 // Only called from CServerListItem destructor
 void CServerListItemList::RemoveItem(CServerListItem* pItem)
 {
-    SAddressPort key(pItem->Address, pItem->usGamePort);
-
     dassert(m_List.size() == m_AddressMap.size());
-    dassert(MapFindRef(m_AddressMap, key) == pItem);
+    dassert(MapFindRef(m_AddressMap, pItem->endPoint) == pItem);
 
-    MapRemove(m_AddressMap, key);
+    MapRemove(m_AddressMap, pItem->endPoint);
     ListRemove(m_List, pItem);
 
     dassert(m_List.size() == m_AddressMap.size());
 }
 
-void CServerListItemList::OnItemChangeAddress(CServerListItem* pItem, in_addr Address, ushort usGamePort)
+void CServerListItemList::OnItemChangeAddress(CServerListItem* pItem, const IPEndPoint& endPoint)
 {
     // Changed?
-    if (pItem->Address.s_addr == Address.s_addr && pItem->usGamePort == usGamePort)
+    if (pItem->endPoint == endPoint)
         return;
 
     // New address free?
-    if (Find(Address, usGamePort))
+    if (Find(endPoint))
         return;
 
     // Remove old lookup
     {
-        SAddressPort     key(pItem->Address, pItem->usGamePort);
-        CServerListItem* pItem2 = MapFindRef(m_AddressMap, key);
+        CServerListItem* pItem2 = MapFindRef(m_AddressMap, endPoint);
         assert(pItem == pItem2);
-        MapRemove(m_AddressMap, key);
+        MapRemove(m_AddressMap, endPoint);
     }
 
     // Add new lookup
     {
-        pItem->Address = Address;
-        pItem->AddressCopy = Address;
-        pItem->usGamePort = usGamePort;
-        pItem->usGamePortCopy = usGamePort;
-        SAddressPort key(pItem->Address, pItem->usGamePort);
-        MapSet(m_AddressMap, key, pItem);
+        pItem->endPointCopy = endPoint;
+        pItem->endPoint = endPoint;
+        MapSet(m_AddressMap, endPoint, pItem);
     }
 }
 
@@ -655,10 +645,9 @@ void CServerListItemList::OnItemChangeAddress(CServerListItem* pItem, in_addr Ad
 //
 //////////////////////////////////////////////////////////////////////////////
 // Auto add to associated list
-CServerListItem::CServerListItem(in_addr _Address, unsigned short _usGamePort, CServerListItemList* pItemList, bool bAtFront)
+CServerListItem::CServerListItem(const IPEndPoint& endPoint, CServerListItemList* pItemList, bool bAtFront)
 {
-    Address = _Address;
-    usGamePort = _usGamePort;
+    this->endPoint = endPoint;
     m_pItemList = pItemList;
     m_bDoneTcpSend = false;
     m_bDoPostTcpQuery = false;
@@ -667,8 +656,7 @@ CServerListItem::CServerListItem(in_addr _Address, unsigned short _usGamePort, C
     Init();
     if (m_pItemList)
     {
-        AddressCopy = _Address;
-        usGamePortCopy = _usGamePort;
+        endPointCopy = endPoint;
         m_pItemList->AddNewItem(this, bAtFront);
     }
 }
@@ -679,7 +667,7 @@ CServerListItem::~CServerListItem()
     if (m_pItemList)
     {
         // Check nothing changed
-        assert(AddressCopy.s_addr == Address.s_addr && usGamePortCopy == usGamePort);
+        assert(endPointCopy == endPoint);
         m_pItemList->RemoveItem(this);
     }
     MapRemove(ms_ValidServerListItemMap, this);
@@ -697,15 +685,14 @@ void CServerListItem::ResetForRefresh()
     bMaybeOffline = false;
 }
 
-void CServerListItem::ChangeAddress(in_addr _Address, unsigned short _usGamePort)
+void CServerListItem::ChangeAddress(const IPEndPoint& endPoint)
 {
     if (m_pItemList)
     {
-        m_pItemList->OnItemChangeAddress(this, _Address, _usGamePort);
+        m_pItemList->OnItemChangeAddress(this, endPoint);
     }
     else
     {
-        Address = _Address;
-        usGamePort = _usGamePort;
+        this->endPoint = endPoint;
     }
 }

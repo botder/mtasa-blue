@@ -48,6 +48,9 @@ namespace SharedUtil
         constexpr void Reset() noexcept { dword = 0; }
 
         std::string ToString() const;
+        std::string ToHexString() const;
+
+        bool ToSocketAddress(sockaddr* address, std::size_t addressSize) const;
 
         constexpr bool IsAny() const noexcept;
         constexpr bool IsNone() const noexcept;
@@ -97,6 +100,9 @@ namespace SharedUtil
         }
 
         std::string ToString() const;
+        std::string ToHexString() const;
+
+        bool ToSocketAddress(sockaddr* address, std::size_t addressSize) const;
 
         constexpr bool IsAny() const noexcept;
         constexpr bool IsNone() const noexcept;
@@ -163,7 +169,7 @@ namespace SharedUtil
         constexpr IPAddress(IPv4Address v4) noexcept : m_address(v4), m_addressFamily(IPAddressFamily::IPv4) {}
         constexpr IPAddress(IPv6Address v6) noexcept : m_address(v6), m_addressFamily(IPAddressFamily::IPv6) {}
         explicit IPAddress(const sockaddr* address) { SetAddress(address); }
-        explicit IPAddress(const char* address, IPAddressFamily addressFamily) { SetAddress(address, addressFamily); }
+        IPAddress(const char* address, IPAddressFamily addressFamily) { SetAddress(address, addressFamily); }
 
         constexpr IPAddressFamily GetAddressFamily() const noexcept { return m_addressFamily; }
 
@@ -192,52 +198,73 @@ namespace SharedUtil
         void Reset() noexcept { m_addressFamily = IPAddressFamily::None; }
 
         std::string ToString() const {
-            if (m_addressFamily == IPAddressFamily::None)
-                return std::string();
-            else if (m_addressFamily == IPAddressFamily::IPv4)
+            if (m_addressFamily == IPAddressFamily::IPv4)
                 return m_address.ipv4.ToString();
-            else
+            else if (m_addressFamily == IPAddressFamily::IPv6)
                 return m_address.ipv6.ToString();
+            else
+                return {};
         }
+
+        std::string ToHexString() const {
+            if (m_addressFamily == IPAddressFamily::IPv4)
+                return m_address.ipv4.ToHexString();
+            else if (m_addressFamily == IPAddressFamily::IPv6)
+                return m_address.ipv6.ToHexString();
+            else
+                return {};
+        }
+
+        bool ToSocketAddress(sockaddr* address, std::size_t addressSize) const
+        {
+            if (m_addressFamily == IPAddressFamily::IPv4)
+                return m_address.ipv4.ToSocketAddress(address, addressSize);
+            else if (m_addressFamily == IPAddressFamily::IPv6)
+                return m_address.ipv6.ToSocketAddress(address, addressSize);
+            else
+                return false;
+        }
+
+        constexpr bool IsValid() const noexcept { return m_addressFamily != IPAddressFamily::None; }
 
         constexpr bool IsAny() const noexcept
         {
-            if (m_addressFamily == IPAddressFamily::None)
-                return false;
-            else if (m_addressFamily == IPAddressFamily::IPv4)
+            if (m_addressFamily == IPAddressFamily::IPv4)
                 return m_address.ipv4.IsAny();
-            else
+            else if (m_addressFamily == IPAddressFamily::IPv6)
                 return m_address.ipv6.IsAny();
+            else
+                return false;
         }
 
         constexpr bool IsNone() const noexcept
         {
-            if (m_addressFamily == IPAddressFamily::None)
-                return false;
-            else if (m_addressFamily == IPAddressFamily::IPv4)
+            if (m_addressFamily == IPAddressFamily::IPv4)
                 return m_address.ipv4.IsNone();
-            else
+            else if (m_addressFamily == IPAddressFamily::IPv6)
                 return m_address.ipv6.IsNone();
+            else
+                return false;
         }
 
         constexpr bool IsPrivate() const noexcept
         {
-            if (m_addressFamily == IPAddressFamily::None)
-                return false;
-            else if (m_addressFamily == IPAddressFamily::IPv4)
+            if (m_addressFamily == IPAddressFamily::IPv4)
                 return m_address.ipv4.IsPrivate();
-            else
+            else if (m_addressFamily == IPAddressFamily::IPv6)
                 return m_address.ipv6.IsPrivate();
+            else
+                return false;
         }
 
         constexpr bool IsReserved() const noexcept
         {
-            if (m_addressFamily == IPAddressFamily::None)
-                return false;
-            else if (m_addressFamily == IPAddressFamily::IPv4)
+            if (m_addressFamily == IPAddressFamily::IPv4)
                 return m_address.ipv4.IsReserved();
-            else
+            else if (m_addressFamily == IPAddressFamily::IPv6)
                 return m_address.ipv6.IsReserved();
+            else
+                return false;
         }
 
     public:
@@ -261,7 +288,7 @@ namespace SharedUtil
                 return m_address.ipv6[index];
         }
 
-        constexpr operator bool() const noexcept { return m_addressFamily != IPAddressFamily::None; }
+        constexpr operator bool() const noexcept { return IsValid(); }
 
         constexpr bool operator==(const IPAddress& other) const noexcept
         {
@@ -342,13 +369,22 @@ namespace SharedUtil
     class IPEndPoint final
     {
     public:
+        constexpr IPEndPoint() noexcept = default;
         constexpr IPEndPoint(IPAddress address, std::uint16_t port) noexcept : m_address(address), m_port(port) {}
+        constexpr explicit IPEndPoint(std::uint16_t port) noexcept : m_port(port) {}
+        IPEndPoint(const char* address, IPAddressFamily addressFamily, std::uint16_t port) : m_address(address, addressFamily), m_port(port) {}
+        IPEndPoint(const sockaddr* address, std::uint16_t port) : m_address(address), m_port(port) {}
+        IPEndPoint(const sockaddr_in* address, std::uint16_t port) : m_address(IPv4Address(address)), m_port(port) {}
+        IPEndPoint(const sockaddr_in6* address, std::uint16_t port) : m_address(IPv6Address(address)), m_port(port) {}
 
         constexpr IPAddressFamily GetAddressFamily() const noexcept { return m_address.GetAddressFamily(); }
 
+        constexpr IPAddress&       GetAddress() noexcept { return m_address; }
         constexpr const IPAddress& GetAddress() const noexcept { return m_address; }
 
         constexpr void SetAddress(IPAddress address) noexcept { m_address = address; }
+        bool           SetAddress(const sockaddr* address) { return m_address.SetAddress(address); }
+        bool           SetAddress(const char* address, IPAddressFamily addressFamily) { return m_address.SetAddress(address, addressFamily); }
 
         constexpr void SetPort(std::uint16_t port) noexcept { m_port = port; }
 
@@ -356,7 +392,19 @@ namespace SharedUtil
 
         std::uint16_t GetNetworkByteOrderPort() const noexcept;
 
+        void Reset() noexcept
+        {
+            m_address.Reset();
+            m_port = 0;
+        }
+
+        bool ToSocketAddress(sockaddr* address, std::size_t addressSize) const;
+
+        constexpr bool IsValid() const noexcept { return m_address && m_port; }
+
     public:
+        constexpr operator bool() const noexcept { return IsValid(); }
+
         constexpr bool operator==(const IPEndPoint& other) const noexcept { return m_address == other.m_address && m_port == other.m_port; }
         constexpr bool operator!=(const IPEndPoint& other) const noexcept { return m_address != other.m_address || m_port != other.m_port; }
         constexpr bool operator<(const IPEndPoint& other) const noexcept { return m_address < other.m_address && m_port < other.m_port; }
@@ -369,6 +417,6 @@ namespace SharedUtil
 
     private:
         IPAddress     m_address;
-        std::uint16_t m_port;
+        std::uint16_t m_port = 0;
     };
 }

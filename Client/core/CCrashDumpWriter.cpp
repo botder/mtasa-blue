@@ -370,7 +370,7 @@ void CCrashDumpWriter::DumpMiniDump(_EXCEPTION_POINTERS* pException, CExceptionI
 
                 SString strMTAVersionFull = SString("%s.%s", MTA_DM_BUILDTAG_LONG, *GetApplicationSetting("mta-version-ext").SplitRight(".", NULL, -2));
                 SString strSerialPart = GetApplicationSetting("serial").substr(0, 5);
-                uint    uiServerIP = GetApplicationSettingInt("last-server-ip");
+                SString strServerIP = GetApplicationSetting("last-server-ip");
                 uint    uiServerPort = GetApplicationSettingInt("last-server-port");
                 int     uiServerTime = GetApplicationSettingInt("last-server-time");
                 int     uiServerDuration = _time32(NULL) - uiServerTime;
@@ -397,10 +397,10 @@ void CCrashDumpWriter::DumpMiniDump(_EXCEPTION_POINTERS* pException, CExceptionI
                 }
 
                 // Ensure filename parts match up with EDumpFileNameParts
-                SString strFilename("mta\\dumps\\private\\client_%s_%s_%08x_%x_%s_%08X_%04X_%03X_%s_%04d%02d%02d_%02d%02d.dmp", strMTAVersionFull.c_str(),
+                SString strFilename("mta\\dumps\\private\\client_%s_%s_%08x_%x_%s_%s_%04X_%03X_%s_%04d%02d%02d_%02d%02d.dmp", strMTAVersionFull.c_str(),
                                     strModuleName.c_str(), pExceptionInformation->GetAddressModuleOffset(), pExceptionInformation->GetCode() & 0xffff,
-                                    strPathCode.c_str(), uiServerIP, uiServerPort, uiServerDuration, strSerialPart.c_str(), SystemTime.wYear, SystemTime.wMonth,
-                                    SystemTime.wDay, SystemTime.wHour, SystemTime.wMinute);
+                                    strPathCode.c_str(), strServerIP.c_str(), uiServerPort, uiServerDuration, strSerialPart.c_str(), SystemTime.wYear,
+                                    SystemTime.wMonth, SystemTime.wDay, SystemTime.wHour, SystemTime.wMinute);
 
                 SString strPathFilename = CalcMTASAPath(strFilename);
 

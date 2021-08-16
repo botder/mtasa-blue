@@ -20,8 +20,6 @@ CConnectManager::CConnectManager()
 {
     g_pConnectManager = this;
 
-    m_Address.s_addr = 0;
-    m_usPort = 0;
     m_bReconnect = false;
     m_bIsDetectingVersion = false;
     m_bIsConnecting = false;
@@ -96,8 +94,8 @@ bool CConnectManager::Connect(const char* szHost, unsigned short usPort, const c
     m_strHost = szHost;
     m_strNick = szNick;
     m_strPassword = szPassword;
-    m_Address.s_addr = 0;
-    m_usPort = usPort;
+    m_endPoint.Reset();
+    m_endPoint.SetPort(usPort);
     m_bSave = true;
 
     if (szSecret)
@@ -106,11 +104,12 @@ bool CConnectManager::Connect(const char* szHost, unsigned short usPort, const c
         m_strDiscordSecretJoin.clear();
 
     m_strLastHost = m_strHost;
-    m_usLastPort = m_usPort;
+    m_usLastPort = usPort;
     m_strLastPassword = m_strPassword;
 
+    // TODO(botder): Change this condition if we have support for IPv6
     // Parse host into a server item
-    if (!CServerListItem::Parse(m_strHost.c_str(), m_Address))
+    if (!m_endPoint.SetAddress(m_strHost.c_str(), IPAddressFamily::IPv4) || m_endPoint.GetAddressFamily() == IPAddressFamily::IPv6)
     {
         SString strBuffer = _("Connecting failed. Invalid host provided!");
         CCore::GetSingleton().ShowMessageBox(_("Error") + _E("CC21"), strBuffer, MB_BUTTON_OK | MB_ICON_ERROR);            // Invalid host provided
@@ -125,10 +124,9 @@ bool CConnectManager::Connect(const char* szHost, unsigned short usPort, const c
     pNet->RegisterPacketHandler(CConnectManager::StaticProcessPacket);
 
     // Try to start a network to connect
-    SString strAddress = inet_ntoa(m_Address);
-    if (m_usPort && !pNet->StartNetwork(strAddress, m_usPort, CVARS_GET_VALUE<bool>("packet_tag")))
+    if (usPort && !pNet->StartNetwork(m_endPoint.GetAddress().ToString().c_str(), usPort, CVARS_GET_VALUE<bool>("packet_tag")))
     {
-        SString strBuffer(_("Connecting to %s at port %u failed!"), m_strHost.c_str(), m_usPort);
+        SString strBuffer(_("Connecting to %s at port %u failed!"), m_strHost.c_str(), usPort);
         CCore::GetSingleton().ShowMessageBox(_("Error") + _E("CC22"), strBuffer, MB_BUTTON_OK | MB_ICON_ERROR);            // Failed to connect
         return false;
     }
@@ -139,19 +137,19 @@ bool CConnectManager::Connect(const char* szHost, unsigned short usPort, const c
 
     // Load server password
     if (m_strPassword.empty())
-        m_strPassword = CServerBrowser::GetSingletonPtr()->GetServerPassword(m_strHost + ":" + SString("%u", m_usPort));
+        m_strPassword = CServerBrowser::GetSingletonPtr()->GetServerPassword(m_strHost + ":" + SString("%u", usPort));
 
     // Start server version detection
     SAFE_DELETE(m_pServerItem);
-    m_pServerItem = new CServerListItem(m_Address, m_usPort);
+    m_pServerItem = new CServerListItem(m_endPoint);
     m_pServerItem->m_iTimeoutLength = 2000;
     m_bIsDetectingVersion = true;
-    OpenServerFirewall(m_Address, CServerBrowser::GetSingletonPtr()->FindServerHttpPort(m_strHost, m_usPort), true);
+    OpenServerFirewall(m_endPoint.GetAddress(), CServerBrowser::GetSingletonPtr()->FindServerHttpPort(m_strHost, usPort), true);
 
     // Display the status box
-    SString strBuffer(_("Connecting to %s:%u ..."), m_strHost.c_str(), m_usPort);
+    SString strBuffer(_("Connecting to %s:%u ..."), m_strHost.c_str(), usPort);
     CCore::GetSingleton().ShowMessageBox(_("CONNECTING"), strBuffer, MB_BUTTON_CANCEL | MB_ICON_INFO, m_pOnCancelClick);
-    WriteDebugEvent(SString("Connecting to %s:%u ...", m_strHost.c_str(), m_usPort));
+    WriteDebugEvent(SString("Connecting to %s:%u ...", m_strHost.c_str(), usPort));
 
     return true;
 }
@@ -162,11 +160,11 @@ bool CConnectManager::Reconnect(const char* szHost, unsigned short usPort, const
     unsigned int uiPort = 0;
     CVARS_GET("host", m_strHost);
     CVARS_GET("port", uiPort);
-    m_usPort = uiPort;
+    m_endPoint.SetPort(uiPort);
 
     // If keeping the same host & port, retrieve the password as well
     if (!szHost || !szHost[0] || m_strHost == szHost)
-        if (usPort == 0 || m_usPort == usPort)
+        if (usPort == 0 || m_endPoint.GetPort() == usPort)
             CVARS_GET("password", m_strPassword);
 
     // Allocate a new host and nick buffer and store the strings in them
@@ -181,7 +179,7 @@ bool CConnectManager::Reconnect(const char* szHost, unsigned short usPort, const
 
     if (usPort)
     {
-        m_usPort = usPort;
+        m_endPoint.SetPort(usPort);
     }
 
     m_bSave = bSave;
@@ -213,8 +211,7 @@ bool CConnectManager::Abort()
     m_strNick = "";
     m_strPassword = "";
 
-    m_Address.s_addr = 0;
-    m_usPort = 0;
+    m_endPoint.Reset();
     m_bIsConnecting = false;
     m_bIsDetectingVersion = false;
     m_tConnectStarted = 0;
@@ -243,7 +240,7 @@ void CConnectManager::DoPulse()
                 if (m_pServerItem->bScanned && m_pServerItem->strVersion != MTA_DM_ASE_VERSION)
                 {
                     // Version mis-match. See about launching compatible .exe
-                    GetVersionUpdater()->InitiateSidegradeLaunch(m_pServerItem->strVersion, m_strHost.c_str(), m_usPort, m_strNick.c_str(),
+                    GetVersionUpdater()->InitiateSidegradeLaunch(m_pServerItem->strVersion, m_strHost.c_str(), m_endPoint.GetPort(), m_strNick.c_str(),
                                                                  m_strPassword.c_str());
                     Abort();
                     return;
@@ -257,8 +254,7 @@ void CConnectManager::DoPulse()
         if (iConnectTimeDelta >= 4 && !m_bHasTriedSecondConnect && g_pCore->GetNetwork()->GetExtendedErrorCode() == 0)
         {
             m_bHasTriedSecondConnect = true;
-            SString strAddress = inet_ntoa(m_Address);
-            g_pCore->GetNetwork()->StartNetwork(strAddress, m_usPort, CVARS_GET_VALUE<bool>("packet_tag"));
+            g_pCore->GetNetwork()->StartNetwork(m_endPoint.GetAddress().ToString().c_str(), m_endPoint.GetPort(), CVARS_GET_VALUE<bool>("packet_tag"));
         }
 
         // Time to timeout the connection?
@@ -299,7 +295,7 @@ void CConnectManager::DoPulse()
                         strErrorCode = _E("CC27");
                         break;
                     case RID_NO_FREE_INCOMING_CONNECTIONS:
-                        CServerInfo::GetSingletonPtr()->Show(eWindowTypes::SERVER_INFO_QUEUE, m_strHost.c_str(), m_usPort, m_strPassword.c_str());
+                        CServerInfo::GetSingletonPtr()->Show(eWindowTypes::SERVER_INFO_QUEUE, m_strHost.c_str(), m_endPoint.GetPort(), m_strPassword.c_str());
                         break;
                     case RID_DISCONNECTION_NOTIFICATION:
                         strError = _("Disconnected: disconnected from the server");
@@ -310,7 +306,8 @@ void CConnectManager::DoPulse()
                         strErrorCode = _E("CC29");
                         break;
                     case RID_INVALID_PASSWORD:
-                        CServerInfo::GetSingletonPtr()->Show(eWindowTypes::SERVER_INFO_PASSWORD, m_strHost.c_str(), m_usPort, m_strPassword.c_str());
+                        CServerInfo::GetSingletonPtr()->Show(eWindowTypes::SERVER_INFO_PASSWORD, m_strHost.c_str(), m_endPoint.GetPort(),
+                                                             m_strPassword.c_str());
                         break;
                     default:
                         strError = _("Disconnected: connection was refused");
@@ -342,7 +339,7 @@ void CConnectManager::DoPulse()
     {
         std::string strNick;
         CVARS_GET("nick", strNick);
-        Connect(m_strHost.c_str(), m_usPort, strNick.c_str(), m_strPassword.c_str(), false);
+        Connect(m_strHost.c_str(), m_endPoint.GetPort(), strNick.c_str(), m_strPassword.c_str(), false);
         m_bReconnect = false;
     }
 }
@@ -379,12 +376,12 @@ bool CConnectManager::StaticProcessPacket(unsigned char ucPacketID, NetBitStream
                 if (g_pConnectManager->m_bSave)
                 {
                     CVARS_SET("host", g_pConnectManager->m_strHost);
-                    CVARS_SET("port", g_pConnectManager->m_usPort);
+                    CVARS_SET("port", g_pConnectManager->m_endPoint.GetPort());
                     CVARS_SET("password", g_pConnectManager->m_strPassword);
                 }
 
-                SetApplicationSettingInt("last-server-ip", g_pConnectManager->m_Address.s_addr);
-                SetApplicationSettingInt("last-server-port", g_pConnectManager->m_usPort);
+                SetApplicationSetting("last-server-ip", g_pConnectManager->m_endPoint.GetAddress().ToHexString());
+                SetApplicationSettingInt("last-server-port", g_pConnectManager->m_endPoint.GetPort());
                 SetApplicationSettingInt("last-server-time", _time32(NULL));
 
                 // Kevuwk: Forced the config to save here so that the IP/Port isn't lost on crash
@@ -395,8 +392,7 @@ bool CConnectManager::StaticProcessPacket(unsigned char ucPacketID, NetBitStream
                 g_pConnectManager->m_strHost = "";
                 g_pConnectManager->m_strPassword = "";
 
-                g_pConnectManager->m_Address.s_addr = 0;
-                g_pConnectManager->m_usPort = 0;
+                g_pConnectManager->m_endPoint.Reset();
                 g_pConnectManager->m_bIsConnecting = false;
                 g_pConnectManager->m_bIsDetectingVersion = false;
                 g_pConnectManager->m_tConnectStarted = 0;
@@ -453,14 +449,15 @@ void CConnectManager::OnServerExists()
     if (m_bNotifyServerBrowser)
     {
         m_bNotifyServerBrowser = false;
-        CServerBrowser::GetSingletonPtr()->NotifyServerExists(m_Address, m_usPort);
+        // TODO:
+        // CServerBrowser::GetSingletonPtr()->NotifyServerExists(m_Address, m_usPort);
     }
 }
 
 //
 // Some server firewalls block UDP packets unless a TCP connection has previously been established
 //
-void CConnectManager::OpenServerFirewall(in_addr Address, ushort usHttpPort, bool bHighPriority)
+void CConnectManager::OpenServerFirewall(IPAddress address, ushort usHttpPort, bool bHighPriority)
 {
     uint uiTimeOut;
     if (bHighPriority)
@@ -481,7 +478,7 @@ void CConnectManager::OpenServerFirewall(in_addr Address, ushort usHttpPort, boo
         SHttpRequestOptions options;
         options.uiConnectionAttempts = 1;
         options.uiConnectTimeoutMs = uiTimeOut;
-        SString strDummyUrl("http://%s:%d/mta_client_firewall_probe/", inet_ntoa(Address), usHttpPort);
+        SString strDummyUrl("http://%s:%d/mta_client_firewall_probe/", address.ToString().c_str(), usHttpPort);
         g_pCore->GetNetwork()->GetHTTPDownloadManager(EDownloadMode::CONNECT_TCP_SEND)->QueueFile(strDummyUrl, NULL, NULL, NULL, options);
     }
     if (usHttpPort == 0 || bHighPriority)
@@ -490,7 +487,7 @@ void CConnectManager::OpenServerFirewall(in_addr Address, ushort usHttpPort, boo
         SHttpRequestOptions options;
         options.uiConnectionAttempts = 1;
         options.uiConnectTimeoutMs = uiTimeOut;
-        SString strDummyUrl("http://%s/mta_client_firewall_probe/", inet_ntoa(Address));
+        SString strDummyUrl("http://%s/mta_client_firewall_probe/", address.ToString().c_str());
         g_pCore->GetNetwork()->GetHTTPDownloadManager(EDownloadMode::CONNECT_TCP_SEND)->QueueFile(strDummyUrl, NULL, NULL, NULL, options);
     }
 }

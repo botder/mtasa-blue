@@ -9,6 +9,8 @@
  *****************************************************************************/
 
 #include "SharedUtil.Network.h"
+#include <sstream>
+#include <iomanip>
 
 #ifdef WIN32
     #include <winsock2.h>
@@ -48,6 +50,24 @@ std::string IPv4Address::ToString() const
         return std::string(buffer);
 
     return std::string();
+}
+
+std::string IPv4Address::ToHexString() const
+{
+    std::stringstream ss;
+    ss << std::uppercase << std::setfill('0') << std::setw(8) << std::hex << dword;
+    return ss.str();
+}
+
+bool IPv4Address::ToSocketAddress(sockaddr* address, std::size_t addressSize) const
+{
+    if (!address || addressSize < sizeof(sockaddr_in))
+        return false;
+
+    auto ipv4 = reinterpret_cast<sockaddr_in*>(address);
+    ipv4->sin_family = AF_INET;
+    ipv4->sin_addr.s_addr = dword;
+    return true;
 }
 
 constexpr bool IPv4Address::IsPrivate() const noexcept
@@ -113,7 +133,7 @@ bool IPv6Address::SetAddress(const sockaddr_in6* address)
 {
     if (address)
     {
-        std::memcpy(&bytes, &address->sin6_addr, 16);
+        std::memcpy(&bytes, &address->sin6_addr, std::size(bytes));
         return true;
     }
 
@@ -136,6 +156,24 @@ std::string IPv6Address::ToString() const
         return std::string(buffer);
 
     return std::string();
+}
+
+std::string IPv6Address::ToHexString() const
+{
+    std::stringstream ss;
+    ss << std::uppercase << std::setfill('0') << std::setw(16) << std::hex << qwords[0] << qwords[1];
+    return ss.str();
+}
+
+bool IPv6Address::ToSocketAddress(sockaddr* address, std::size_t addressSize) const
+{
+    if (!address || addressSize < sizeof(sockaddr_in6))
+        return false;
+
+    auto ipv6 = reinterpret_cast<sockaddr_in6*>(address);
+    ipv6->sin6_family = AF_INET6;
+    memcpy(&ipv6->sin6_addr, bytes, std::size(bytes));
+    return true;
 }
 
 constexpr bool IPv6Address::IsPrivate() const noexcept
@@ -317,6 +355,28 @@ std::vector<IPAddress> IPAddress::Translate(const char* nodeName, IPAddressFamil
 std::uint16_t IPEndPoint::GetNetworkByteOrderPort() const noexcept
 {
     return htons(m_port);
+}
+
+bool IPEndPoint::ToSocketAddress(sockaddr* address, std::size_t addressSize) const
+{
+    if (!address || m_address.GetAddressFamily() == IPAddressFamily::None)
+        return false;
+
+    if (!m_address.ToSocketAddress(address, addressSize))
+        return false;
+    
+    if (m_address.GetAddressFamily() == IPAddressFamily::IPv4)
+    {
+        auto ipv4 = reinterpret_cast<sockaddr_in*>(address);
+        ipv4->sin_port = GetNetworkByteOrderPort();
+    }
+    else
+    {
+        auto ipv6 = reinterpret_cast<sockaddr_in6*>(address);
+        ipv6->sin6_port = GetNetworkByteOrderPort();
+    }
+
+    return true;
 }
 
 std::vector<IPEndPoint> IPEndPoint::Translate(const char* nodeName, const char* serviceName, IPAddressFamily addressFamily)

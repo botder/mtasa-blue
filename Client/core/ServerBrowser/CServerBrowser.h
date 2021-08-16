@@ -27,6 +27,7 @@ class CServerBrowser;
 #include "CSingleton.h"
 #include "CServerInfo.h"
 #include <ctime>
+#include "SharedUtil.Network.h"
 
 namespace ServerBrowserTypes
 {
@@ -97,13 +98,13 @@ public:
     unsigned short   FindServerHttpPort(const std::string& strHost, unsigned short usPort);
     void             UpdateRowIndexMembers(ServerBrowserType Type);
     void             UpdateSelectedServerPlayerList(ServerBrowserType Type);
-    void             GetVisibleEndPointList(std::vector<SAddressPort>& outEndpointList);
+    void             GetVisibleEndPointList(std::vector<IPEndPoint>& outEndpointList);
 
     bool IsAddressBarAwaitingInput();
     void SetNextHistoryText(bool bDown);
 
     void OnQuickConnectButtonClick();
-    void NotifyServerExists(in_addr Address, ushort usPort);
+    void NotifyServerExists(const IPEndPoint& endPoint);
 
     void TabSkip(bool bBackwards);
 

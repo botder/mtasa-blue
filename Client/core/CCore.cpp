@@ -1387,7 +1387,7 @@ void CCore::Quit(bool bInstantly)
     {
         AddReportLog(7101, "Core - Quit");
         // Show that we are quiting (for the crash dump filename)
-        SetApplicationSettingInt("last-server-ip", 1);
+        SetApplicationSetting("last-server-ip", "1");
 
         WatchDogBeginSection("Q0");            // Allow loader to detect freeze on exit
 
@@ -1661,19 +1661,24 @@ void CCore::UpdateRecentlyPlayed()
     std::string  strHost;
     CVARS_GET("host", strHost);
     CVARS_GET("port", uiPort);
+
+    // TODO(botder): Change this statement if we have support for IPv6
     // Save the connection details into the recently played servers list
-    in_addr Address;
-    if (CServerListItem::Parse(strHost.c_str(), Address))
+    IPEndPoint endPoint(strHost.c_str(), IPAddressFamily::IPv4, uiPort);
+
+    if (endPoint)
     {
         CServerBrowser* pServerBrowser = CCore::GetSingleton().GetLocalGUI()->GetMainMenu()->GetServerBrowser();
         CServerList*    pRecentList = pServerBrowser->GetRecentList();
-        pRecentList->Remove(Address, uiPort);
-        pRecentList->AddUnique(Address, uiPort, true);
+        pRecentList->Remove(endPoint);
+        pRecentList->AddUnique(endPoint, true);
 
         pServerBrowser->SaveRecentlyPlayedList();
+
         if (!m_pConnectManager->m_strLastPassword.empty())
             pServerBrowser->SetServerPassword(strHost + ":" + SString("%u", uiPort), m_pConnectManager->m_strLastPassword);
     }
+
     // Save our configuration file
     CCore::GetSingleton().SaveConfig();
 }

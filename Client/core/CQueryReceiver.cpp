@@ -20,41 +20,41 @@ CQueryReceiver::~CQueryReceiver()
     InvalidateSocket();
 }
 
-void CQueryReceiver::RequestQuery(in_addr address, ushort port)
+void CQueryReceiver::RequestQuery(const IPEndPoint& endPoint)
 {
+    assert(endPoint.GetAddressFamily() != IPAddressFamily::None);
+
     if (m_Socket == INVALID_SOCKET)            // Create the socket
     {
-        m_Socket = socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP);
+        int addressFamily = AF_INET;
+
+        if (endPoint.GetAddressFamily() == IPAddressFamily::IPv6)
+            addressFamily = AF_INET6;
+
+        m_Socket = socket(addressFamily, SOCK_DGRAM, IPPROTO_UDP);
+
         u_long flag = 1;
         ioctlsocket(m_Socket, FIONBIO, &flag);            // Nonblocking I/O
     }
 
-    sockaddr_in addr;
-    memset(&addr, NULL, sizeof(addr));
-    addr.sin_family = AF_INET;
-    addr.sin_addr = address;
-    addr.sin_port = htons(port);
+    union
+    {
+        sockaddr_storage ss;
+        sockaddr         sa;
+        sockaddr_in      s4;
+        sockaddr_in6     s6;
+    };
+    memset(&ss, 0, sizeof(ss));
+
+    if (!endPoint.ToSocketAddress(&sa, sizeof(ss)))
+    {
+        InvalidateSocket();
+        return;
+    }
 
     // Trailing data to work around 1 byte UDP packet filtering
-    int iSendByte = g_pCore->GetNetwork()->SendTo(m_Socket, "r mtasa", 1, 0, (sockaddr*)&addr, sizeof(addr));
+    int iSendByte = g_pCore->GetNetwork()->SendTo(m_Socket, "r mtasa", 1, 0, &sa, sizeof(ss));
     m_ElapsedTime.Reset();
-}
-
-void CQueryReceiver::RequestQuery(const SString& address, ushort port)
-{
-    in_addr addr;
-    addr.S_un.S_addr = inet_addr(*address);
-    if (addr.S_un.S_addr == INADDR_NONE)
-    {
-        hostent* pHostent = gethostbyname(*address);
-        if (!pHostent)
-            return;
-        DWORD* pIP = (DWORD*)pHostent->h_addr_list[0];
-        if (!pIP)
-            return;
-        addr.S_un.S_addr = *pIP;
-    }
-    RequestQuery(addr, port);
 }
 
 void CQueryReceiver::InvalidateSocket()

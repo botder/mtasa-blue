@@ -932,10 +932,12 @@ void CServerBrowser::CreateHistoryList()
 
             if (!strPort.empty())
             {
-                in_addr Address;
-                if (CServerListItem::Parse(strAddress.c_str(), Address))
+                // TODO(botder): Change this statement if we have support for IPv6
+                IPEndPoint endPoint(strAddress.c_str(), IPAddressFamily::IPv4, atoi(strPort.c_str()));
+                
+                if (endPoint)
                 {
-                    m_ServersHistory.AddUnique(Address, atoi(strPort.c_str()));
+                    m_ServersHistory.AddUnique(endPoint);
                     CreateHistoryList();            // Restart with our new list.
                     return;
                 }
@@ -1144,7 +1146,7 @@ bool CServerBrowser::RemoveSelectedServerFromRecentlyPlayedList()
     pHistoryList = GetRecentList();
     iSelectedItem = m_pServerList[Type]->GetSelectedItemRow();
 
-    pHistoryList->Remove(pServer->Address, pServer->usGamePort);
+    pHistoryList->Remove(pServer->endPoint);
     m_pServerList[Type]->RemoveRow(iSelectedItem);
     SaveRecentlyPlayedList();
 
@@ -1309,16 +1311,16 @@ bool CServerBrowser::OnConnectClick(CGUIElement* pElement)
     return true;
 }
 
-void CServerBrowser::NotifyServerExists(in_addr Address, ushort usPort)
+void CServerBrowser::NotifyServerExists(const IPEndPoint& endPoint)
 {
     // If the connect button was pressed, and the server exists, add it to the history
     CServerList* pHistoryList = GetHistoryList();
-    pHistoryList->Remove(Address, usPort);
-    pHistoryList->AddUnique(Address, usPort);
+    pHistoryList->Remove(endPoint);
+    pHistoryList->AddUnique(endPoint);
     while (pHistoryList->GetServerCount() > 11)
     {
         CServerListItem* pLast = *pHistoryList->IteratorBegin();
-        pHistoryList->Remove(pLast->Address, pLast->usGamePort);
+        pHistoryList->Remove(pLast->endPoint);
     }
     CreateHistoryList();
     SaveRecentlyPlayedList();
@@ -1362,13 +1364,13 @@ bool CServerBrowser::ConnectToSelectedServer()
 
             if (strPassword.empty())            // No password could be found, popup password entry.
             {
-                CServerInfo::GetSingletonPtr()->Show(eWindowTypes::SERVER_INFO_PASSWORD, pServer->strHost.c_str(), pServer->usGamePort, "", pServer);
+                CServerInfo::GetSingletonPtr()->Show(eWindowTypes::SERVER_INFO_PASSWORD, pServer->strHost.c_str(), pServer->endPoint.GetPort(), "", pServer);
                 return true;
             }
         }
 
         // Start the connect
-        CCore::GetSingleton().GetConnectManager()->Connect(pServer->strHost.c_str(), pServer->usGamePort, strNick.c_str(), strPassword);
+        CCore::GetSingleton().GetConnectManager()->Connect(pServer->strHost.c_str(), pServer->endPoint.GetPort(), strNick.c_str(), strPassword);
     }
     else
     {
@@ -1418,12 +1420,11 @@ bool CServerBrowser::OnFavouritesClick(CGUIElement* pElement)
     // If there are more than 0 items selected in the browser
     if (strHost.size() > 0 && usPort)
     {
-        in_addr Address;
-
-        CServerListItem::Parse(strHost.c_str(), Address);
+        // TODO(botder): Change this statement if we have support for IPv6
+        IPEndPoint endPoint(strHost.c_str(), IPAddressFamily::IPv4, usPort);
 
         // Do we have this entry already?  If so, remove it
-        if (m_ServersFavourites.Remove(Address, usPort))
+        if (m_ServersFavourites.Remove(endPoint))
         {
             SaveFavouritesList();
             UpdateServerList(ServerBrowserTypes::FAVOURITES, true);
@@ -1434,7 +1435,7 @@ bool CServerBrowser::OnFavouritesClick(CGUIElement* pElement)
             return true;
         }
 
-        if (m_ServersFavourites.AddUnique(Address, usPort))
+        if (m_ServersFavourites.AddUnique(endPoint))
         {
             SaveFavouritesList();
             UpdateServerList(ServerBrowserTypes::FAVOURITES, true);
@@ -1472,7 +1473,7 @@ bool CServerBrowser::OnAddressChanged(CGUIElement* pElement)
     for (CServerListIterator i = i_b; i != i_e; i++)
     {
         CServerListItem* pServer = *i;
-        if (pServer->strHost == strHost && pServer->usGamePort == usPort)
+        if (pServer->strHost == strHost && pServer->endPoint.GetPort() == usPort)
         {
             for (unsigned int i = 0; i < SERVER_BROWSER_TYPE_COUNT; i++)
             {
@@ -1714,8 +1715,6 @@ bool CServerBrowser::OnGeneralHelpDeactivate(CGUIElement* pElement)
 bool CServerBrowser::LoadServerList(CXMLNode* pNode, const std::string& strTagName, CServerList* pList)
 {
     CXMLNode* pSubNode = NULL;
-    in_addr   Address;
-    int       iPort;
 
     if (!pNode)
         return false;
@@ -1730,14 +1729,14 @@ bool CServerBrowser::LoadServerList(CXMLNode* pNode, const std::string& strTagNa
             // This node is relevant, so get the attributes we need and add it to the list
             CXMLAttribute* pHostAttribute = pSubNode->GetAttributes().Find("host");
             CXMLAttribute* pPortAttribute = pSubNode->GetAttributes().Find("port");
+
             if (pHostAttribute && pPortAttribute)
             {
-                if (CServerListItem::Parse(pHostAttribute->GetValue().c_str(), Address))
-                {
-                    iPort = atoi(pPortAttribute->GetValue().c_str());
-                    if (iPort > 0)
-                        pList->AddUnique(Address, iPort);
-                }
+                // TODO(botder): Change this statement if we have support for IPv6
+                IPEndPoint endPoint(pHostAttribute->GetValue().c_str(), IPAddressFamily::IPv4, atoi(pPortAttribute->GetValue().c_str()));
+                
+                if (endPoint)
+                    pList->AddUnique(endPoint);
             }
         }
     }
@@ -1797,7 +1796,7 @@ bool CServerBrowser::SaveServerList(CXMLNode* pNode, const std::string& strTagNa
             pHostAttribute->SetValue(strHost.c_str());
 
             CXMLAttribute* pPortAttribute = pSubNode->GetAttributes().Create("port");
-            pPortAttribute->SetValue(pServer->usGamePort);
+            pPortAttribute->SetValue(pServer->endPoint.GetPort());
         }
         ++iProcessed;
     }
@@ -2096,7 +2095,7 @@ CServerListItem* CServerBrowser::FindServer(const std::string& strHost, unsigned
     for (CServerListIterator i = i_b; i != i_e; i++)
     {
         CServerListItem* pServer = *i;
-        if (pServer->strHost == strHost && pServer->usGamePort == usPort)
+        if (pServer->strHost == strHost && pServer->endPoint.GetPort() == usPort)
             return pServer;
     }
     return NULL;
@@ -2116,7 +2115,7 @@ unsigned short CServerBrowser::FindServerHttpPort(const std::string& strHost, un
     for (CServerListIterator i = i_b; i != i_e; i++)
     {
         CServerListItem* pServer = *i;
-        if (pServer->strHost == strHost && pServer->usGamePort == usPort)
+        if (pServer->strHost == strHost && pServer->endPoint.GetPort() == usPort)
             return pServer->m_usHttpPort;
     }
     return 0;
@@ -2200,7 +2199,7 @@ void CServerBrowser::UpdateSelectedServerPlayerList(ServerBrowserType Type)
 // Get list servers that are visible in the GUI
 //
 /////////////////////////////////////////////////////////////////
-void CServerBrowser::GetVisibleEndPointList(std::vector<SAddressPort>& outEndpointList)
+void CServerBrowser::GetVisibleEndPointList(std::vector<IPEndPoint>& outEndpointList)
 {
     ServerBrowserType Type = GetCurrentServerBrowserType();
 
@@ -2211,7 +2210,7 @@ void CServerBrowser::GetVisibleEndPointList(std::vector<SAddressPort>& outEndpoi
         if (CServerListItem* pServer = (CServerListItem*)m_pServerList[Type]->GetItemData(i, DATA_PSERVER))
         {
             if (CServerListItem::StaticIsValid(pServer))
-                outEndpointList.push_back(SAddressPort(pServer->Address, pServer->usGamePort));
+                outEndpointList.push_back(pServer->endPoint);
         }
     }
 }

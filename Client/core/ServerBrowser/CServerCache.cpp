@@ -16,13 +16,6 @@
 
 namespace
 {
-    struct CCachedKey
-    {
-        ulong  ulIp;
-        ushort usGamePort;
-        bool   operator<(const CCachedKey& other) const { return ulIp < other.ulIp || (ulIp == other.ulIp && (usGamePort < other.usGamePort)); }
-    };
-
     struct CCachedInfo
     {
         CValueInt nPlayers;               // Current players
@@ -41,7 +34,7 @@ namespace
 
     // Variables used for saving the server cache file on a separate thread
     static bool                              ms_bIsSaving = false;
-    static std::map<CCachedKey, CCachedInfo> ms_ServerCachedMap;
+    static std::map<IPEndPoint, CCachedInfo> ms_ServerCachedMap;
 }            // namespace
 
 ///////////////////////////////////////////////////////////////
@@ -70,7 +63,7 @@ protected:
     static void  StaticSaveServerCache();
 
     bool                              m_bListChanged;
-    std::map<CCachedKey, CCachedInfo> m_ServerCachedMap;
+    std::map<IPEndPoint, CCachedInfo> m_ServerCachedMap;
 };
 
 ///////////////////////////////////////////////////////////////
@@ -147,15 +140,18 @@ bool CServerCache::LoadServerCache()
     {
         const SDataInfoItem& item = dataSet[i];
 
-        SString strNodeName = item.strName;
-        SString strHost, strPort;
-        strNodeName.Split(":", &strHost, &strPort);
-        CCachedKey  key = {0, 0};
-        CCachedInfo info;
+        // TODO(botder): Re-evaluate this code when we have support for IPv6
+        IPEndPoint endPoint;
+
         if (const SString* pString = MapFind(item.attributeMap, "ip"))
-            key.ulIp = inet_addr(*pString);
+            endPoint.SetAddress(*pString, IPAddressFamily::IPv4);
         if (const SString* pString = MapFind(item.attributeMap, "port"))
-            key.usGamePort = atoi(*pString);
+            endPoint.SetPort(atoi(*pString));
+
+        if (!endPoint)
+            continue;
+
+        CCachedInfo info;
         if (const SString* pString = MapFind(item.attributeMap, "nPlayers"))
             info.nPlayers.SetFromString(*pString);
         if (const SString* pString = MapFind(item.attributeMap, "nMaxPlayers"))
@@ -181,10 +177,7 @@ bool CServerCache::LoadServerCache()
         if (const SString* pString = MapFind(item.attributeMap, "strVersion"))
             info.strVersion = *pString;
 
-        if (key.ulIp == 0)
-            continue;
-
-        MapSet(m_ServerCachedMap, key, info);
+        MapSet(m_ServerCachedMap, endPoint, info);
     }
     return true;
 }
@@ -267,9 +260,9 @@ void CServerCache::StaticSaveServerCache()
 
     // Transfer each item from m_ServerCachedMap into dataSet
     CDataInfoSet dataSet;
-    for (std::map<CCachedKey, CCachedInfo>::iterator it = ms_ServerCachedMap.begin(); it != ms_ServerCachedMap.end(); ++it)
+    for (std::map<IPEndPoint, CCachedInfo>::iterator it = ms_ServerCachedMap.begin(); it != ms_ServerCachedMap.end(); ++it)
     {
-        const CCachedKey&  key = it->first;
+        const IPEndPoint&  key = it->first;
         const CCachedInfo& info = it->second;
 
         // Don't save cache of non responding servers
@@ -278,10 +271,9 @@ void CServerCache::StaticSaveServerCache()
 
         SDataInfoItem item;
         item.strName = "server";
-        item.strValue = inet_ntoa((in_addr&)key.ulIp);
-        SString strIp = inet_ntoa((in_addr&)key.ulIp);
-        MapSet(item.attributeMap, "ip", strIp);
-        MapSet(item.attributeMap, "port", SString("%u", key.usGamePort));
+        item.strValue = key.GetAddress().ToString();
+        MapSet(item.attributeMap, "ip", item.strValue);
+        MapSet(item.attributeMap, "port", SString("%u", key.GetPort()));
         MapSet(item.attributeMap, "nPlayers", info.nPlayers.ToString());
         MapSet(item.attributeMap, "nMaxPlayers", info.nMaxPlayers.ToString());
         MapSet(item.attributeMap, "nPing", info.nPing.ToString());
@@ -313,10 +305,7 @@ void CServerCache::StaticSaveServerCache()
 ///////////////////////////////////////////////////////////////
 void CServerCache::GetServerCachedInfo(CServerListItem* pItem)
 {
-    CCachedKey key;
-    key.ulIp = pItem->Address.s_addr;
-    key.usGamePort = pItem->usGamePort;
-    if (CCachedInfo* pInfo = MapFind(m_ServerCachedMap, key))
+    if (CCachedInfo* pInfo = MapFind(m_ServerCachedMap, pItem->endPoint))
     {
         if (pItem->ShouldAllowDataQuality(SERVER_INFO_CACHE))
         {
@@ -364,15 +353,11 @@ void CServerCache::GetServerCachedInfo(CServerListItem* pItem)
 ///////////////////////////////////////////////////////////////
 void CServerCache::SetServerCachedInfo(const CServerListItem* pItem)
 {
-    CCachedKey key;
-    key.ulIp = pItem->Address.s_addr;
-    key.usGamePort = pItem->usGamePort;
-
-    CCachedInfo* pInfo = MapFind(m_ServerCachedMap, key);
+    CCachedInfo* pInfo = MapFind(m_ServerCachedMap, pItem->endPoint);
     if (!pInfo)
     {
-        MapSet(m_ServerCachedMap, key, CCachedInfo());
-        pInfo = MapFind(m_ServerCachedMap, key);
+        MapSet(m_ServerCachedMap, pItem->endPoint, CCachedInfo());
+        pInfo = MapFind(m_ServerCachedMap, pItem->endPoint);
     }
 
     // Check if changed
@@ -415,15 +400,12 @@ void CServerCache::GetServerListCachedInfo(CServerList* pList)
         GetServerCachedInfo(*it);
 
     // Remove servers not in serverlist from cache
-    std::map<CCachedKey, CCachedInfo> nextServerCachedMap;
+    std::map<IPEndPoint, CCachedInfo> nextServerCachedMap;
     for (CServerListIterator it = pList->IteratorBegin(); it != pList->IteratorEnd(); it++)
     {
         CServerListItem* pItem = *it;
-        CCachedKey       key;
-        key.ulIp = pItem->Address.s_addr;
-        key.usGamePort = pItem->usGamePort;
-        if (CCachedInfo* pInfo = MapFind(m_ServerCachedMap, key))
-            MapSet(nextServerCachedMap, key, *pInfo);
+        if (CCachedInfo* pInfo = MapFind(m_ServerCachedMap, pItem->endPoint))
+            MapSet(nextServerCachedMap, pItem->endPoint, *pInfo);
     }
     m_ServerCachedMap = nextServerCachedMap;
 }
@@ -437,19 +419,18 @@ void CServerCache::GetServerListCachedInfo(CServerList* pList)
 ///////////////////////////////////////////////////////////////
 bool CServerCache::GenerateServerList(CServerList* pList)
 {
-    for (std::map<CCachedKey, CCachedInfo>::iterator it = m_ServerCachedMap.begin(); it != m_ServerCachedMap.end(); ++it)
+    for (std::map<IPEndPoint, CCachedInfo>::iterator it = m_ServerCachedMap.begin(); it != m_ServerCachedMap.end(); ++it)
     {
-        const CCachedKey&  key = it->first;
+        const IPEndPoint&  key = it->first;
         const CCachedInfo& info = it->second;
 
         // Don't add non responding servers
         if (info.nMaxPlayers == 0 || info.uiCacheNoReplyCount > 3)
             continue;
 
-        ushort usGamePort = key.usGamePort;
-        if (usGamePort > 0)
+        if (key)
         {
-            pList->AddUnique((in_addr&)key.ulIp, usGamePort);
+            pList->AddUnique(key);
         }
     }
 

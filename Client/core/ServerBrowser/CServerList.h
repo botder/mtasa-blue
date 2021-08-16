@@ -16,11 +16,11 @@ class CMasterServerManagerInterface;
 
 #pragma once
 
-#include <windows.h>
 #include <string>
 #include <sstream>
 #include <vector>
 #include "CSingleton.h"
+#include "SharedUtil.Network.h"
 
 // Master server list URL
 #define SERVER_LIST_MASTER_URL              "http://master.multitheftauto.com/ase/mta/"
@@ -99,8 +99,6 @@ class CServerListItem
 public:
     CServerListItem()
     {
-        Address.S_un.S_addr = 0;
-        usGamePort = 0;
         m_pItemList = NULL;
         m_bDoneTcpSend = false;
         m_bDoPostTcpQuery = false;
@@ -108,29 +106,14 @@ public:
         m_ucSpecialFlags = 0;
         Init();
     }
-    CServerListItem(in_addr _Address, unsigned short _usGamePort, CServerListItemList* pItemList = NULL, bool bAtFront = false);
+
+    CServerListItem(const IPEndPoint& endPoint, CServerListItemList* pItemList = NULL, bool bAtFront = false);
+
     ~CServerListItem();
-    void ChangeAddress(in_addr _Address, unsigned short _usGamePort);
 
-    static bool Parse(const char* szAddress, in_addr& Address)
-    {
-        DWORD dwIP = inet_addr(szAddress);
-        if (dwIP == INADDR_NONE)
-        {
-            hostent* pHostent = gethostbyname(szAddress);
-            if (!pHostent)
-                return false;
-            DWORD* pIP = (DWORD*)pHostent->h_addr_list[0];
-            if (!pIP)
-                return false;
-            dwIP = *pIP;
-        }
+    void ChangeAddress(const IPEndPoint& endPoint);
 
-        Address.S_un.S_addr = dwIP;
-        return true;
-    }
-
-    bool operator==(const CServerListItem& other) const { return (Address.S_un.S_addr == other.Address.S_un.S_addr && usGamePort == other.usGamePort); }
+    bool operator==(const CServerListItem& other) const { return endPoint == other.endPoint; }
 
     void Init()
     {
@@ -155,11 +138,10 @@ public:
         for (int i = 0; i < SERVER_BROWSER_TYPE_COUNT; i++)
             revisionInList[i] = -1;
 
-        strHost = inet_ntoa(Address);
-        strName = SString("%s:%d", inet_ntoa(Address), usGamePort);
+        strHost = endPoint.GetAddress().ToString();
+        strName = SString("%s:%d", strHost.c_str(), endPoint.GetPort());
         strEndpoint = strName;
-        strEndpointSortKey = SString("%02x%02x%02x%02x-%04x", Address.S_un.S_un_b.s_b1, Address.S_un.S_un_b.s_b2, Address.S_un.S_un_b.s_b3,
-                                     Address.S_un.S_un_b.s_b4, usGamePort);
+        strEndpointSortKey = SString("%s-%04x", endPoint.GetAddress().ToHexString().c_str(), endPoint.GetPort());
 
         strGameMode = "";
         strMap = "";
@@ -175,10 +157,8 @@ public:
     void           ResetForRefresh();
     unsigned short GetQueryPort();
 
-    in_addr        AddressCopy;            // Copy to ensure it doesn't get changed without us knowing
-    unsigned short usGamePortCopy;
-    in_addr        Address;                // IP-address
-    unsigned short usGamePort;             // Game port
+    IPEndPoint     endPointCopy;           // Copy to ensure it doesn't get changed without us knowing
+    IPEndPoint     endPoint;               // IP-address and Game port
     unsigned short nPlayers;               // Current players
     unsigned short nMaxPlayers;            // Maximum players
     unsigned short nPing;                  // Ping time
@@ -309,15 +289,6 @@ protected:
 typedef std::list<CServerListItem*>::const_iterator         CServerListIterator;
 typedef std::list<CServerListItem*>::const_reverse_iterator CServerListReverseIterator;
 
-// Address and port combo
-struct SAddressPort
-{
-    ulong  m_ulIp;
-    ushort m_usPort;
-    SAddressPort(in_addr Address, ushort usPort) : m_ulIp(Address.s_addr), m_usPort(usPort) {}
-    bool operator<(const SAddressPort& other) const { return m_ulIp < other.m_ulIp || (m_ulIp == other.m_ulIp && (m_usPort < other.m_usPort)); }
-};
-
 ////////////////////////////////////////////////
 //
 // class CServerListItemList
@@ -327,8 +298,8 @@ struct SAddressPort
 ////////////////////////////////////////////////
 class CServerListItemList
 {
-    std::list<CServerListItem*>              m_List;
-    std::map<SAddressPort, CServerListItem*> m_AddressMap;
+    std::list<CServerListItem*>            m_List;
+    std::map<IPEndPoint, CServerListItem*> m_AddressMap;
 
 public:
     std::list<CServerListItem*>& GetList() { return m_List; }
@@ -345,12 +316,12 @@ public:
 
     ~CServerListItemList();
     void             DeleteAll();
-    CServerListItem* Find(in_addr Address, ushort usGamePort);
-    CServerListItem* AddUnique(in_addr Address, ushort usGamePort, bool bAtFront = false);
+    CServerListItem* Find(const IPEndPoint& endPoint);
+    CServerListItem* AddUnique(const IPEndPoint& endPoint, bool bAtFront = false);
     void             AddNewItem(CServerListItem* pItem, bool bAtFront);
-    bool             Remove(in_addr Address, ushort usGamePort);
+    bool             Remove(const IPEndPoint& endPoint);
     void             RemoveItem(CServerListItem* pItem);
-    void             OnItemChangeAddress(CServerListItem* pItem, in_addr Address, ushort usGamePort);
+    void             OnItemChangeAddress(CServerListItem* pItem, const IPEndPoint& endPoint);
 };
 
 class CServerList
@@ -370,9 +341,9 @@ public:
     CServerListReverseIterator ReverseIteratorEnd() { return m_Servers.rend(); };
     unsigned int               GetServerCount() { return m_Servers.size(); };
 
-    bool AddUnique(in_addr Address, ushort usGamePort, bool addAtFront = false);
+    bool AddUnique(const IPEndPoint& endPoint, bool addAtFront = false);
     void Clear();
-    bool Remove(in_addr Address, ushort usGamePort);
+    bool Remove(const IPEndPoint& endPoint);
 
     std::string& GetStatus() { return m_strStatus; };
     bool         IsUpdated() { return m_bUpdated; };
@@ -407,6 +378,7 @@ private:
     CElapsedTime                   m_ElapsedTime;
 };
 
+// TODO(botder): Change this class if we have support for IPv6
 // LAN list (scans for LAN-broadcasted servers on refresh)
 class CServerListLAN : public CServerList
 {

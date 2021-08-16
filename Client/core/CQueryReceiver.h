@@ -10,6 +10,11 @@
 
 #pragma once
 
+namespace SharedUtil
+{
+    class IPEndPoint;
+}
+
 struct SQueryInfo
 {
     SQueryInfo()
@@ -53,8 +58,7 @@ public:
     CQueryReceiver();
     ~CQueryReceiver();
 
-    void RequestQuery(in_addr address, ushort port);
-    void RequestQuery(const SString& address, ushort port);
+    void RequestQuery(const IPEndPoint& endPoint);
     void InvalidateSocket();
 
     SQueryInfo GetServerResponse();

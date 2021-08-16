@@ -4,6 +4,7 @@
 
 #include "StdInc.h"
 #include "CServerBrowser.RemoteMasterServer.h"
+#include "SharedUtil.Network.h"
 
 ///////////////////////////////////////////////////////////////
 //
@@ -33,7 +34,7 @@ protected:
     bool                              CheckParsableVer2();
     bool                              ParseListVer0(CServerListItemList& itemList);
     bool                              ParseListVer2(CServerListItemList& itemList);
-    CServerListItem*                  GetServerListItem(CServerListItemList& itemList, in_addr Address, ushort usGamePort);
+    CServerListItem*                  GetServerListItem(CServerListItemList& itemList, const IPEndPoint& endPoint);
     CNetHTTPDownloadManagerInterface* GetHTTP();
     static void                       StaticDownloadFinished(const SHttpDownloadResult& result);
     void                              DownloadFinished(const SHttpDownloadResult& result);
@@ -301,17 +302,16 @@ bool CRemoteMasterServer::ParseListVer0(CServerListItemList& itemList)
 
     while (!stream.AtEnd(6) && usCount--)
     {
-        in_addr        Address;                // IP-address
-        unsigned short usQueryPort;            // Query port
+        // TODO(botder): Re-evaluate this code when we have support for IPv6
+        IPv4Address address;
+        stream.Read(address.dword);
 
-        stream.Read(Address.S_un.S_un_b.s_b1);
-        stream.Read(Address.S_un.S_un_b.s_b2);
-        stream.Read(Address.S_un.S_un_b.s_b3);
-        stream.Read(Address.S_un.S_un_b.s_b4);
-        stream.Read(usQueryPort);
+        std::uint16_t queryPort;
+        stream.Read(queryPort);
 
         // Add or find item to update
-        CServerListItem* pItem = GetServerListItem(itemList, Address, usQueryPort - SERVER_LIST_QUERY_PORT_OFFSET);
+        IPEndPoint       endPoint(address, queryPort - SERVER_LIST_QUERY_PORT_OFFSET);
+        CServerListItem* pItem = GetServerListItem(itemList, endPoint);
 
         if (pItem->ShouldAllowDataQuality(SERVER_INFO_ASE_0))
         {
@@ -402,14 +402,16 @@ bool CRemoteMasterServer::ParseListVer2(CServerListItemList& itemList)
         stream.Read(usLength);
         uint uiSkipPos = stream.Tell() + usLength - 2;
 
-        in_addr        Address;               // IP-address
-        unsigned short usGamePort;            // Game port
+        // TODO(botder): Re-evaluate this code when we have support for IPv6
+        IPv4Address address;
+        stream.Read(address.dword);
 
-        stream.Read(Address.S_un.S_addr);
-        stream.Read(usGamePort);
+        std::uint16_t gamePort;
+        stream.Read(gamePort);
 
         // Add or find item to update
-        CServerListItem* pItem = GetServerListItem(itemList, Address, usGamePort);
+        IPEndPoint       endPoint(address, gamePort);
+        CServerListItem* pItem = GetServerListItem(itemList, endPoint);
 
         if (pItem->ShouldAllowDataQuality(uiDataQuality))
         {
@@ -526,11 +528,11 @@ bool CRemoteMasterServer::ParseListVer2(CServerListItemList& itemList)
 // Find or add list item for the address and port
 //
 ///////////////////////////////////////////////////////////////
-CServerListItem* CRemoteMasterServer::GetServerListItem(CServerListItemList& itemList, in_addr Address, ushort usGamePort)
+CServerListItem* CRemoteMasterServer::GetServerListItem(CServerListItemList& itemList, const IPEndPoint& endPoint)
 {
-    CServerListItem* pItem = itemList.Find(Address, usGamePort);
+    CServerListItem* pItem = itemList.Find(endPoint);
     if (pItem)
         return pItem;
 
-    return itemList.AddUnique(Address, usGamePort);
+    return itemList.AddUnique(endPoint);
 }

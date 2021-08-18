@@ -11,6 +11,7 @@
 #pragma once
 
 #include <vector>
+#include <array>
 #include "SharedUtil.IntTypes.h"
 #include "SharedUtil.Misc.h"
 #include "SharedUtil.File.h"
@@ -287,6 +288,12 @@ namespace SharedUtil
         bool Read(T& e)
         {
             return ReadBytes(&e, sizeof(e), m_bToFromNetwork);
+        }
+
+        template <typename T, std::size_t N>
+        bool ReadArray(std::array<T, N>& a)
+        {
+            return ReadBytes(a.data(), sizeof(T) * N, m_bToFromNetwork);
         }
 
 #ifdef ANY_x64

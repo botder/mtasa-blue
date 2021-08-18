@@ -1,3 +1,4 @@
 // StdInc.h
 #include "StdInc.h"
-#include "SharedUtil.Network.hpp"
+#include <net/IPAddress.hpp>
+#include <net/IPEndPoint.hpp>

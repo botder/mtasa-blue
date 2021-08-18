@@ -14,6 +14,8 @@
 #include "CVersionUpdater.Util.hpp"
 #include "CServerCache.h"
 
+using namespace mtasa;
+
 namespace
 {
     struct CCachedInfo
@@ -140,11 +142,11 @@ bool CServerCache::LoadServerCache()
     {
         const SDataInfoItem& item = dataSet[i];
 
-        // TODO(botder): Re-evaluate this code when we have support for IPv6
+        // TODO(botder): Change `TranslateToIPv4` to `Translate` when we have support for IPv6
         IPEndPoint endPoint;
 
         if (const SString* pString = MapFind(item.attributeMap, "ip"))
-            endPoint.SetAddress(*pString, IPAddressFamily::IPv4);
+            endPoint.SetAddress(IPAddress::TranslateToIPv4(*pString));
         if (const SString* pString = MapFind(item.attributeMap, "port"))
             endPoint.SetPort(atoi(*pString));
 

@@ -12,6 +12,7 @@
 #include "StdInc.h"
 
 using namespace std;
+using namespace mtasa;
 
 extern CCore* g_pCore;
 
@@ -339,9 +340,9 @@ void CServerInfo::SetServerInformation(const char* szHost, unsigned short usPort
     m_strPassword = szPassword;
     m_strHost = szHost;
 
-    // TODO(botder): Change this statement if we have support for IPv6
+    // TODO(botder): Change this to `Translate` if we have support for IPv6
     // Create a winsock address endpoint and parse the IP into it
-    IPEndPoint endPoint(szHost, IPAddressFamily::IPv4, usPort);
+    IPEndPoint endPoint(IPAddress::TranslateToIPv4(szHost), usPort);
 
     // Set our server query's address, query port and game port
     m_Server.ChangeAddress(endPoint);

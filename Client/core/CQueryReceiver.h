@@ -10,10 +10,7 @@
 
 #pragma once
 
-namespace SharedUtil
-{
-    class IPEndPoint;
-}
+#include <net/IPEndPoint.h>
 
 struct SQueryInfo
 {
@@ -58,7 +55,7 @@ public:
     CQueryReceiver();
     ~CQueryReceiver();
 
-    void RequestQuery(const IPEndPoint& endPoint);
+    void RequestQuery(const mtasa::IPEndPoint& endPoint);
     void InvalidateSocket();
 
     SQueryInfo GetServerResponse();

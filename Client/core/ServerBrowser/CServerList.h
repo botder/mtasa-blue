@@ -20,7 +20,7 @@ class CMasterServerManagerInterface;
 #include <sstream>
 #include <vector>
 #include "CSingleton.h"
-#include "SharedUtil.Network.h"
+#include <net/IPEndPoint.h>
 
 // Master server list URL
 #define SERVER_LIST_MASTER_URL              "http://master.multitheftauto.com/ase/mta/"
@@ -107,11 +107,11 @@ public:
         Init();
     }
 
-    CServerListItem(const IPEndPoint& endPoint, CServerListItemList* pItemList = NULL, bool bAtFront = false);
+    CServerListItem(const mtasa::IPEndPoint& endPoint, CServerListItemList* pItemList = NULL, bool bAtFront = false);
 
     ~CServerListItem();
 
-    void ChangeAddress(const IPEndPoint& endPoint);
+    void ChangeAddress(const mtasa::IPEndPoint& endPoint);
 
     bool operator==(const CServerListItem& other) const { return endPoint == other.endPoint; }
 
@@ -141,7 +141,6 @@ public:
         strHost = endPoint.GetAddress().ToString();
         strName = SString("%s:%d", strHost.c_str(), endPoint.GetPort());
         strEndpoint = strName;
-        strEndpointSortKey = SString("%s-%04x", endPoint.GetAddress().ToHexString().c_str(), endPoint.GetPort());
 
         strGameMode = "";
         strMap = "";
@@ -157,34 +156,34 @@ public:
     void           ResetForRefresh();
     unsigned short GetQueryPort();
 
-    IPEndPoint     endPointCopy;           // Copy to ensure it doesn't get changed without us knowing
-    IPEndPoint     endPoint;               // IP-address and Game port
-    unsigned short nPlayers;               // Current players
-    unsigned short nMaxPlayers;            // Maximum players
-    unsigned short nPing;                  // Ping time
-    bool           bPassworded;            // Password protected
-    bool           bSerials;               // Serial verification on
-    bool           bScanned;
-    bool           bSkipped;
-    bool           bMaybeOffline;
-    bool           bMasterServerSaysNoResponse;
-    uint           uiMasterServerSaysRestrictions;
-    uint           revisionInList[SERVER_BROWSER_TYPE_COUNT];
-    uint           uiCacheNoReplyCount;
-    uint           uiQueryRetryCount;
-    uint           uiRevision;
-    bool           bKeepFlag;
-    int            iRowIndex;
+    mtasa::IPEndPoint endPointCopy;           // Copy to ensure it doesn't get changed without us knowing
+    mtasa::IPEndPoint endPoint;               // IP-address and Game port
+    unsigned short    nPlayers;               // Current players
+    unsigned short    nMaxPlayers;            // Maximum players
+    unsigned short    nPing;                  // Ping time
+    bool              bPassworded;            // Password protected
+    bool              bSerials;               // Serial verification on
+    bool              bScanned;
+    bool              bSkipped;
+    bool              bMaybeOffline;
+    bool              bMasterServerSaysNoResponse;
+    uint              uiMasterServerSaysRestrictions;
+    uint              revisionInList[SERVER_BROWSER_TYPE_COUNT];
+    uint              uiCacheNoReplyCount;
+    uint              uiQueryRetryCount;
+    uint              uiRevision;
+    bool              bKeepFlag;
+    int               iRowIndex;
 
-    SString strGameName;                  // Game name. Always 'mta'
-    SString strVersion;                   // Game version
-    SString strName;                      // Server name
-    SString strSearchableName;            // Server name to use for searches
-    SString strHost;                      // Server host as IP
-    SString strHostName;                  // Server host as name
-    SString strGameMode;                  // Gamemode
-    SString strMap;                       // Map name
-    SString strEndpoint;                  // IP:port as a string
+    SString     strGameName;                  // Game name. Always 'mta'
+    SString     strVersion;                   // Game version
+    SString     strName;                      // Server name
+    SString     strSearchableName;            // Server name to use for searches
+    std::string strHost;                      // Server host as IP
+    SString     strHostName;                  // Server host as name
+    SString     strGameMode;                  // Gamemode
+    SString     strMap;                       // Map name
+    SString     strEndpoint;                  // IP:port as a string
 
     int    m_iBuildType;              // 9=release
     int    m_iBuildNumber;            // 00000 and up
@@ -193,7 +192,6 @@ public:
 
     SString strNameSortKey;                // Server name as a sortable string
     SString strVersionSortKey;             // Game version as a sortable string
-    SString strEndpointSortKey;            // IP:port as a sortable string
     uint    uiTieBreakPosition;
     SString strTieBreakSortKey;
 
@@ -208,8 +206,6 @@ public:
     bool WaitingToSendQuery() const { return !bScanned && !bSkipped && !queryReceiver.IsSocketValid(); }
 
     const SString& GetEndpoint() const { return strEndpoint; }
-
-    const SString& GetEndpointSortKey() const { return strEndpointSortKey; }
 
     void PostChange()
     {
@@ -298,8 +294,8 @@ typedef std::list<CServerListItem*>::const_reverse_iterator CServerListReverseIt
 ////////////////////////////////////////////////
 class CServerListItemList
 {
-    std::list<CServerListItem*>            m_List;
-    std::map<IPEndPoint, CServerListItem*> m_AddressMap;
+    std::list<CServerListItem*>                   m_List;
+    std::map<mtasa::IPEndPoint, CServerListItem*> m_AddressMap;
 
 public:
     std::list<CServerListItem*>& GetList() { return m_List; }
@@ -316,12 +312,12 @@ public:
 
     ~CServerListItemList();
     void             DeleteAll();
-    CServerListItem* Find(const IPEndPoint& endPoint);
-    CServerListItem* AddUnique(const IPEndPoint& endPoint, bool bAtFront = false);
+    CServerListItem* Find(const mtasa::IPEndPoint& endPoint);
+    CServerListItem* AddUnique(const mtasa::IPEndPoint& endPoint, bool bAtFront = false);
     void             AddNewItem(CServerListItem* pItem, bool bAtFront);
-    bool             Remove(const IPEndPoint& endPoint);
+    bool             Remove(const mtasa::IPEndPoint& endPoint);
     void             RemoveItem(CServerListItem* pItem);
-    void             OnItemChangeAddress(CServerListItem* pItem, const IPEndPoint& endPoint);
+    void             OnItemChangeAddress(CServerListItem* pItem, const mtasa::IPEndPoint& endPoint);
 };
 
 class CServerList
@@ -341,9 +337,9 @@ public:
     CServerListReverseIterator ReverseIteratorEnd() { return m_Servers.rend(); };
     unsigned int               GetServerCount() { return m_Servers.size(); };
 
-    bool AddUnique(const IPEndPoint& endPoint, bool addAtFront = false);
+    bool AddUnique(const mtasa::IPEndPoint& endPoint, bool addAtFront = false);
     void Clear();
-    bool Remove(const IPEndPoint& endPoint);
+    bool Remove(const mtasa::IPEndPoint& endPoint);
 
     std::string& GetStatus() { return m_strStatus; };
     bool         IsUpdated() { return m_bUpdated; };

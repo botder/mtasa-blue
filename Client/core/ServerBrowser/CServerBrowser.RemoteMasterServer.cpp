@@ -4,7 +4,9 @@
 
 #include "StdInc.h"
 #include "CServerBrowser.RemoteMasterServer.h"
-#include "SharedUtil.Network.h"
+#include <net/IPEndPoint.h>
+
+using namespace mtasa;
 
 ///////////////////////////////////////////////////////////////
 //
@@ -302,15 +304,15 @@ bool CRemoteMasterServer::ParseListVer0(CServerListItemList& itemList)
 
     while (!stream.AtEnd(6) && usCount--)
     {
-        // TODO(botder): Re-evaluate this code when we have support for IPv6
-        IPv4Address address;
-        stream.Read(address.dword);
+        // Read the IPv4 address bytes and the game port
+        std::array<std::uint8_t, 4> bytes;
+        stream.ReadArray(bytes);
 
         std::uint16_t queryPort;
         stream.Read(queryPort);
 
         // Add or find item to update
-        IPEndPoint       endPoint(address, queryPort - SERVER_LIST_QUERY_PORT_OFFSET);
+        IPEndPoint       endPoint(IPAddress{bytes}, queryPort - SERVER_LIST_QUERY_PORT_OFFSET);
         CServerListItem* pItem = GetServerListItem(itemList, endPoint);
 
         if (pItem->ShouldAllowDataQuality(SERVER_INFO_ASE_0))
@@ -402,15 +404,15 @@ bool CRemoteMasterServer::ParseListVer2(CServerListItemList& itemList)
         stream.Read(usLength);
         uint uiSkipPos = stream.Tell() + usLength - 2;
 
-        // TODO(botder): Re-evaluate this code when we have support for IPv6
-        IPv4Address address;
-        stream.Read(address.dword);
+        // Read the IPv4 address bytes and the game port
+        std::array<std::uint8_t, 4> bytes;
+        stream.ReadArray(bytes);
 
         std::uint16_t gamePort;
         stream.Read(gamePort);
 
         // Add or find item to update
-        IPEndPoint       endPoint(address, gamePort);
+        IPEndPoint       endPoint(IPAddress{bytes}, gamePort);
         CServerListItem* pItem = GetServerListItem(itemList, endPoint);
 
         if (pItem->ShouldAllowDataQuality(uiDataQuality))

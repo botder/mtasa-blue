@@ -17,8 +17,8 @@
 #include "net/SimHeaders.h"
 #include <signal.h>
 
-#include "SharedUtil.Network.h"
-#include "SharedUtil.Network.hpp"
+#include <net/IPAddress.h>
+#include <net/IPAddress.hpp>
 
 #define MAX_BULLETSYNC_DISTANCE 400.0f
 #define MAX_EXPLOSION_SYNC_DISTANCE 400.0f
@@ -33,6 +33,8 @@
 #define SPRINT_FIX_MIN_CLIENT_VERSION           "1.3.5-9.06277"
 #define DRIVEBY_HITBOX_FIX_MIN_CLIENT_VERSION   "1.4.0-5.06399"
 #define SHOTGUN_DAMAGE_FIX_MIN_CLIENT_VERSION   "1.5.1"
+
+using namespace mtasa;
 
 CGame* g_pGame = NULL;
 
@@ -726,8 +728,8 @@ bool CGame::Start(int iArgumentCount, char* szArguments[])
 
     if (m_pMainConfig->GetAseInternetListenEnabled())
     {
-        // Check if IP is one of the most common private IP addresses
-        IPAddress ipAddress(strServerIP.c_str(), IPAddressFamily::IPv4);
+        // Check if IP is one of the most common IPv4 private addresses
+        IPAddress ipAddress(strServerIP.c_str());
 
         if (ipAddress.IsPrivate())
         {

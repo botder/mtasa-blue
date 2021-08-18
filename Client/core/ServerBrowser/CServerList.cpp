@@ -14,6 +14,7 @@
 #include "CServerCache.h"
 
 using namespace std;
+using namespace mtasa;
 
 extern CCore*              g_pCore;
 std::set<CServerListItem*> CServerListItem::ms_ValidServerListItemMap;
@@ -305,7 +306,7 @@ void CServerListLAN::Pulse()
             {
                 unsigned short usPort = (unsigned short)atoi(&szBuffer[strlen(SERVER_LIST_SERVER_BROADCAST_STR) + 1]);
                 // Add the server if doesn't already exist
-                AddUnique(IPEndPoint(IPv4Address(&m_Remote), usPort - SERVER_LIST_QUERY_PORT_OFFSET));
+                AddUnique(IPEndPoint(IPAddress{&m_Remote}, usPort - SERVER_LIST_QUERY_PORT_OFFSET));
             }
 
     // Scan our already known servers

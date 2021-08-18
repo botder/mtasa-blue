@@ -11,7 +11,9 @@
 
 #include "StdInc.h"
 #include "net/packetenums.h"
+
 using namespace std;
+using namespace mtasa;
 
 static CConnectManager* g_pConnectManager = NULL;
 extern CCore*           g_pCore;
@@ -91,12 +93,14 @@ bool CConnectManager::Connect(const char* szHost, unsigned short usPort, const c
     assert(pNet->GetServerBitStreamVersion() == 0);
 
     // Save input
+    m_bSave = true;
     m_strHost = szHost;
     m_strNick = szNick;
     m_strPassword = szPassword;
-    m_endPoint.Reset();
+
+    // TODO(botder): Change this to `Translate` if we have support for IPv6
+    m_endPoint.SetAddress(IPAddress::TranslateToIPv4(szHost));
     m_endPoint.SetPort(usPort);
-    m_bSave = true;
 
     if (szSecret)
         m_strDiscordSecretJoin = szSecret;
@@ -106,10 +110,9 @@ bool CConnectManager::Connect(const char* szHost, unsigned short usPort, const c
     m_strLastHost = m_strHost;
     m_usLastPort = usPort;
     m_strLastPassword = m_strPassword;
-
-    // TODO(botder): Change this condition if we have support for IPv6
-    // Parse host into a server item
-    if (!m_endPoint.SetAddress(m_strHost.c_str(), IPAddressFamily::IPv4) || m_endPoint.GetAddressFamily() == IPAddressFamily::IPv6)
+    
+    // Verify the endpoint
+    if (!m_endPoint)
     {
         SString strBuffer = _("Connecting failed. Invalid host provided!");
         CCore::GetSingleton().ShowMessageBox(_("Error") + _E("CC21"), strBuffer, MB_BUTTON_OK | MB_ICON_ERROR);            // Invalid host provided
@@ -211,7 +214,7 @@ bool CConnectManager::Abort()
     m_strNick = "";
     m_strPassword = "";
 
-    m_endPoint.Reset();
+    m_endPoint.Invalidate();
     m_bIsConnecting = false;
     m_bIsDetectingVersion = false;
     m_tConnectStarted = 0;
@@ -392,7 +395,7 @@ bool CConnectManager::StaticProcessPacket(unsigned char ucPacketID, NetBitStream
                 g_pConnectManager->m_strHost = "";
                 g_pConnectManager->m_strPassword = "";
 
-                g_pConnectManager->m_endPoint.Reset();
+                g_pConnectManager->m_endPoint.Invalidate();
                 g_pConnectManager->m_bIsConnecting = false;
                 g_pConnectManager->m_bIsDetectingVersion = false;
                 g_pConnectManager->m_tConnectStarted = 0;
@@ -456,7 +459,7 @@ void CConnectManager::OnServerExists()
 //
 // Some server firewalls block UDP packets unless a TCP connection has previously been established
 //
-void CConnectManager::OpenServerFirewall(IPAddress address, ushort usHttpPort, bool bHighPriority)
+void CConnectManager::OpenServerFirewall(const mtasa::IPAddress& address, ushort usHttpPort, bool bHighPriority)
 {
     uint uiTimeOut;
     if (bHighPriority)

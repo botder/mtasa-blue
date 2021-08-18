@@ -13,6 +13,7 @@
 #include "CServerCache.h"
 
 using namespace std;
+using namespace mtasa;
 
 extern CCore* g_pCore;
 
@@ -932,10 +933,10 @@ void CServerBrowser::CreateHistoryList()
 
             if (!strPort.empty())
             {
-                // TODO(botder): Change this statement if we have support for IPv6
-                IPEndPoint endPoint(strAddress.c_str(), IPAddressFamily::IPv4, atoi(strPort.c_str()));
+                // TODO(botder): Change this to `Translate` if we have support for IPv6
+                IPEndPoint endPoint(IPAddress::TranslateToIPv4(strAddress.c_str()), atoi(strPort.c_str()));
                 
-                if (endPoint)
+                if (endPoint && endPoint.IsIPv4())
                 {
                     m_ServersHistory.AddUnique(endPoint);
                     CreateHistoryList();            // Restart with our new list.
@@ -1420,8 +1421,8 @@ bool CServerBrowser::OnFavouritesClick(CGUIElement* pElement)
     // If there are more than 0 items selected in the browser
     if (strHost.size() > 0 && usPort)
     {
-        // TODO(botder): Change this statement if we have support for IPv6
-        IPEndPoint endPoint(strHost.c_str(), IPAddressFamily::IPv4, usPort);
+        // TODO(botder): Change this to `Translate` if we have support for IPv6
+        IPEndPoint endPoint(IPAddress::TranslateToIPv4(strHost.c_str()), usPort);
 
         // Do we have this entry already?  If so, remove it
         if (m_ServersFavourites.Remove(endPoint))
@@ -1732,8 +1733,8 @@ bool CServerBrowser::LoadServerList(CXMLNode* pNode, const std::string& strTagNa
 
             if (pHostAttribute && pPortAttribute)
             {
-                // TODO(botder): Change this statement if we have support for IPv6
-                IPEndPoint endPoint(pHostAttribute->GetValue().c_str(), IPAddressFamily::IPv4, atoi(pPortAttribute->GetValue().c_str()));
+                // TODO(botder): Change this to `Translate` if we have support for IPv6
+                IPEndPoint endPoint(IPAddress::TranslateToIPv4(pHostAttribute->GetValue().c_str()), atoi(pPortAttribute->GetValue().c_str()));
                 
                 if (endPoint)
                     pList->AddUnique(endPoint);

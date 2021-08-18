@@ -22,9 +22,11 @@
 #include <SharedUtil.Detours.h>
 #include <ServerBrowser/CServerCache.h>
 #include "CDiscordManager.h"
+#include <net/IPEndPoint.h>
 
 using SharedUtil::CalcMTASAPath;
 using namespace std;
+using namespace mtasa;
 
 static float fTest = 1;
 
@@ -1662,9 +1664,9 @@ void CCore::UpdateRecentlyPlayed()
     CVARS_GET("host", strHost);
     CVARS_GET("port", uiPort);
 
-    // TODO(botder): Change this statement if we have support for IPv6
+    // TODO(botder): Change this to `Translate` if we have support for IPv6
     // Save the connection details into the recently played servers list
-    IPEndPoint endPoint(strHost.c_str(), IPAddressFamily::IPv4, uiPort);
+    IPEndPoint endPoint(IPAddress::TranslateToIPv4(strHost.c_str()), uiPort);
 
     if (endPoint)
     {

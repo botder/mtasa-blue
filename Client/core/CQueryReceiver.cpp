@@ -10,6 +10,8 @@
 
 #include "StdInc.h"
 
+using namespace mtasa;
+
 CQueryReceiver::CQueryReceiver()
 {
     m_Socket = INVALID_SOCKET;
@@ -22,38 +24,23 @@ CQueryReceiver::~CQueryReceiver()
 
 void CQueryReceiver::RequestQuery(const IPEndPoint& endPoint)
 {
-    assert(endPoint.GetAddressFamily() != IPAddressFamily::None);
+    sockaddr_storage addr;
+    std::size_t      addrSize = sizeof(addr);
+    std::fill_n(reinterpret_cast<std::uint8_t*>(&addr), sizeof(addr), 0);
+    
+    if (!endPoint.ToSocketAddress(reinterpret_cast<sockaddr&>(addr), addrSize))
+        return;
 
     if (m_Socket == INVALID_SOCKET)            // Create the socket
     {
-        int addressFamily = AF_INET;
-
-        if (endPoint.GetAddressFamily() == IPAddressFamily::IPv6)
-            addressFamily = AF_INET6;
-
-        m_Socket = socket(addressFamily, SOCK_DGRAM, IPPROTO_UDP);
+        m_Socket = socket(addr.ss_family, SOCK_DGRAM, IPPROTO_UDP);
 
         u_long flag = 1;
         ioctlsocket(m_Socket, FIONBIO, &flag);            // Nonblocking I/O
     }
 
-    union
-    {
-        sockaddr_storage ss;
-        sockaddr         sa;
-        sockaddr_in      s4;
-        sockaddr_in6     s6;
-    };
-    memset(&ss, 0, sizeof(ss));
-
-    if (!endPoint.ToSocketAddress(&sa, sizeof(ss)))
-    {
-        InvalidateSocket();
-        return;
-    }
-
     // Trailing data to work around 1 byte UDP packet filtering
-    int iSendByte = g_pCore->GetNetwork()->SendTo(m_Socket, "r mtasa", 1, 0, &sa, sizeof(ss));
+    int iSendByte = g_pCore->GetNetwork()->SendTo(m_Socket, "r mtasa", 1, 0, reinterpret_cast<sockaddr*>(&addr), addrSize);
     m_ElapsedTime.Reset();
 }
 

@@ -55,7 +55,7 @@ bool mtasa::IPEndPoint::ToSocketAddress(sockaddr& address, std::size_t& addressS
         {
             auto maybeBytes = m_address.GetIPv6Bytes();
 
-            if (addressSize >= sizeof(sockaddr_in6))
+            if (maybeBytes && addressSize >= sizeof(sockaddr_in6))
             {
                 addressSize = sizeof(sockaddr_in6);
 

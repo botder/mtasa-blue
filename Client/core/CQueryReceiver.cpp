@@ -9,7 +9,6 @@
  *****************************************************************************/
 
 #include "StdInc.h"
-#include <WinSock2.h>
 #include <mtasa/SocketAddress.h>
 
 using namespace mtasa;
@@ -33,9 +32,6 @@ void CQueryReceiver::RequestQuery(const IPEndpoint& endpoint)
 
     // Trailing data to work around 1 byte UDP packet filtering
     int bytesWritten = g_pCore->GetNetwork()->SendTo(m_socket.GetHandle(), "r mtasa", 7, 0, reinterpret_cast<sockaddr*>(&address), sizeof(address));
-    OutputDebugLine(SString("%s ~ %d bytes sent", endpoint.ToString().c_str(), bytesWritten));
-
-    int errcode = WSAGetLastError();
 
     m_ElapsedTime.Reset();
 }
@@ -76,8 +72,6 @@ SQueryInfo CQueryReceiver::GetServerResponse()
 
     if (!message.empty())
     {
-        OutputDebugLine(SString("%s ~ %zu bytes received", endpoint.ToString().c_str(), message.size()));
-
         // Parse data
         const char* szBuffer = message.data();
         int         len = message.size();

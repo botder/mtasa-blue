@@ -100,7 +100,6 @@ bool ASE::SetPortEnabled(bool bInternetEnabled, bool bLanEnabled)
         if (!socket.Create() || !socket.SetAddressReuse(true) || !socket.SetNonBlocking(true) || !socket.Bind(endpoint))
             return false;
 
-        OutputDebugLine(SString("ASE @ %s", endpoint.ToString().c_str()));
         m_sockets.emplace_back(std::move(socket));
     }
 
@@ -122,9 +121,9 @@ void ASE::DoPulse()
     {
         for (int i = 0; i < 100; i++)
         {
-            std::string_view data = socket.ReceiveFrom(endpoint, buffer.data(), buffer.size());
+            std::string_view message = socket.ReceiveFrom(endpoint, buffer.data(), buffer.size());
 
-            if (data.empty())
+            if (message.empty())
                 break;
 
             m_uiNumQueriesTotal++;
@@ -135,7 +134,7 @@ void ASE::DoPulse()
 
             const std::string* response = nullptr;
 
-            switch (data[0])
+            switch (message[0])
             {
                 case 's':
                 {            // ASE protocol query

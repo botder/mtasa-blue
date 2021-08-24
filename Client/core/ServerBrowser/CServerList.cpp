@@ -88,10 +88,10 @@ void CServerList::Pulse()
     // If a query is going to be done this pass, try to find high priority items first
     if (iNumQueries > 0)
     {
-        std::vector<IPEndPoint> endpointList;
+        std::vector<IPEndpoint> endpointList;
         CCore::GetSingleton().GetLocalGUI()->GetMainMenu()->GetServerBrowser()->GetVisibleEndPointList(endpointList);
 
-        for (std::vector<IPEndPoint>::iterator iter = endpointList.begin(); iter != endpointList.end(); ++iter)
+        for (std::vector<IPEndpoint>::iterator iter = endpointList.begin(); iter != endpointList.end(); ++iter)
         {
             CServerListItem* pServer = m_Servers.Find(*iter);
 
@@ -164,17 +164,17 @@ void CServerList::Pulse()
 }
 
 // Return true if did add
-bool CServerList::AddUnique(const IPEndPoint& endPoint, bool addAtFront)
+bool CServerList::AddUnique(const IPEndpoint& endpoint, bool addAtFront)
 {
-    if (m_Servers.Find(endPoint))
+    if (m_Servers.Find(endpoint))
         return false;
-    m_Servers.AddUnique(endPoint, addAtFront);
+    m_Servers.AddUnique(endpoint, addAtFront);
     return true;
 }
 
-bool CServerList::Remove(const IPEndPoint& endPoint)
+bool CServerList::Remove(const IPEndpoint& endpoint)
 {
-    return m_Servers.Remove(endPoint);
+    return m_Servers.Remove(endpoint);
 }
 
 void CServerList::Refresh()
@@ -286,54 +286,48 @@ void CServerListInternet::Pulse()
 
 void CServerListLAN::Pulse()
 {
-    char szBuffer[32];
+    if (!m_socket.Exists())
+        return;
 
     // Broadcast the discover packet on a regular interval
     if ((CClientTime::GetTime() - m_ulStartTime) > SERVER_LIST_BROADCAST_REFRESH)
         Discover();
 
     // Poll our socket to discover any new servers
-    timeval tm;
-    tm.tv_sec = 0;
-    tm.tv_usec = 0;
-    fd_set readfds;
-    readfds.fd_array[0] = m_Socket;
-    readfds.fd_count = 1;
-    int len = sizeof(m_Remote);
-    if (select(1, &readfds, NULL, NULL, &tm) > 0)
-        if (recvfrom(m_Socket, szBuffer, sizeof(szBuffer), 0, (sockaddr*)&m_Remote, &len) > 10)
-            if (strncmp(szBuffer, SERVER_LIST_SERVER_BROADCAST_STR, strlen(SERVER_LIST_SERVER_BROADCAST_STR)) == 0)
-            {
-                unsigned short usPort = (unsigned short)atoi(&szBuffer[strlen(SERVER_LIST_SERVER_BROADCAST_STR) + 1]);
-                // Add the server if doesn't already exist
-                AddUnique(IPEndPoint(IPAddress{&m_Remote}, usPort - SERVER_LIST_QUERY_PORT_OFFSET));
-            }
+    IPEndpoint           endpoint;
+    std::array<char, 32> buffer{};
+    std::string_view     message = m_socket.ReceiveFrom(endpoint, buffer.data(), buffer.size());
+
+    if (message.size() > sizeof(SERVER_LIST_SERVER_BROADCAST_STR))
+    {
+        if (message.substr(0, sizeof(SERVER_LIST_SERVER_BROADCAST_STR) - 1) == SERVER_LIST_SERVER_BROADCAST_STR)
+        {
+            auto port = static_cast<unsigned short>(strtol(message.data() + sizeof(SERVER_LIST_SERVER_BROADCAST_STR), nullptr, 10));
+            AddUnique(IPEndpoint(endpoint.GetAddress(), port - SERVER_LIST_QUERY_PORT_OFFSET));
+        }
+    }
 
     // Scan our already known servers
     CServerList::Pulse();
 }
 
+// Gets the server list from LAN-broadcasting servers
 void CServerListLAN::Refresh()
-{            // Gets the server list from LAN-broadcasting servers
+{
     m_iPass = 1;
     m_bUpdated = true;
+    (void)m_socket.Close();
 
     // Create the LAN-broadcast socket
-    closesocket(m_Socket);
-    m_Socket = socket(AF_INET, SOCK_DGRAM, 0);
-    const int Flags = 1;
-    setsockopt(m_Socket, SOL_SOCKET, SO_REUSEADDR, (const char*)&Flags, sizeof(Flags));
-    if (setsockopt(m_Socket, SOL_SOCKET, SO_BROADCAST, (const char*)&Flags, sizeof(Flags)) != 0)
+    IPSocket socket{IPAddressFamily::IPv4, IPSocketProtocol::UDP};
+
+    if (!socket.Create() || !socket.SetAddressReuse(true) || !socket.SetBroadcast(true) || !socket.SetNonBlocking(true))
     {
         m_strStatus = _("Cannot bind LAN-broadcast socket");
         return;
     }
 
-    // Prepare the structures
-    memset(&m_Remote, 0, sizeof(m_Remote));
-    m_Remote.sin_family = AF_INET;
-    m_Remote.sin_port = htons(SERVER_LIST_BROADCAST_PORT);
-    m_Remote.sin_addr.s_addr = INADDR_BROADCAST;
+    m_socket = std::move(socket);
 
     // Clear the previous server list
     Clear();
@@ -347,8 +341,9 @@ void CServerListLAN::Discover()
     m_strStatus = _("Attempting to discover LAN servers");
 
     // Send out the broadcast packet
-    std::string strQuery = std::string(SERVER_LIST_CLIENT_BROADCAST_STR) + " " + std::string(MTA_DM_ASE_VERSION);
-    sendto(m_Socket, strQuery.c_str(), strQuery.length() + 1, 0, (sockaddr*)&m_Remote, sizeof(m_Remote));
+    IPEndpoint  endpoint{IPAddress::IPv4Broadcast, SERVER_LIST_BROADCAST_PORT};
+    std::string query = std::string(SERVER_LIST_CLIENT_BROADCAST_STR) + " " + std::string(MTA_DM_ASE_VERSION);
+    (void)m_socket.SendTo(endpoint, query.c_str(), query.size() + 1);
 
     // Keep the time
     m_ulStartTime = CClientTime::GetTime();
@@ -392,7 +387,7 @@ std::string CServerListItem::Pulse(bool bCanSendQuery, bool bRemoveNonResponding
                 m_bDoneTcpSend = true;
                 if ((m_ucSpecialFlags & ASE_SPECIAL_FLAG_DENY_TCP_SEND) == 0)
                 {
-                    CConnectManager::OpenServerFirewall(endPoint.GetAddress(), m_usHttpPort, false);
+                    CConnectManager::OpenServerFirewall(endpoint.GetAddress(), m_usHttpPort, false);
                     m_bDoPostTcpQuery = 1;
                 }
             }
@@ -461,13 +456,13 @@ std::string CServerListItem::Pulse(bool bCanSendQuery, bool bRemoveNonResponding
 
 unsigned short CServerListItem::GetQueryPort()
 {
-    return endPoint.GetPort() + SERVER_LIST_QUERY_PORT_OFFSET;
+    return endpoint.GetHostOrderPort() + SERVER_LIST_QUERY_PORT_OFFSET;
 }
 
 void CServerListItem::Query()
 {
     // Performs a query according to ASE protocol
-    queryReceiver.RequestQuery(IPEndPoint(endPoint.GetAddress(), GetQueryPort()));
+    queryReceiver.RequestQuery(IPEndpoint(endpoint.GetAddress(), GetQueryPort()));
 }
 
 bool CServerListItem::ParseQuery()
@@ -477,7 +472,7 @@ bool CServerListItem::ParseQuery()
         return false;
 
     // Get IP as string
-    strHost = endPoint.GetAddress().ToString();
+    strHost = endpoint.GetAddress().ToString();
 
     nPing = info.pingTime;
 
@@ -543,14 +538,14 @@ void CServerListItemList::DeleteAll()
     dassert(m_List.size() == m_AddressMap.size());
 }
 
-CServerListItem* CServerListItemList::Find(const IPEndPoint& endPoint)
+CServerListItem* CServerListItemList::Find(const IPEndpoint& endpoint)
 {
-    if (CServerListItem* pItem = MapFindRef(m_AddressMap, endPoint))
+    if (CServerListItem* pItem = MapFindRef(m_AddressMap, endpoint))
     {
         if (!CServerListItem::StaticIsValid(pItem))
         {
             // Bodge to fix invalid entry in map
-            Remove(endPoint);
+            Remove(endpoint);
             pItem = NULL;
         }
         return pItem;
@@ -558,23 +553,23 @@ CServerListItem* CServerListItemList::Find(const IPEndPoint& endPoint)
     return NULL;
 }
 
-CServerListItem* CServerListItemList::AddUnique(const IPEndPoint& endPoint, bool bAtFront)
+CServerListItem* CServerListItemList::AddUnique(const IPEndpoint& endpoint, bool bAtFront)
 {
-    if (MapContains(m_AddressMap, endPoint))
+    if (MapContains(m_AddressMap, endpoint))
         return NULL;
-    CServerListItem* pItem = new CServerListItem(endPoint, this, bAtFront);
+    CServerListItem* pItem = new CServerListItem(endpoint, this, bAtFront);
     return pItem;
 }
 
 // Only called from CServerListItem constructor
 void CServerListItemList::AddNewItem(CServerListItem* pItem, bool bAtFront)
 {
-    if (MapContains(m_AddressMap, pItem->endPoint))
+    if (MapContains(m_AddressMap, pItem->endpoint))
     {
         dassert(0);
         return;
     }
-    MapSet(m_AddressMap, pItem->endPoint, pItem);
+    MapSet(m_AddressMap, pItem->endpoint, pItem);
     pItem->uiTieBreakPosition = 5000;
     if (!m_List.empty())
     {
@@ -589,14 +584,14 @@ void CServerListItemList::AddNewItem(CServerListItem* pItem, bool bAtFront)
         m_List.push_back(pItem);
 }
 
-bool CServerListItemList::Remove(const IPEndPoint& endPoint)
+bool CServerListItemList::Remove(const IPEndpoint& endpoint)
 {
-    CServerListItem* pItem = MapFindRef(m_AddressMap, endPoint);
+    CServerListItem* pItem = MapFindRef(m_AddressMap, endpoint);
     if (pItem)
     {
-        assert(pItem->endPoint == endPoint);
+        assert(pItem->endpoint == endpoint);
         delete pItem;
-        assert(!MapFindRef(m_AddressMap, endPoint));
+        assert(!MapFindRef(m_AddressMap, endpoint));
         return true;
     }
     return false;
@@ -606,36 +601,36 @@ bool CServerListItemList::Remove(const IPEndPoint& endPoint)
 void CServerListItemList::RemoveItem(CServerListItem* pItem)
 {
     dassert(m_List.size() == m_AddressMap.size());
-    dassert(MapFindRef(m_AddressMap, pItem->endPoint) == pItem);
+    dassert(MapFindRef(m_AddressMap, pItem->endpoint) == pItem);
 
-    MapRemove(m_AddressMap, pItem->endPoint);
+    MapRemove(m_AddressMap, pItem->endpoint);
     ListRemove(m_List, pItem);
 
     dassert(m_List.size() == m_AddressMap.size());
 }
 
-void CServerListItemList::OnItemChangeAddress(CServerListItem* pItem, const IPEndPoint& endPoint)
+void CServerListItemList::OnItemChangeAddress(CServerListItem* pItem, const IPEndpoint& endpoint)
 {
     // Changed?
-    if (pItem->endPoint == endPoint)
+    if (pItem->endpoint == endpoint)
         return;
 
     // New address free?
-    if (Find(endPoint))
+    if (Find(endpoint))
         return;
 
     // Remove old lookup
     {
-        CServerListItem* pItem2 = MapFindRef(m_AddressMap, endPoint);
+        CServerListItem* pItem2 = MapFindRef(m_AddressMap, endpoint);
         assert(pItem == pItem2);
-        MapRemove(m_AddressMap, endPoint);
+        MapRemove(m_AddressMap, endpoint);
     }
 
     // Add new lookup
     {
-        pItem->endPointCopy = endPoint;
-        pItem->endPoint = endPoint;
-        MapSet(m_AddressMap, endPoint, pItem);
+        pItem->endPointCopy = endpoint;
+        pItem->endpoint = endpoint;
+        MapSet(m_AddressMap, endpoint, pItem);
     }
 }
 
@@ -646,9 +641,9 @@ void CServerListItemList::OnItemChangeAddress(CServerListItem* pItem, const IPEn
 //
 //////////////////////////////////////////////////////////////////////////////
 // Auto add to associated list
-CServerListItem::CServerListItem(const IPEndPoint& endPoint, CServerListItemList* pItemList, bool bAtFront)
+CServerListItem::CServerListItem(const IPEndpoint& endpoint, CServerListItemList* pItemList, bool bAtFront)
 {
-    this->endPoint = endPoint;
+    this->endpoint = endpoint;
     m_pItemList = pItemList;
     m_bDoneTcpSend = false;
     m_bDoPostTcpQuery = false;
@@ -657,7 +652,7 @@ CServerListItem::CServerListItem(const IPEndPoint& endPoint, CServerListItemList
     Init();
     if (m_pItemList)
     {
-        endPointCopy = endPoint;
+        endPointCopy = endpoint;
         m_pItemList->AddNewItem(this, bAtFront);
     }
 }
@@ -668,7 +663,7 @@ CServerListItem::~CServerListItem()
     if (m_pItemList)
     {
         // Check nothing changed
-        assert(endPointCopy == endPoint);
+        assert(endPointCopy == endpoint);
         m_pItemList->RemoveItem(this);
     }
     MapRemove(ms_ValidServerListItemMap, this);
@@ -686,14 +681,14 @@ void CServerListItem::ResetForRefresh()
     bMaybeOffline = false;
 }
 
-void CServerListItem::ChangeAddress(const IPEndPoint& endPoint)
+void CServerListItem::ChangeAddress(const IPEndpoint& endpoint)
 {
     if (m_pItemList)
     {
-        m_pItemList->OnItemChangeAddress(this, endPoint);
+        m_pItemList->OnItemChangeAddress(this, endpoint);
     }
     else
     {
-        this->endPoint = endPoint;
+        this->endpoint = endpoint;
     }
 }

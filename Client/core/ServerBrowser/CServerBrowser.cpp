@@ -934,11 +934,11 @@ void CServerBrowser::CreateHistoryList()
             if (!strPort.empty())
             {
                 // TODO(botder): Change this to `Translate` if we have support for IPv6
-                IPEndPoint endPoint(IPAddress::TranslateToIPv4(strAddress.c_str()), atoi(strPort.c_str()));
+                IPEndpoint endpoint(IPAddress::TranslateToIPv4(strAddress.c_str()), atoi(strPort.c_str()));
                 
-                if (endPoint && endPoint.IsIPv4())
+                if (endpoint && endpoint.IsIPv4())
                 {
-                    m_ServersHistory.AddUnique(endPoint);
+                    m_ServersHistory.AddUnique(endpoint);
                     CreateHistoryList();            // Restart with our new list.
                     return;
                 }
@@ -1147,7 +1147,7 @@ bool CServerBrowser::RemoveSelectedServerFromRecentlyPlayedList()
     pHistoryList = GetRecentList();
     iSelectedItem = m_pServerList[Type]->GetSelectedItemRow();
 
-    pHistoryList->Remove(pServer->endPoint);
+    pHistoryList->Remove(pServer->endpoint);
     m_pServerList[Type]->RemoveRow(iSelectedItem);
     SaveRecentlyPlayedList();
 
@@ -1312,16 +1312,16 @@ bool CServerBrowser::OnConnectClick(CGUIElement* pElement)
     return true;
 }
 
-void CServerBrowser::NotifyServerExists(const IPEndPoint& endPoint)
+void CServerBrowser::NotifyServerExists(const IPEndpoint& endpoint)
 {
     // If the connect button was pressed, and the server exists, add it to the history
     CServerList* pHistoryList = GetHistoryList();
-    pHistoryList->Remove(endPoint);
-    pHistoryList->AddUnique(endPoint);
+    pHistoryList->Remove(endpoint);
+    pHistoryList->AddUnique(endpoint);
     while (pHistoryList->GetServerCount() > 11)
     {
         CServerListItem* pLast = *pHistoryList->IteratorBegin();
-        pHistoryList->Remove(pLast->endPoint);
+        pHistoryList->Remove(pLast->endpoint);
     }
     CreateHistoryList();
     SaveRecentlyPlayedList();
@@ -1365,13 +1365,14 @@ bool CServerBrowser::ConnectToSelectedServer()
 
             if (strPassword.empty())            // No password could be found, popup password entry.
             {
-                CServerInfo::GetSingletonPtr()->Show(eWindowTypes::SERVER_INFO_PASSWORD, pServer->strHost.c_str(), pServer->endPoint.GetPort(), "", pServer);
+                CServerInfo::GetSingletonPtr()->Show(eWindowTypes::SERVER_INFO_PASSWORD, pServer->strHost.c_str(), pServer->endpoint.GetHostOrderPort(), "",
+                                                     pServer);
                 return true;
             }
         }
 
         // Start the connect
-        CCore::GetSingleton().GetConnectManager()->Connect(pServer->strHost.c_str(), pServer->endPoint.GetPort(), strNick.c_str(), strPassword);
+        CCore::GetSingleton().GetConnectManager()->Connect(pServer->strHost.c_str(), pServer->endpoint.GetHostOrderPort(), strNick.c_str(), strPassword);
     }
     else
     {
@@ -1422,10 +1423,10 @@ bool CServerBrowser::OnFavouritesClick(CGUIElement* pElement)
     if (strHost.size() > 0 && usPort)
     {
         // TODO(botder): Change this to `Translate` if we have support for IPv6
-        IPEndPoint endPoint(IPAddress::TranslateToIPv4(strHost.c_str()), usPort);
+        IPEndpoint endpoint(IPAddress::TranslateToIPv4(strHost.c_str()), usPort);
 
         // Do we have this entry already?  If so, remove it
-        if (m_ServersFavourites.Remove(endPoint))
+        if (m_ServersFavourites.Remove(endpoint))
         {
             SaveFavouritesList();
             UpdateServerList(ServerBrowserTypes::FAVOURITES, true);
@@ -1436,7 +1437,7 @@ bool CServerBrowser::OnFavouritesClick(CGUIElement* pElement)
             return true;
         }
 
-        if (m_ServersFavourites.AddUnique(endPoint))
+        if (m_ServersFavourites.AddUnique(endpoint))
         {
             SaveFavouritesList();
             UpdateServerList(ServerBrowserTypes::FAVOURITES, true);
@@ -1474,7 +1475,7 @@ bool CServerBrowser::OnAddressChanged(CGUIElement* pElement)
     for (CServerListIterator i = i_b; i != i_e; i++)
     {
         CServerListItem* pServer = *i;
-        if (pServer->strHost == strHost && pServer->endPoint.GetPort() == usPort)
+        if (pServer->strHost == strHost && pServer->endpoint.GetHostOrderPort() == usPort)
         {
             for (unsigned int i = 0; i < SERVER_BROWSER_TYPE_COUNT; i++)
             {
@@ -1734,10 +1735,10 @@ bool CServerBrowser::LoadServerList(CXMLNode* pNode, const std::string& strTagNa
             if (pHostAttribute && pPortAttribute)
             {
                 // TODO(botder): Change this to `Translate` if we have support for IPv6
-                IPEndPoint endPoint(IPAddress::TranslateToIPv4(pHostAttribute->GetValue().c_str()), atoi(pPortAttribute->GetValue().c_str()));
+                IPEndpoint endpoint(IPAddress::TranslateToIPv4(pHostAttribute->GetValue().c_str()), atoi(pPortAttribute->GetValue().c_str()));
                 
-                if (endPoint)
-                    pList->AddUnique(endPoint);
+                if (endpoint)
+                    pList->AddUnique(endpoint);
             }
         }
     }
@@ -1797,7 +1798,7 @@ bool CServerBrowser::SaveServerList(CXMLNode* pNode, const std::string& strTagNa
             pHostAttribute->SetValue(strHost.c_str());
 
             CXMLAttribute* pPortAttribute = pSubNode->GetAttributes().Create("port");
-            pPortAttribute->SetValue(pServer->endPoint.GetPort());
+            pPortAttribute->SetValue(pServer->endpoint.GetHostOrderPort());
         }
         ++iProcessed;
     }
@@ -2096,7 +2097,7 @@ CServerListItem* CServerBrowser::FindServer(const std::string& strHost, unsigned
     for (CServerListIterator i = i_b; i != i_e; i++)
     {
         CServerListItem* pServer = *i;
-        if (pServer->strHost == strHost && pServer->endPoint.GetPort() == usPort)
+        if (pServer->strHost == strHost && pServer->endpoint.GetHostOrderPort() == usPort)
             return pServer;
     }
     return NULL;
@@ -2116,7 +2117,7 @@ unsigned short CServerBrowser::FindServerHttpPort(const std::string& strHost, un
     for (CServerListIterator i = i_b; i != i_e; i++)
     {
         CServerListItem* pServer = *i;
-        if (pServer->strHost == strHost && pServer->endPoint.GetPort() == usPort)
+        if (pServer->strHost == strHost && pServer->endpoint.GetHostOrderPort() == usPort)
             return pServer->m_usHttpPort;
     }
     return 0;
@@ -2200,7 +2201,7 @@ void CServerBrowser::UpdateSelectedServerPlayerList(ServerBrowserType Type)
 // Get list servers that are visible in the GUI
 //
 /////////////////////////////////////////////////////////////////
-void CServerBrowser::GetVisibleEndPointList(std::vector<IPEndPoint>& outEndpointList)
+void CServerBrowser::GetVisibleEndPointList(std::vector<IPEndpoint>& outEndpointList)
 {
     ServerBrowserType Type = GetCurrentServerBrowserType();
 
@@ -2211,7 +2212,7 @@ void CServerBrowser::GetVisibleEndPointList(std::vector<IPEndPoint>& outEndpoint
         if (CServerListItem* pServer = (CServerListItem*)m_pServerList[Type]->GetItemData(i, DATA_PSERVER))
         {
             if (CServerListItem::StaticIsValid(pServer))
-                outEndpointList.push_back(pServer->endPoint);
+                outEndpointList.push_back(pServer->endpoint);
         }
     }
 }

@@ -26,6 +26,7 @@ project "Deathmatch"
 			"../../../Shared/mods/deathmatch/logic",
 			"../../../Shared/animation",
 			"../../../Shared/publicsdk/include",
+			"../../../Shared/sockets/",
 			"../../../vendor/sparsehash/src/",
 			"logic",
 			"utils",
@@ -34,7 +35,7 @@ project "Deathmatch"
 
 	defines { "SDK_WITH_BCRYPT" }
 	links {
-		"Lua_Server", "sqlite", "ehs", "cryptopp", "pme", "pcre", "json-c", "zip", "zlib", "blowfish_bcrypt",
+		"Lua_Server", "sqlite", "ehs", "cryptopp", "pme", "pcre", "json-c", "zip", "zlib", "blowfish_bcrypt", "Shared Sockets",
 	}
 
 	vpaths {
@@ -58,7 +59,7 @@ project "Deathmatch"
 	filter "system:windows"
 		includedirs { "../../../vendor/pthreads/include" }
 		buildoptions { "-Zm130" }
-		links { "ws2_32", "pthread" }
+		links { "pthread" }
 
 	filter "system:not windows"
 		buildoptions { "-Wno-narrowing" } -- We should fix the warnings at some point

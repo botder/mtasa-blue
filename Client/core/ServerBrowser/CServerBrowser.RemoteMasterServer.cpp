@@ -4,7 +4,7 @@
 
 #include "StdInc.h"
 #include "CServerBrowser.RemoteMasterServer.h"
-#include <net/IPEndPoint.h>
+#include <mtasa/IPEndpoint.h>
 
 using namespace mtasa;
 
@@ -36,7 +36,7 @@ protected:
     bool                              CheckParsableVer2();
     bool                              ParseListVer0(CServerListItemList& itemList);
     bool                              ParseListVer2(CServerListItemList& itemList);
-    CServerListItem*                  GetServerListItem(CServerListItemList& itemList, const IPEndPoint& endPoint);
+    CServerListItem*                  GetServerListItem(CServerListItemList& itemList, const IPEndpoint& endpoint);
     CNetHTTPDownloadManagerInterface* GetHTTP();
     static void                       StaticDownloadFinished(const SHttpDownloadResult& result);
     void                              DownloadFinished(const SHttpDownloadResult& result);
@@ -312,8 +312,8 @@ bool CRemoteMasterServer::ParseListVer0(CServerListItemList& itemList)
         stream.Read(queryPort);
 
         // Add or find item to update
-        IPEndPoint       endPoint(IPAddress{bytes}, queryPort - SERVER_LIST_QUERY_PORT_OFFSET);
-        CServerListItem* pItem = GetServerListItem(itemList, endPoint);
+        IPEndpoint       endpoint(IPAddress{bytes}, queryPort - SERVER_LIST_QUERY_PORT_OFFSET);
+        CServerListItem* pItem = GetServerListItem(itemList, endpoint);
 
         if (pItem->ShouldAllowDataQuality(SERVER_INFO_ASE_0))
         {
@@ -412,8 +412,8 @@ bool CRemoteMasterServer::ParseListVer2(CServerListItemList& itemList)
         stream.Read(gamePort);
 
         // Add or find item to update
-        IPEndPoint       endPoint(IPAddress{bytes}, gamePort);
-        CServerListItem* pItem = GetServerListItem(itemList, endPoint);
+        IPEndpoint       endpoint(IPAddress{bytes}, gamePort);
+        CServerListItem* pItem = GetServerListItem(itemList, endpoint);
 
         if (pItem->ShouldAllowDataQuality(uiDataQuality))
         {
@@ -530,11 +530,11 @@ bool CRemoteMasterServer::ParseListVer2(CServerListItemList& itemList)
 // Find or add list item for the address and port
 //
 ///////////////////////////////////////////////////////////////
-CServerListItem* CRemoteMasterServer::GetServerListItem(CServerListItemList& itemList, const IPEndPoint& endPoint)
+CServerListItem* CRemoteMasterServer::GetServerListItem(CServerListItemList& itemList, const IPEndpoint& endpoint)
 {
-    CServerListItem* pItem = itemList.Find(endPoint);
+    CServerListItem* pItem = itemList.Find(endpoint);
     if (pItem)
         return pItem;
 
-    return itemList.AddUnique(endPoint);
+    return itemList.AddUnique(endpoint);
 }

@@ -22,7 +22,7 @@
 #include <SharedUtil.Detours.h>
 #include <ServerBrowser/CServerCache.h>
 #include "CDiscordManager.h"
-#include <net/IPEndPoint.h>
+#include <mtasa/IPEndpoint.h>
 
 using SharedUtil::CalcMTASAPath;
 using namespace std;
@@ -1666,14 +1666,14 @@ void CCore::UpdateRecentlyPlayed()
 
     // TODO(botder): Change this to `Translate` if we have support for IPv6
     // Save the connection details into the recently played servers list
-    IPEndPoint endPoint(IPAddress::TranslateToIPv4(strHost.c_str()), uiPort);
+    IPEndpoint endpoint(IPAddress::TranslateToIPv4(strHost.c_str()), uiPort);
 
-    if (endPoint)
+    if (endpoint)
     {
         CServerBrowser* pServerBrowser = CCore::GetSingleton().GetLocalGUI()->GetMainMenu()->GetServerBrowser();
         CServerList*    pRecentList = pServerBrowser->GetRecentList();
-        pRecentList->Remove(endPoint);
-        pRecentList->AddUnique(endPoint, true);
+        pRecentList->Remove(endpoint);
+        pRecentList->AddUnique(endpoint, true);
 
         pServerBrowser->SaveRecentlyPlayedList();
 

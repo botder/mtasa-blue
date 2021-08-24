@@ -1,20 +1,20 @@
 /*****************************************************************************
  *
- *  PROJECT:     Multi Theft Auto v1.0
+ *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
  *  FILE:        mods/deathmatch/logic/ASE.cpp
  *  PURPOSE:     Game-Monitor server query protocol handler class
  *
- *  Multi Theft Auto is available from http://www.multitheftauto.com/
+ *  Multi Theft Auto is available from https://multitheftauto.com/
  *
  *****************************************************************************/
 
 #include "StdInc.h"
+#include "ASE.h"
+#include "CLanBroadcast.h"
+#include "ASEQuerySDK.h"
 
-extern "C"
-{
-    #include "ASEQuerySDK.h"
-}
+using namespace mtasa;
 
 ASE* ASE::_instance = NULL;
 
@@ -49,9 +49,7 @@ ASE::ASE(CMainConfig* pMainConfig, CPlayerManager* pPlayerManager, unsigned shor
     m_strGameType = "MTA:SA";
     m_strMapName = "None";
     m_strIPList = strServerIPList;
-    std::stringstream ss;
-    ss << usPort;
-    m_strPort = ss.str();
+    m_strPort = std::to_string(usPort);
 
     m_strMtaAseVersion = MTA_DM_ASE_VERSION;
 }
@@ -70,17 +68,11 @@ bool ASE::SetPortEnabled(bool bInternetEnabled, bool bLanEnabled)
     ushort usPortReq = m_usPortBase + SERVER_LIST_QUERY_PORT_OFFSET;
 
     // Any change?
-    if ((!m_SocketList.empty()) == bPortEnableReq && m_usPort == usPortReq)
+    if ((!m_sockets.empty()) == bPortEnableReq && m_usPort == usPortReq)
         return true;
 
     m_usPort = usPortReq;
-
-    // Remove current thingmy
-    for (uint s = 0; s < m_SocketList.size(); s++)
-    {
-        closesocket(m_SocketList[s]);
-    }
-    m_SocketList.clear();
+    m_sockets.clear();
 
     if (!bPortEnableReq)
         return true;
@@ -89,44 +81,27 @@ bool ASE::SetPortEnabled(bool bInternetEnabled, bool bLanEnabled)
     // If a local IP has been specified, ensure it is used for sending
     std::vector<SString> ipList;
     m_strIPList.Split(",", ipList);
-    for (uint i = 0; i < ipList.size(); i++)
+
+    for (const SString& ip : ipList)
     {
-        const SString& strIP = ipList[i];
-        sockaddr_in    sockAddr;
-        sockAddr.sin_family = AF_INET;
-        sockAddr.sin_port = htons(m_usPort);
-        if (!strIP.empty())
-            sockAddr.sin_addr.s_addr = inet_addr(strIP);
-        else
-            sockAddr.sin_addr.s_addr = INADDR_ANY;
+        IPAddress address{IPAddress::IPv4Any};
 
-        // Initialize socket
-        SOCKET newSocket = socket(AF_INET, SOCK_DGRAM, 0);
-
-        // If we are in lan only mode, reuse addr to avoid possible conflicts
-        if (bLanOnly)
+        if (!ip.empty())
         {
-            const int Flags = 1;
-            setsockopt(newSocket, SOL_SOCKET, SO_REUSEADDR, (const char*)&Flags, sizeof(Flags));
+            address = IPAddress{ip.c_str()};
+
+            if (!address.IsIPv4())
+                return false;
         }
 
-        // Bind the socket
-        if (::bind(newSocket, (sockaddr*)&sockAddr, sizeof(sockAddr)) != 0)
-        {
-            sockclose(newSocket);
-            newSocket = INVALID_SOCKET;
+        IPSocket   socket{address.GetAddressFamily(), IPSocketProtocol::UDP};
+        IPEndpoint endpoint{address, m_usPort};
+
+        if (!socket.Create() || !socket.SetAddressReuse(true) || !socket.SetNonBlocking(true) || !socket.Bind(endpoint))
             return false;
-        }
 
-        // Set it to non blocking, so we dont have to wait for a packet
-        #ifdef WIN32
-        unsigned long ulNonBlock = 1;
-        ioctlsocket(newSocket, FIONBIO, &ulNonBlock);
-        #else
-        fcntl(newSocket, F_SETFL, fcntl(newSocket, F_GETFL) | O_NONBLOCK);
-        #endif
-
-        m_SocketList.push_back(newSocket);
+        OutputDebugLine(SString("ASE @ %s", endpoint.ToString().c_str()));
+        m_sockets.emplace_back(std::move(socket));
     }
 
     return true;
@@ -134,74 +109,65 @@ bool ASE::SetPortEnabled(bool bInternetEnabled, bool bLanEnabled)
 
 void ASE::DoPulse()
 {
-    if (m_SocketList.empty())
+    if (m_sockets.empty())
         return;
-
-    sockaddr_in SockAddr;
-#ifndef WIN32
-    socklen_t nLen = sizeof(sockaddr);
-#else
-    int nLen = sizeof(sockaddr);
-#endif
 
     m_llCurrentTime = GetTickCount64_();
     m_uiCurrentPlayerCount = m_pPlayerManager->Count();
 
-    char szBuffer[100];            // Extra bytes for future use
+    IPEndpoint            endpoint;
+    std::array<char, 100> buffer{};
 
-    for (uint s = 0; s < m_SocketList.size(); s++)
+    for (IPSocket& socket : m_sockets)
     {
-        SOCKET aseSocket = m_SocketList[s];
-
-        for (uint i = 0; i < 100; i++)
+        for (int i = 0; i < 100; i++)
         {
-            // We set the socket to non-blocking so we can just keep reading
-            int iBuffer = recvfrom(aseSocket, szBuffer, sizeof(szBuffer), 0, (sockaddr*)&SockAddr, &nLen);
-            if (iBuffer < 1)
+            std::string_view data = socket.ReceiveFrom(endpoint, buffer.data(), buffer.size());
+
+            if (data.empty())
                 break;
 
             m_uiNumQueriesTotal++;
 
             if (m_QueryDosProtect.GetTotalFloodingCount() < 100)
-                if (m_QueryDosProtect.AddConnect(inet_ntoa(SockAddr.sin_addr)))
+                if (m_QueryDosProtect.AddConnect(endpoint.GetAddress().ToString()))
                     continue;
 
-            const std::string* strReply = NULL;
+            const std::string* response = nullptr;
 
-            switch (szBuffer[0])
+            switch (data[0])
             {
                 case 's':
                 {            // ASE protocol query
                     m_ulMasterServerQueryCount++;
-                    strReply = QueryFullCached();
+                    response = QueryFullCached();
                     break;
                 }
                 case 'b':
                 {            // Our own lighter query for ingame browser
-                    strReply = QueryLightCached();
+                    response = QueryLightCached();
                     break;
                 }
                 case 'r':
                 {            // Our own lighter query for ingame browser - Release version only
-                    strReply = QueryLightCached();
+                    response = QueryLightCached();
                     break;
                 }
                 case 'x':
                 {            // Our own lighter query for xfire updates
-                    strReply = QueryXfireLightCached();
+                    response = QueryXfireLightCached();
                     break;
                 }
                 case 'v':
                 {            // MTA Version (For further possibilities to quick ping, in case we do multiply master servers)
-                    strReply = &m_strMtaAseVersion;
+                    response = &m_strMtaAseVersion;
                     break;
                 }
             }
 
-            // If our reply buffer isn't empty, send it
-            if (strReply && !strReply->empty())
+            if (response && !response->empty())
             {
-                /*int sent =*/sendto(aseSocket, strReply->c_str(), strReply->length(), 0, (sockaddr*)&SockAddr, nLen);
+                (void)socket.SendTo(endpoint, response->c_str(), response->size());
             }
         }
     }

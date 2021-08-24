@@ -14,7 +14,7 @@
 #include <ctime>
 #include <gui/CGUI.h>
 #include <ServerBrowser/CServerInfo.h>
-#include <net/IPEndPoint.h>
+#include <mtasa/IPEndpoint.h>
 
 class CConnectManager
 {
@@ -44,7 +44,7 @@ public:
 private:
     bool Event_OnCancelClick(CGUIElement* pElement);
 
-    mtasa::IPEndPoint m_endPoint;
+    mtasa::IPEndpoint m_endpoint;
     std::string       m_strHost;
     std::string       m_strNick;
     std::string       m_strPassword;

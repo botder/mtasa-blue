@@ -10,6 +10,7 @@
  *****************************************************************************/
 
 #include "StdInc.h"
+#include "ASE.h"
 
 extern CGame*            g_pGame;
 extern CTimeUsMarker<20> markerLatentEvent;

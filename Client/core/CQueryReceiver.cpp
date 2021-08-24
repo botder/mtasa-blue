@@ -9,48 +9,40 @@
  *****************************************************************************/
 
 #include "StdInc.h"
+#include <WinSock2.h>
+#include <mtasa/SocketAddress.h>
 
 using namespace mtasa;
 
-CQueryReceiver::CQueryReceiver()
+void CQueryReceiver::RequestQuery(const IPEndpoint& endpoint)
 {
-    m_Socket = INVALID_SOCKET;
-}
+    SocketAddress address{};
 
-CQueryReceiver::~CQueryReceiver()
-{
-    InvalidateSocket();
-}
-
-void CQueryReceiver::RequestQuery(const IPEndPoint& endPoint)
-{
-    sockaddr_storage addr;
-    std::size_t      addrSize = sizeof(addr);
-    std::fill_n(reinterpret_cast<std::uint8_t*>(&addr), sizeof(addr), 0);
-    
-    if (!endPoint.ToSocketAddress(reinterpret_cast<sockaddr&>(addr), addrSize))
+    if (!endpoint.ToSocketAddress(reinterpret_cast<sockaddr&>(address), sizeof(address)))
         return;
 
-    if (m_Socket == INVALID_SOCKET)            // Create the socket
+    if (!m_socket.Exists())
     {
-        m_Socket = socket(addr.ss_family, SOCK_DGRAM, IPPROTO_UDP);
+        IPSocket socket{endpoint.GetAddressFamily(), IPSocketProtocol::UDP};
 
-        u_long flag = 1;
-        ioctlsocket(m_Socket, FIONBIO, &flag);            // Nonblocking I/O
+        if (!socket.Create() || !socket.SetNonBlocking(true))
+            return;
+
+        m_socket = std::move(socket);
     }
 
     // Trailing data to work around 1 byte UDP packet filtering
-    int iSendByte = g_pCore->GetNetwork()->SendTo(m_Socket, "r mtasa", 1, 0, reinterpret_cast<sockaddr*>(&addr), addrSize);
+    int bytesWritten = g_pCore->GetNetwork()->SendTo(m_socket.GetHandle(), "r mtasa", 7, 0, reinterpret_cast<sockaddr*>(&address), sizeof(address));
+    OutputDebugLine(SString("%s ~ %d bytes sent", endpoint.ToString().c_str(), bytesWritten));
+
+    int errcode = WSAGetLastError();
+
     m_ElapsedTime.Reset();
 }
 
 void CQueryReceiver::InvalidateSocket()
 {
-    if (m_Socket != INVALID_SOCKET)
-    {
-        closesocket(m_Socket);
-        m_Socket = INVALID_SOCKET;
-    }
+    (void)m_socket.Close();
 }
 
 bool CQueryReceiver::ReadString(std::string& strRead, const char* szBuffer, int& i, int nLength)
@@ -74,19 +66,21 @@ SQueryInfo CQueryReceiver::GetServerResponse()
 {
     SQueryInfo info;
 
-    if (m_Socket == INVALID_SOCKET)
+    if (!m_socket.Exists())
         return info;            // Query not sent
 
-    char szBuffer[SERVER_LIST_QUERY_BUFFER] = {0};
-
     // Poll the socket
-    sockaddr_in clntAddr;
-    int         addrLen = sizeof(clntAddr);
-    int         len = recvfrom(m_Socket, szBuffer, SERVER_LIST_QUERY_BUFFER, MSG_PARTIAL, (sockaddr*)&clntAddr, &addrLen);
+    IPEndpoint                                 endpoint;
+    std::array<char, SERVER_LIST_QUERY_BUFFER> buffer{};
+    std::string_view                           message = m_socket.ReceiveFrom(endpoint, buffer.data(), buffer.size());
 
-    if (len >= 0)
+    if (!message.empty())
     {
+        OutputDebugLine(SString("%s ~ %zu bytes received", endpoint.ToString().c_str(), message.size()));
+
         // Parse data
+        const char* szBuffer = message.data();
+        int         len = message.size();
 
         // Check length
         if (len < 15)

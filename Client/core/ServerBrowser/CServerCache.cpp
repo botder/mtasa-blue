@@ -36,7 +36,7 @@ namespace
 
     // Variables used for saving the server cache file on a separate thread
     static bool                              ms_bIsSaving = false;
-    static std::map<IPEndPoint, CCachedInfo> ms_ServerCachedMap;
+    static std::map<IPEndpoint, CCachedInfo> ms_ServerCachedMap;
 }            // namespace
 
 ///////////////////////////////////////////////////////////////
@@ -65,7 +65,7 @@ protected:
     static void  StaticSaveServerCache();
 
     bool                              m_bListChanged;
-    std::map<IPEndPoint, CCachedInfo> m_ServerCachedMap;
+    std::map<IPEndpoint, CCachedInfo> m_ServerCachedMap;
 };
 
 ///////////////////////////////////////////////////////////////
@@ -143,14 +143,14 @@ bool CServerCache::LoadServerCache()
         const SDataInfoItem& item = dataSet[i];
 
         // TODO(botder): Change `TranslateToIPv4` to `Translate` when we have support for IPv6
-        IPEndPoint endPoint;
+        IPEndpoint endpoint;
 
         if (const SString* pString = MapFind(item.attributeMap, "ip"))
-            endPoint.SetAddress(IPAddress::TranslateToIPv4(*pString));
+            endpoint.SetAddress(IPAddress::TranslateToIPv4(*pString));
         if (const SString* pString = MapFind(item.attributeMap, "port"))
-            endPoint.SetPort(atoi(*pString));
+            endpoint.SetHostOrderPort(atoi(*pString));
 
-        if (!endPoint)
+        if (!endpoint)
             continue;
 
         CCachedInfo info;
@@ -179,7 +179,7 @@ bool CServerCache::LoadServerCache()
         if (const SString* pString = MapFind(item.attributeMap, "strVersion"))
             info.strVersion = *pString;
 
-        MapSet(m_ServerCachedMap, endPoint, info);
+        MapSet(m_ServerCachedMap, endpoint, info);
     }
     return true;
 }
@@ -262,9 +262,9 @@ void CServerCache::StaticSaveServerCache()
 
     // Transfer each item from m_ServerCachedMap into dataSet
     CDataInfoSet dataSet;
-    for (std::map<IPEndPoint, CCachedInfo>::iterator it = ms_ServerCachedMap.begin(); it != ms_ServerCachedMap.end(); ++it)
+    for (std::map<IPEndpoint, CCachedInfo>::iterator it = ms_ServerCachedMap.begin(); it != ms_ServerCachedMap.end(); ++it)
     {
-        const IPEndPoint&  key = it->first;
+        const IPEndpoint&  key = it->first;
         const CCachedInfo& info = it->second;
 
         // Don't save cache of non responding servers
@@ -275,7 +275,7 @@ void CServerCache::StaticSaveServerCache()
         item.strName = "server";
         item.strValue = key.GetAddress().ToString();
         MapSet(item.attributeMap, "ip", item.strValue);
-        MapSet(item.attributeMap, "port", SString("%u", key.GetPort()));
+        MapSet(item.attributeMap, "port", SString("%u", key.GetHostOrderPort()));
         MapSet(item.attributeMap, "nPlayers", info.nPlayers.ToString());
         MapSet(item.attributeMap, "nMaxPlayers", info.nMaxPlayers.ToString());
         MapSet(item.attributeMap, "nPing", info.nPing.ToString());
@@ -307,7 +307,7 @@ void CServerCache::StaticSaveServerCache()
 ///////////////////////////////////////////////////////////////
 void CServerCache::GetServerCachedInfo(CServerListItem* pItem)
 {
-    if (CCachedInfo* pInfo = MapFind(m_ServerCachedMap, pItem->endPoint))
+    if (CCachedInfo* pInfo = MapFind(m_ServerCachedMap, pItem->endpoint))
     {
         if (pItem->ShouldAllowDataQuality(SERVER_INFO_CACHE))
         {
@@ -355,11 +355,11 @@ void CServerCache::GetServerCachedInfo(CServerListItem* pItem)
 ///////////////////////////////////////////////////////////////
 void CServerCache::SetServerCachedInfo(const CServerListItem* pItem)
 {
-    CCachedInfo* pInfo = MapFind(m_ServerCachedMap, pItem->endPoint);
+    CCachedInfo* pInfo = MapFind(m_ServerCachedMap, pItem->endpoint);
     if (!pInfo)
     {
-        MapSet(m_ServerCachedMap, pItem->endPoint, CCachedInfo());
-        pInfo = MapFind(m_ServerCachedMap, pItem->endPoint);
+        MapSet(m_ServerCachedMap, pItem->endpoint, CCachedInfo());
+        pInfo = MapFind(m_ServerCachedMap, pItem->endpoint);
     }
 
     // Check if changed
@@ -402,12 +402,12 @@ void CServerCache::GetServerListCachedInfo(CServerList* pList)
         GetServerCachedInfo(*it);
 
     // Remove servers not in serverlist from cache
-    std::map<IPEndPoint, CCachedInfo> nextServerCachedMap;
+    std::map<IPEndpoint, CCachedInfo> nextServerCachedMap;
     for (CServerListIterator it = pList->IteratorBegin(); it != pList->IteratorEnd(); it++)
     {
         CServerListItem* pItem = *it;
-        if (CCachedInfo* pInfo = MapFind(m_ServerCachedMap, pItem->endPoint))
-            MapSet(nextServerCachedMap, pItem->endPoint, *pInfo);
+        if (CCachedInfo* pInfo = MapFind(m_ServerCachedMap, pItem->endpoint))
+            MapSet(nextServerCachedMap, pItem->endpoint, *pInfo);
     }
     m_ServerCachedMap = nextServerCachedMap;
 }
@@ -421,9 +421,9 @@ void CServerCache::GetServerListCachedInfo(CServerList* pList)
 ///////////////////////////////////////////////////////////////
 bool CServerCache::GenerateServerList(CServerList* pList)
 {
-    for (std::map<IPEndPoint, CCachedInfo>::iterator it = m_ServerCachedMap.begin(); it != m_ServerCachedMap.end(); ++it)
+    for (std::map<IPEndpoint, CCachedInfo>::iterator it = m_ServerCachedMap.begin(); it != m_ServerCachedMap.end(); ++it)
     {
-        const IPEndPoint&  key = it->first;
+        const IPEndpoint&  key = it->first;
         const CCachedInfo& info = it->second;
 
         // Don't add non responding servers

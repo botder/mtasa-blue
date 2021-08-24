@@ -11,8 +11,10 @@
 
 #include "StdInc.h"
 #include "net/SimHeaders.h"
+#include "ASE.h"
+
 #ifdef WIN32
-    #include "Psapi.h"
+    #include <Psapi.h>
 #else
     #include <unistd.h>
     #include <fstream>

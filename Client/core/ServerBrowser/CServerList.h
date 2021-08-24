@@ -20,7 +20,7 @@ class CMasterServerManagerInterface;
 #include <sstream>
 #include <vector>
 #include "CSingleton.h"
-#include <net/IPEndPoint.h>
+#include <mtasa/IPSocket.h>
 
 // Master server list URL
 #define SERVER_LIST_MASTER_URL              "http://master.multitheftauto.com/ase/mta/"
@@ -107,13 +107,13 @@ public:
         Init();
     }
 
-    CServerListItem(const mtasa::IPEndPoint& endPoint, CServerListItemList* pItemList = NULL, bool bAtFront = false);
+    CServerListItem(const mtasa::IPEndpoint& endpoint, CServerListItemList* pItemList = NULL, bool bAtFront = false);
 
     ~CServerListItem();
 
-    void ChangeAddress(const mtasa::IPEndPoint& endPoint);
+    void ChangeAddress(const mtasa::IPEndpoint& endpoint);
 
-    bool operator==(const CServerListItem& other) const { return endPoint == other.endPoint; }
+    bool operator==(const CServerListItem& other) const { return endpoint == other.endpoint; }
 
     void Init()
     {
@@ -138,8 +138,8 @@ public:
         for (int i = 0; i < SERVER_BROWSER_TYPE_COUNT; i++)
             revisionInList[i] = -1;
 
-        strHost = endPoint.GetAddress().ToString();
-        strName = SString("%s:%d", strHost.c_str(), endPoint.GetPort());
+        strHost = endpoint.GetAddress().ToString();
+        strName = SString("%s:%d", strHost.c_str(), endpoint.GetHostOrderPort());
         strEndpoint = strName;
 
         strGameMode = "";
@@ -156,8 +156,8 @@ public:
     void           ResetForRefresh();
     unsigned short GetQueryPort();
 
-    mtasa::IPEndPoint endPointCopy;           // Copy to ensure it doesn't get changed without us knowing
-    mtasa::IPEndPoint endPoint;               // IP-address and Game port
+    mtasa::IPEndpoint endPointCopy;           // Copy to ensure it doesn't get changed without us knowing
+    mtasa::IPEndpoint endpoint;               // IP-address and Game port
     unsigned short    nPlayers;               // Current players
     unsigned short    nMaxPlayers;            // Maximum players
     unsigned short    nPing;                  // Ping time
@@ -295,7 +295,7 @@ typedef std::list<CServerListItem*>::const_reverse_iterator CServerListReverseIt
 class CServerListItemList
 {
     std::list<CServerListItem*>                   m_List;
-    std::map<mtasa::IPEndPoint, CServerListItem*> m_AddressMap;
+    std::map<mtasa::IPEndpoint, CServerListItem*> m_AddressMap;
 
 public:
     std::list<CServerListItem*>& GetList() { return m_List; }
@@ -312,12 +312,12 @@ public:
 
     ~CServerListItemList();
     void             DeleteAll();
-    CServerListItem* Find(const mtasa::IPEndPoint& endPoint);
-    CServerListItem* AddUnique(const mtasa::IPEndPoint& endPoint, bool bAtFront = false);
+    CServerListItem* Find(const mtasa::IPEndpoint& endpoint);
+    CServerListItem* AddUnique(const mtasa::IPEndpoint& endpoint, bool bAtFront = false);
     void             AddNewItem(CServerListItem* pItem, bool bAtFront);
-    bool             Remove(const mtasa::IPEndPoint& endPoint);
+    bool             Remove(const mtasa::IPEndpoint& endpoint);
     void             RemoveItem(CServerListItem* pItem);
-    void             OnItemChangeAddress(CServerListItem* pItem, const mtasa::IPEndPoint& endPoint);
+    void             OnItemChangeAddress(CServerListItem* pItem, const mtasa::IPEndpoint& endpoint);
 };
 
 class CServerList
@@ -337,9 +337,9 @@ public:
     CServerListReverseIterator ReverseIteratorEnd() { return m_Servers.rend(); };
     unsigned int               GetServerCount() { return m_Servers.size(); };
 
-    bool AddUnique(const mtasa::IPEndPoint& endPoint, bool addAtFront = false);
+    bool AddUnique(const mtasa::IPEndpoint& endpoint, bool addAtFront = false);
     void Clear();
-    bool Remove(const mtasa::IPEndPoint& endPoint);
+    bool Remove(const mtasa::IPEndpoint& endpoint);
 
     std::string& GetStatus() { return m_strStatus; };
     bool         IsUpdated() { return m_bUpdated; };
@@ -374,7 +374,6 @@ private:
     CElapsedTime                   m_ElapsedTime;
 };
 
-// TODO(botder): Change this class if we have support for IPv6
 // LAN list (scans for LAN-broadcasted servers on refresh)
 class CServerListLAN : public CServerList
 {
@@ -385,7 +384,6 @@ public:
 private:
     void Discover();
 
-    int           m_Socket;
-    sockaddr_in   m_Remote;
-    unsigned long m_ulStartTime;
+    mtasa::IPSocket m_socket;
+    unsigned long   m_ulStartTime;
 };

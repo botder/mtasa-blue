@@ -150,6 +150,7 @@ workspace "MTASA"
 		group "Shared"
 		include "Shared"
 		include "Shared/XML"
+		include "Shared/sockets"
 
 		group "Vendor"
 		include "vendor/bcrypt"

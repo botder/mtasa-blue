@@ -10,6 +10,7 @@
  *****************************************************************************/
 
 #include "StdInc.h"
+#include "ASE.h"
 #include "net/SimHeaders.h"
 
 extern CGame* g_pGame;

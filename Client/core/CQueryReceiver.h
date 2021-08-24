@@ -10,7 +10,7 @@
 
 #pragma once
 
-#include <net/IPEndPoint.h>
+#include <mtasa/IPSocket.h>
 
 struct SQueryInfo
 {
@@ -49,24 +49,21 @@ struct SQueryInfo
     std::vector<SString> playersPool;
 };
 
-class CQueryReceiver
+class CQueryReceiver final
 {
 public:
-    CQueryReceiver();
-    ~CQueryReceiver();
-
-    void RequestQuery(const mtasa::IPEndPoint& endPoint);
+    void RequestQuery(const mtasa::IPEndpoint& endpoint);
     void InvalidateSocket();
 
     SQueryInfo GetServerResponse();
 
     uint GetElapsedTimeSinceLastQuery() { return static_cast<uint>(m_ElapsedTime.Get()); };
 
-    bool IsSocketValid() const { return (m_Socket != INVALID_SOCKET); }
+    bool IsSocketValid() const { return m_socket.Exists(); }
 
 private:
     bool ReadString(std::string& strRead, const char* szBuffer, int& i, int nLength);
 
-    SOCKET       m_Socket;
-    CElapsedTime m_ElapsedTime;
+    mtasa::IPSocket m_socket;
+    CElapsedTime    m_ElapsedTime;
 };

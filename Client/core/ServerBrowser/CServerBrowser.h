@@ -27,7 +27,7 @@ class CServerBrowser;
 #include "CSingleton.h"
 #include "CServerInfo.h"
 #include <ctime>
-#include <net/IPEndPoint.h>
+#include <mtasa/IPEndpoint.h>
 
 namespace ServerBrowserTypes
 {
@@ -98,13 +98,13 @@ public:
     unsigned short   FindServerHttpPort(const std::string& strHost, unsigned short usPort);
     void             UpdateRowIndexMembers(ServerBrowserType Type);
     void             UpdateSelectedServerPlayerList(ServerBrowserType Type);
-    void             GetVisibleEndPointList(std::vector<mtasa::IPEndPoint>& outEndpointList);
+    void             GetVisibleEndPointList(std::vector<mtasa::IPEndpoint>& outEndpointList);
 
     bool IsAddressBarAwaitingInput();
     void SetNextHistoryText(bool bDown);
 
     void OnQuickConnectButtonClick();
-    void NotifyServerExists(const mtasa::IPEndPoint& endPoint);
+    void NotifyServerExists(const mtasa::IPEndpoint& endpoint);
 
     void TabSkip(bool bBackwards);
 

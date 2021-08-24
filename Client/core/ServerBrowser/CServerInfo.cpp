@@ -342,10 +342,10 @@ void CServerInfo::SetServerInformation(const char* szHost, unsigned short usPort
 
     // TODO(botder): Change this to `Translate` if we have support for IPv6
     // Create a winsock address endpoint and parse the IP into it
-    IPEndPoint endPoint(IPAddress::TranslateToIPv4(szHost), usPort);
+    IPEndpoint endpoint(IPAddress::TranslateToIPv4(szHost), usPort);
 
     // Set our server query's address, query port and game port
-    m_Server.ChangeAddress(endPoint);
+    m_Server.ChangeAddress(endpoint);
 
     if (pInitialServerListItem)            // If we have a pointer to an already scanned server, we initially set text to this
         ResetServerGUI(pInitialServerListItem);
@@ -459,7 +459,7 @@ void CServerInfo::Connect()
 
         if (strPassword.empty())            // No password could be found, repopup the window in password mode.
         {
-            Show(eWindowTypes::SERVER_INFO_PASSWORD, m_Server.strHost.c_str(), m_Server.endPoint.GetPort(), "", &m_Server);
+            Show(eWindowTypes::SERVER_INFO_PASSWORD, m_Server.strHost.c_str(), m_Server.endpoint.GetHostOrderPort(), "", &m_Server);
             return;
         }
     }

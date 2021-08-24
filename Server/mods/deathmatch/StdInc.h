@@ -1,8 +1,7 @@
 #ifdef WIN32
-
-#include <winsock2.h>
-#include <windows.h>
-#include <mmsystem.h>
+    #include <winsock2.h>
+    #include <windows.h>
+    #include <mmsystem.h>
 #endif
 
 #include <string.h>
@@ -175,8 +174,6 @@ struct SAclRequest;
 #include "lua/CLuaShared.h"
 
 // Logic includes
-#include "ASE.h"
-#include "ASEQuerySDK.h"
 #include "CAccessControlList.h"
 #include "CAccessControlListGroup.h"
 #include "CAccessControlListManager.h"
@@ -223,7 +220,6 @@ struct SAclRequest;
 #include "CHandlingEntry.h"
 #include "CHandlingManager.h"
 #include "CKeyBinds.h"
-#include "CLanBroadcast.h"
 #include "CLightsyncManager.h"
 #include "CLogger.h"
 #include "CMainConfig.h"

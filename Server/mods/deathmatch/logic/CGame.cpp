@@ -10,15 +10,14 @@
  *****************************************************************************/
 
 #include "StdInc.h"
+#include "CLanBroadcast.h"
 #include "../utils/COpenPortsTester.h"
 #include "../utils/CMasterServerAnnouncer.h"
 #include "../utils/CHqComms.h"
 #include "../utils/CFunctionUseLogger.h"
 #include "net/SimHeaders.h"
+#include <mtasa/IPAddress.h>
 #include <signal.h>
-
-#include <net/IPAddress.h>
-#include <net/IPAddress.hpp>
 
 #define MAX_BULLETSYNC_DISTANCE 400.0f
 #define MAX_EXPLOSION_SYNC_DISTANCE 400.0f

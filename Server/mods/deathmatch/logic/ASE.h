@@ -1,38 +1,17 @@
 /*****************************************************************************
  *
- *  PROJECT:     Multi Theft Auto v1.0
+ *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
  *  FILE:        mods/deathmatch/logic/ASE.h
  *  PURPOSE:     All-Seeing Eye server query protocol handler class
  *
- *  Multi Theft Auto is available from http://www.multitheftauto.com/
+ *  Multi Theft Auto is available from https://multitheftauto.com/
  *
  *****************************************************************************/
 
-class ASE;
-
 #pragma once
 
-#ifdef WIN32
-    #include <conio.h>
-    #define sockclose closesocket
-#else
-    #include <sys/socket.h>
-    #include <sys/stat.h>
-    #include <netinet/in.h>
-    #include <arpa/inet.h>
-    #define sockclose close
-typedef int SOCKET;
-#endif
-
-#include <string.h>
-#include <stdio.h>
-
-#include "CMainConfig.h"
-#include "CPlayerManager.h"
-#include "CPlayer.h"
-
-#include <list>
+#include <mtasa/IPSocket.h>
 
 #define MAX_ASE_GAME_TYPE_LENGTH    200
 #define MAX_ASE_MAP_NAME_LENGTH     200
@@ -99,9 +78,9 @@ private:
     static ASE* _instance;
     time_t      m_tStartTime;
 
-    list<CASERule*> m_Rules;
+    std::list<CASERule*> m_Rules;
 
-    std::vector<SOCKET> m_SocketList;
+    std::vector<mtasa::IPSocket> m_sockets;
 
     unsigned short m_usPortBase;
     unsigned short m_usPort;

@@ -8,6 +8,8 @@
  *
  *****************************************************************************/
 
+#include "ASE.h"
+
 struct SMasterServerDefinition
 {
     bool    bAcceptsPush;

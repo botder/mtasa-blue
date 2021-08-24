@@ -99,8 +99,8 @@ bool CConnectManager::Connect(const char* szHost, unsigned short usPort, const c
     m_strPassword = szPassword;
 
     // TODO(botder): Change this to `Translate` if we have support for IPv6
-    m_endPoint.SetAddress(IPAddress::TranslateToIPv4(szHost));
-    m_endPoint.SetPort(usPort);
+    m_endpoint.SetAddress(IPAddress::TranslateToIPv4(szHost));
+    m_endpoint.SetHostOrderPort(usPort);
 
     if (szSecret)
         m_strDiscordSecretJoin = szSecret;
@@ -112,7 +112,7 @@ bool CConnectManager::Connect(const char* szHost, unsigned short usPort, const c
     m_strLastPassword = m_strPassword;
     
     // Verify the endpoint
-    if (!m_endPoint)
+    if (!m_endpoint)
     {
         SString strBuffer = _("Connecting failed. Invalid host provided!");
         CCore::GetSingleton().ShowMessageBox(_("Error") + _E("CC21"), strBuffer, MB_BUTTON_OK | MB_ICON_ERROR);            // Invalid host provided
@@ -127,7 +127,7 @@ bool CConnectManager::Connect(const char* szHost, unsigned short usPort, const c
     pNet->RegisterPacketHandler(CConnectManager::StaticProcessPacket);
 
     // Try to start a network to connect
-    if (usPort && !pNet->StartNetwork(m_endPoint.GetAddress().ToString().c_str(), usPort, CVARS_GET_VALUE<bool>("packet_tag")))
+    if (usPort && !pNet->StartNetwork(m_endpoint.GetAddress().ToString().c_str(), usPort, CVARS_GET_VALUE<bool>("packet_tag")))
     {
         SString strBuffer(_("Connecting to %s at port %u failed!"), m_strHost.c_str(), usPort);
         CCore::GetSingleton().ShowMessageBox(_("Error") + _E("CC22"), strBuffer, MB_BUTTON_OK | MB_ICON_ERROR);            // Failed to connect
@@ -144,10 +144,10 @@ bool CConnectManager::Connect(const char* szHost, unsigned short usPort, const c
 
     // Start server version detection
     SAFE_DELETE(m_pServerItem);
-    m_pServerItem = new CServerListItem(m_endPoint);
+    m_pServerItem = new CServerListItem(m_endpoint);
     m_pServerItem->m_iTimeoutLength = 2000;
     m_bIsDetectingVersion = true;
-    OpenServerFirewall(m_endPoint.GetAddress(), CServerBrowser::GetSingletonPtr()->FindServerHttpPort(m_strHost, usPort), true);
+    OpenServerFirewall(m_endpoint.GetAddress(), CServerBrowser::GetSingletonPtr()->FindServerHttpPort(m_strHost, usPort), true);
 
     // Display the status box
     SString strBuffer(_("Connecting to %s:%u ..."), m_strHost.c_str(), usPort);
@@ -163,11 +163,11 @@ bool CConnectManager::Reconnect(const char* szHost, unsigned short usPort, const
     unsigned int uiPort = 0;
     CVARS_GET("host", m_strHost);
     CVARS_GET("port", uiPort);
-    m_endPoint.SetPort(uiPort);
+    m_endpoint.SetHostOrderPort(uiPort);
 
     // If keeping the same host & port, retrieve the password as well
     if (!szHost || !szHost[0] || m_strHost == szHost)
-        if (usPort == 0 || m_endPoint.GetPort() == usPort)
+        if (usPort == 0 || m_endpoint.GetHostOrderPort() == usPort)
             CVARS_GET("password", m_strPassword);
 
     // Allocate a new host and nick buffer and store the strings in them
@@ -182,7 +182,7 @@ bool CConnectManager::Reconnect(const char* szHost, unsigned short usPort, const
 
     if (usPort)
     {
-        m_endPoint.SetPort(usPort);
+        m_endpoint.SetHostOrderPort(usPort);
     }
 
     m_bSave = bSave;
@@ -214,7 +214,7 @@ bool CConnectManager::Abort()
     m_strNick = "";
     m_strPassword = "";
 
-    m_endPoint.Invalidate();
+    m_endpoint.Invalidate();
     m_bIsConnecting = false;
     m_bIsDetectingVersion = false;
     m_tConnectStarted = 0;
@@ -243,7 +243,7 @@ void CConnectManager::DoPulse()
                 if (m_pServerItem->bScanned && m_pServerItem->strVersion != MTA_DM_ASE_VERSION)
                 {
                     // Version mis-match. See about launching compatible .exe
-                    GetVersionUpdater()->InitiateSidegradeLaunch(m_pServerItem->strVersion, m_strHost.c_str(), m_endPoint.GetPort(), m_strNick.c_str(),
+                    GetVersionUpdater()->InitiateSidegradeLaunch(m_pServerItem->strVersion, m_strHost.c_str(), m_endpoint.GetHostOrderPort(), m_strNick.c_str(),
                                                                  m_strPassword.c_str());
                     Abort();
                     return;
@@ -257,7 +257,7 @@ void CConnectManager::DoPulse()
         if (iConnectTimeDelta >= 4 && !m_bHasTriedSecondConnect && g_pCore->GetNetwork()->GetExtendedErrorCode() == 0)
         {
             m_bHasTriedSecondConnect = true;
-            g_pCore->GetNetwork()->StartNetwork(m_endPoint.GetAddress().ToString().c_str(), m_endPoint.GetPort(), CVARS_GET_VALUE<bool>("packet_tag"));
+            g_pCore->GetNetwork()->StartNetwork(m_endpoint.GetAddress().ToString().c_str(), m_endpoint.GetHostOrderPort(), CVARS_GET_VALUE<bool>("packet_tag"));
         }
 
         // Time to timeout the connection?
@@ -298,7 +298,8 @@ void CConnectManager::DoPulse()
                         strErrorCode = _E("CC27");
                         break;
                     case RID_NO_FREE_INCOMING_CONNECTIONS:
-                        CServerInfo::GetSingletonPtr()->Show(eWindowTypes::SERVER_INFO_QUEUE, m_strHost.c_str(), m_endPoint.GetPort(), m_strPassword.c_str());
+                        CServerInfo::GetSingletonPtr()->Show(eWindowTypes::SERVER_INFO_QUEUE, m_strHost.c_str(), m_endpoint.GetHostOrderPort(),
+                                                             m_strPassword.c_str());
                         break;
                     case RID_DISCONNECTION_NOTIFICATION:
                         strError = _("Disconnected: disconnected from the server");
@@ -309,7 +310,7 @@ void CConnectManager::DoPulse()
                         strErrorCode = _E("CC29");
                         break;
                     case RID_INVALID_PASSWORD:
-                        CServerInfo::GetSingletonPtr()->Show(eWindowTypes::SERVER_INFO_PASSWORD, m_strHost.c_str(), m_endPoint.GetPort(),
+                        CServerInfo::GetSingletonPtr()->Show(eWindowTypes::SERVER_INFO_PASSWORD, m_strHost.c_str(), m_endpoint.GetHostOrderPort(),
                                                              m_strPassword.c_str());
                         break;
                     default:
@@ -342,7 +343,7 @@ void CConnectManager::DoPulse()
     {
         std::string strNick;
         CVARS_GET("nick", strNick);
-        Connect(m_strHost.c_str(), m_endPoint.GetPort(), strNick.c_str(), m_strPassword.c_str(), false);
+        Connect(m_strHost.c_str(), m_endpoint.GetHostOrderPort(), strNick.c_str(), m_strPassword.c_str(), false);
         m_bReconnect = false;
     }
 }
@@ -379,12 +380,12 @@ bool CConnectManager::StaticProcessPacket(unsigned char ucPacketID, NetBitStream
                 if (g_pConnectManager->m_bSave)
                 {
                     CVARS_SET("host", g_pConnectManager->m_strHost);
-                    CVARS_SET("port", g_pConnectManager->m_endPoint.GetPort());
+                    CVARS_SET("port", g_pConnectManager->m_endpoint.GetHostOrderPort());
                     CVARS_SET("password", g_pConnectManager->m_strPassword);
                 }
 
-                SetApplicationSetting("last-server-ip", g_pConnectManager->m_endPoint.GetAddress().ToHexString());
-                SetApplicationSettingInt("last-server-port", g_pConnectManager->m_endPoint.GetPort());
+                SetApplicationSetting("last-server-ip", g_pConnectManager->m_endpoint.GetAddress().ToHexString());
+                SetApplicationSettingInt("last-server-port", g_pConnectManager->m_endpoint.GetHostOrderPort());
                 SetApplicationSettingInt("last-server-time", _time32(NULL));
 
                 // Kevuwk: Forced the config to save here so that the IP/Port isn't lost on crash
@@ -395,7 +396,7 @@ bool CConnectManager::StaticProcessPacket(unsigned char ucPacketID, NetBitStream
                 g_pConnectManager->m_strHost = "";
                 g_pConnectManager->m_strPassword = "";
 
-                g_pConnectManager->m_endPoint.Invalidate();
+                g_pConnectManager->m_endpoint.Invalidate();
                 g_pConnectManager->m_bIsConnecting = false;
                 g_pConnectManager->m_bIsDetectingVersion = false;
                 g_pConnectManager->m_tConnectStarted = 0;
@@ -452,7 +453,7 @@ void CConnectManager::OnServerExists()
     if (m_bNotifyServerBrowser)
     {
         m_bNotifyServerBrowser = false;
-        CServerBrowser::GetSingletonPtr()->NotifyServerExists(m_endPoint);
+        CServerBrowser::GetSingletonPtr()->NotifyServerExists(m_endpoint);
     }
 }
 

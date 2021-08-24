@@ -2,7 +2,7 @@
  *
  *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
- *  FILE:        Shared/sdk/net/IPAddress.h
+ *  FILE:        Shared/sockets/mtasa/IPAddress.h
  *
  *  Multi Theft Auto is available from https://multitheftauto.com/
  *
@@ -10,88 +10,81 @@
 
 #pragma once
 
-// The code below requires at least C++17 support
-#if __cplusplus >= 201703L
-
+#include "IPAddressFamily.h"
 #include <array>
 #include <vector>
 #include <cstdint>
 #include <string>
 #include <optional>
 
-struct sockaddr;
 struct sockaddr_in;
 struct sockaddr_in6;
 
 namespace mtasa
 {
-    enum class IPAddressFamily : std::uint8_t
-    {
-        Invalid,
-        IPv4,
-        IPv6,
-    };
-
     class IPAddress final
     {
+    public:
+        static IPAddress IPv4Any;
+        static IPAddress IPv4Localhost;
+        static IPAddress IPv4Broadcast;
+
+        static IPAddress IPv6Any;
+        static IPAddress IPv6Localhost;
+
     public:
         // Constructs an invalid address (IPv4 nor IPv6)
         constexpr IPAddress() = default;
 
         // Constructs an IPv4 address from four 8-bit integers in network byte order (a.b.c.d)
         explicit constexpr IPAddress(std::uint8_t a, std::uint8_t b, std::uint8_t c, std::uint8_t d)
-            : m_bytes{ a, b, c, d }
-            , m_addressFamily{ IPAddressFamily::IPv4 }
-        {}
+            : m_bytes{a, b, c, d}, m_addressFamily{IPAddressFamily::IPv4}
+        {
+        }
 
         // Constructs an IPv4 address from an 8-bit integer array in network byte order (bytes[0].bytes[1].bytes[2].bytes[3])
         explicit constexpr IPAddress(const std::array<std::uint8_t, 4>& bytes)
-            : m_bytes{ bytes[0], bytes[1], bytes[2], bytes[3] }
-            , m_addressFamily{ IPAddressFamily::IPv4 }
-        {}
+            : m_bytes{bytes[0], bytes[1], bytes[2], bytes[3]}, m_addressFamily{IPAddressFamily::IPv4}
+        {
+        }
 
         // Constructs an IPv4 address from a single 32-bit integer in network byte order (<byte 1>.<byte 2>.<byte 3>.<byte 4>)
         explicit constexpr IPAddress(std::uint32_t a)
-            : m_bytes{ static_cast<std::uint8_t>(a & 0xFF)
-                     , static_cast<std::uint8_t>((a >> 8) & 0xFF)
-                     , static_cast<std::uint8_t>((a >> 16) & 0xFF)
-                     , static_cast<std::uint8_t>((a >> 24) & 0xFF) }
-            , m_addressFamily{ IPAddressFamily::IPv4 }
-        {}
+            : m_bytes{static_cast<std::uint8_t>(a & 0xFF), static_cast<std::uint8_t>((a >> 8) & 0xFF), static_cast<std::uint8_t>((a >> 16) & 0xFF),
+                      static_cast<std::uint8_t>((a >> 24) & 0xFF)},
+              m_addressFamily{IPAddressFamily::IPv4}
+        {
+        }
 
         // Constructs an IPv6 address from eight 16-bit integers in network byte order (a:b:c:d:e:f:g:h).
         // Each 16-bit quartet must be coded in host endianness.
-        explicit constexpr IPAddress(std::uint16_t a, std::uint16_t b, std::uint16_t c, std::uint16_t d,
-                                     std::uint16_t e, std::uint16_t f, std::uint16_t g, std::uint16_t h)
-            : m_bytes{ static_cast<std::uint8_t>((a >> 8) & 0xFF), static_cast<std::uint8_t>(a & 0xFF)
-                     , static_cast<std::uint8_t>((b >> 8) & 0xFF), static_cast<std::uint8_t>(b & 0xFF)
-                     , static_cast<std::uint8_t>((c >> 8) & 0xFF), static_cast<std::uint8_t>(c & 0xFF)
-                     , static_cast<std::uint8_t>((d >> 8) & 0xFF), static_cast<std::uint8_t>(d & 0xFF)
-                     , static_cast<std::uint8_t>((e >> 8) & 0xFF), static_cast<std::uint8_t>(e & 0xFF)
-                     , static_cast<std::uint8_t>((f >> 8) & 0xFF), static_cast<std::uint8_t>(f & 0xFF)
-                     , static_cast<std::uint8_t>((g >> 8) & 0xFF), static_cast<std::uint8_t>(g & 0xFF)
-                     , static_cast<std::uint8_t>((h >> 8) & 0xFF), static_cast<std::uint8_t>(h & 0xFF) }
-            , m_addressFamily{ IPAddressFamily::IPv6 }
-        {}
+        explicit constexpr IPAddress(std::uint16_t a, std::uint16_t b, std::uint16_t c, std::uint16_t d, std::uint16_t e, std::uint16_t f, std::uint16_t g,
+                                     std::uint16_t h)
+            : m_bytes{static_cast<std::uint8_t>((a >> 8) & 0xFF), static_cast<std::uint8_t>(a & 0xFF),        static_cast<std::uint8_t>((b >> 8) & 0xFF),
+                      static_cast<std::uint8_t>(b & 0xFF),        static_cast<std::uint8_t>((c >> 8) & 0xFF), static_cast<std::uint8_t>(c & 0xFF),
+                      static_cast<std::uint8_t>((d >> 8) & 0xFF), static_cast<std::uint8_t>(d & 0xFF),        static_cast<std::uint8_t>((e >> 8) & 0xFF),
+                      static_cast<std::uint8_t>(e & 0xFF),        static_cast<std::uint8_t>((f >> 8) & 0xFF), static_cast<std::uint8_t>(f & 0xFF),
+                      static_cast<std::uint8_t>((g >> 8) & 0xFF), static_cast<std::uint8_t>(g & 0xFF),        static_cast<std::uint8_t>((h >> 8) & 0xFF),
+                      static_cast<std::uint8_t>(h & 0xFF)},
+              m_addressFamily{IPAddressFamily::IPv6}
+        {
+        }
 
         // Constructs an IPv6 address from an 8-bit integer array in network byte order (bytes[0]bytes[1]:bytes[2]bytes[3]:...)
-        explicit constexpr IPAddress(const std::array<std::uint8_t, 16>& bytes)
-            : m_bytes{ bytes }
-            , m_addressFamily{ IPAddressFamily::IPv6 }
-        {}
+        explicit constexpr IPAddress(const std::array<std::uint8_t, 16>& bytes) : m_bytes{bytes}, m_addressFamily{IPAddressFamily::IPv6} {}
 
         // Constructs an IPv4 address from a socket address
-        explicit IPAddress(const sockaddr_in* address);
+        explicit IPAddress(const sockaddr_in& address);
 
         // Constructs an IPv6 address from a socket address
-        explicit IPAddress(const sockaddr_in6* address);
+        explicit IPAddress(const sockaddr_in6& address);
 
         // Constructs an IPAddress from a string representation. This supports the following representations:
         // 1) [IPv4] "a.b.c.d" - each part specifies a byte [0-255]
         // 2) [IPv4] "a.b.c" - a and b specify a byte [0-255], c is interpreted as a 16-bit value
         // 3) [IPv4] "a.b" - a specifies a byte [0-255], b is interpreted as a 24-bit value
-        // 4) [IPv4] "a" - a is interpreted as a 32-bit value
-        // NOTE: In all of the above forms, components can be specified in decimal, octal (leading 0) or hexadecimal (leading 0X).
+        // 4) [IPv4] "x" - x is interpreted as a 32-bit value
+        // NOTE: In all the above forms, components can be specified in decimal, octal (leading 0) or hexadecimal (leading 0X).
         // 5) [IPv6] "x:x:x:x:x:x:x:x - each x is a 16-bit value with up to 4 hex digits
         // 6) [IPv6] "x:x:x:x:x:x:d.d.d.d" - each x is a 16-bit value with up to 4 hex digits, each d specifies a byte [0-255]
         // NOTE: A series of contiguous zero values, in the IPv6 format, can be abbreviated to "::" and there can be only one instance of "::" in an address.
@@ -105,7 +98,7 @@ namespace mtasa
             if (m_addressFamily != IPAddressFamily::IPv4)
                 return {};
 
-            return { { m_bytes[0], m_bytes[1], m_bytes[2], m_bytes[3] } };
+            return {{m_bytes[0], m_bytes[1], m_bytes[2], m_bytes[3]}};
         }
 
         [[nodiscard]] constexpr std::optional<std::array<std::uint8_t, 16>> GetIPv6Bytes() const noexcept
@@ -113,12 +106,12 @@ namespace mtasa
             if (m_addressFamily != IPAddressFamily::IPv6)
                 return {};
 
-            return { m_bytes };
+            return {m_bytes};
         }
 
     public:
-        // Returns true if this is neither an IPv4 or IPv6 address
-        [[nodiscard]] constexpr bool IsInvalid() const noexcept { return m_addressFamily == IPAddressFamily::Invalid; }
+        // Returns true if this is neither an IPv4 nor IPv6 address
+        [[nodiscard]] constexpr bool IsInvalid() const noexcept { return m_addressFamily == IPAddressFamily::Unspecified; }
 
         // Returns true if this is an IPv4 address
         [[nodiscard]] constexpr bool IsIPv4() const noexcept { return m_addressFamily == IPAddressFamily::IPv4; }
@@ -136,7 +129,7 @@ namespace mtasa
                 case IPAddressFamily::IPv4:
                 case IPAddressFamily::IPv6:
                     return *this == CreateUnspecified(m_addressFamily);
-                case IPAddressFamily::Invalid:
+                case IPAddressFamily::Unspecified:
                 default:
                     return false;
             }
@@ -153,7 +146,7 @@ namespace mtasa
                     return m_bytes[0] == 127;
                 case IPAddressFamily::IPv6:
                     return *this == CreateLocalhost(IPAddressFamily::IPv6);
-                case IPAddressFamily::Invalid:
+                case IPAddressFamily::Unspecified:
                 default:
                     return false;
             }
@@ -168,7 +161,7 @@ namespace mtasa
                 case IPAddressFamily::IPv4:
                     return m_bytes[0] == 10 || (m_bytes[0] == 172 && (m_bytes[1] & 0xF0) == 16) || (m_bytes[0] == 192 && m_bytes[1] == 168);
                 case IPAddressFamily::IPv6:
-                case IPAddressFamily::Invalid:
+                case IPAddressFamily::Unspecified:
                 default:
                     return false;
             }
@@ -183,7 +176,7 @@ namespace mtasa
                 case IPAddressFamily::IPv4:
                     return m_bytes[0] == 100 && (m_bytes[1] & 0xC0) == 64;
                 case IPAddressFamily::IPv6:
-                case IPAddressFamily::Invalid:
+                case IPAddressFamily::Unspecified:
                 default:
                     return false;
             }
@@ -200,7 +193,7 @@ namespace mtasa
                     return m_bytes[0] == 169 && m_bytes[1] == 254;
                 case IPAddressFamily::IPv6:
                     return m_bytes[0] == 0xFE && (m_bytes[1] & 0xC0) == 0x80;
-                case IPAddressFamily::Invalid:
+                case IPAddressFamily::Unspecified:
                 default:
                     return false;
             }
@@ -217,7 +210,7 @@ namespace mtasa
                     return (m_bytes[0] & 0xF0) == 224;
                 case IPAddressFamily::IPv6:
                     return m_bytes[0] == 0xFF;
-                case IPAddressFamily::Invalid:
+                case IPAddressFamily::Unspecified:
                 default:
                     return false;
             }
@@ -232,7 +225,7 @@ namespace mtasa
                 case IPAddressFamily::IPv4:
                     return *this == CreateBroadcast();
                 case IPAddressFamily::IPv6:
-                case IPAddressFamily::Invalid:
+                case IPAddressFamily::Unspecified:
                 default:
                     return false;
             }
@@ -246,13 +239,11 @@ namespace mtasa
             switch (m_addressFamily)
             {
                 case IPAddressFamily::IPv4:
-                    return (m_bytes[0] == 192 && m_bytes[1] == 0   && m_bytes[2] == 2)
-                        || (m_bytes[0] == 198 && m_bytes[1] == 51  && m_bytes[2] == 100)
-                        || (m_bytes[0] == 203 && m_bytes[1] == 0   && m_bytes[2] == 113)
-                        || (m_bytes[0] == 233 && m_bytes[1] == 252 && m_bytes[2] == 0);
+                    return (m_bytes[0] == 192 && m_bytes[1] == 0 && m_bytes[2] == 2) || (m_bytes[0] == 198 && m_bytes[1] == 51 && m_bytes[2] == 100) ||
+                           (m_bytes[0] == 203 && m_bytes[1] == 0 && m_bytes[2] == 113) || (m_bytes[0] == 233 && m_bytes[1] == 252 && m_bytes[2] == 0);
                 case IPAddressFamily::IPv6:
                     return m_bytes[0] == 0x20 && m_bytes[1] == 1 && m_bytes[2] == 0x0D && m_bytes[3] == 0xB8;
-                case IPAddressFamily::Invalid:
+                case IPAddressFamily::Unspecified:
                 default:
                     return false;
             }
@@ -269,7 +260,7 @@ namespace mtasa
                     return (m_bytes[0] == 198 && (m_bytes[1] & 0xFE) == 18);
                 case IPAddressFamily::IPv6:
                     return (m_bytes[0] == 0x20 && m_bytes[1] == 1 && m_bytes[2] == 0 && m_bytes[3] == 2 && m_bytes[4] == 0);
-                case IPAddressFamily::Invalid:
+                case IPAddressFamily::Unspecified:
                 default:
                     return false;
             }
@@ -286,7 +277,7 @@ namespace mtasa
                     return m_bytes[0] == 192 && m_bytes[1] == 0 && m_bytes[2] == 0;
                 case IPAddressFamily::IPv6:
                     return m_bytes[0] == 0x20 && m_bytes[1] == 1 && (m_bytes[2] & 0xFE) == 0;
-                case IPAddressFamily::Invalid:
+                case IPAddressFamily::Unspecified:
                 default:
                     return false;
             }
@@ -299,10 +290,10 @@ namespace mtasa
             switch (m_addressFamily)
             {
                 case IPAddressFamily::IPv6:
-                    return m_bytes[0]  == 1 && m_bytes[1]  == 0 && m_bytes[2]  == 0 && m_bytes[3]  == 0
-                        && m_bytes[4]  == 0 && m_bytes[5]  == 0 && m_bytes[6]  == 0 && m_bytes[7]  == 0;
+                    return m_bytes[0] == 1 && m_bytes[1] == 0 && m_bytes[2] == 0 && m_bytes[3] == 0 && m_bytes[4] == 0 && m_bytes[5] == 0 && m_bytes[6] == 0 &&
+                           m_bytes[7] == 0;
                 case IPAddressFamily::IPv4:
-                case IPAddressFamily::Invalid:
+                case IPAddressFamily::Unspecified:
                 default:
                     return false;
             }
@@ -315,11 +306,10 @@ namespace mtasa
             switch (m_addressFamily)
             {
                 case IPAddressFamily::IPv6:
-                    return m_bytes[0] == 0 && m_bytes[1] == 0 && m_bytes[2]  == 0    && m_bytes[3]  == 0
-                        && m_bytes[4] == 0 && m_bytes[5] == 0 && m_bytes[6]  == 0    && m_bytes[7]  == 0
-                        && m_bytes[8] == 0 && m_bytes[9] == 0 && m_bytes[10] == 0xFF && m_bytes[11] == 0xFF;
+                    return m_bytes[0] == 0 && m_bytes[1] == 0 && m_bytes[2] == 0 && m_bytes[3] == 0 && m_bytes[4] == 0 && m_bytes[5] == 0 && m_bytes[6] == 0 &&
+                           m_bytes[7] == 0 && m_bytes[8] == 0 && m_bytes[9] == 0 && m_bytes[10] == 0xFF && m_bytes[11] == 0xFF;
                 case IPAddressFamily::IPv4:
-                case IPAddressFamily::Invalid:
+                case IPAddressFamily::Unspecified:
                 default:
                     return false;
             }
@@ -333,12 +323,17 @@ namespace mtasa
             {
                 case IPAddressFamily::IPv4:
                 {
-                    return IPAddress{ 0, 0, 0, 0, 0, 0xFFFF
-                                    , static_cast<std::uint16_t>((m_bytes[0] << 8u) | m_bytes[1])
-                                    , static_cast<std::uint16_t>((m_bytes[2] << 8u) | m_bytes[3]) };
+                    return IPAddress{0,
+                                     0,
+                                     0,
+                                     0,
+                                     0,
+                                     0xFFFF,
+                                     static_cast<std::uint16_t>((m_bytes[0] << 8u) | m_bytes[1]),
+                                     static_cast<std::uint16_t>((m_bytes[2] << 8u) | m_bytes[3])};
                 }
                 case IPAddressFamily::IPv6:
-                case IPAddressFamily::Invalid:
+                case IPAddressFamily::Unspecified:
                 default:
                     return IPAddress{};
             }
@@ -351,18 +346,28 @@ namespace mtasa
             {
                 case IPAddressFamily::IPv6:
                     if (IsIPv4Mapped())
-                        return IPAddress{ m_bytes[12], m_bytes[13], m_bytes[14], m_bytes[15] };
+                        return IPAddress{m_bytes[12], m_bytes[13], m_bytes[14], m_bytes[15]};
                     else
                         return IPAddress{};
                 case IPAddressFamily::IPv4:
-                case IPAddressFamily::Invalid:
+                case IPAddressFamily::Unspecified:
                 default:
                     return IPAddress{};
             }
         }
 
+        // Returns a string representation of the ip address ("a.b.c.d" for IPv4, "x:x:x:x:x:x:x:x" for IPv6)
         [[nodiscard]] std::string ToString() const;
+
+        // Fills the buffer with a string representation of the ip address ("a.b.c.d" for IPv4, "x:x:x:x:x:x:x:x" for IPv6)
+        // For an IPv4 address the buffer size should be at least 16 and for an IPv6 address it should be at least 46.
+        [[nodiscard]] std::string_view ToString(char* buffer, std::size_t bufferSize) const;
+
+        // Returns a hex string representation of the ip address ("AABBCCDD" for IPv4, "AABBCCDDAABBCCDDAABBCCDDAABBCCDD" for IPv6)
         [[nodiscard]] std::string ToHexString() const;
+
+        // Fills the buffer with a hex string representation of the ip address ("AABBCCDD" for IPv4, "AABBCCDDAABBCCDDAABBCCDDAABBCCDD" for IPv6)
+        [[nodiscard]] std::string_view ToHexString(char* buffer, std::size_t bufferSize) const;
 
     public:
         [[nodiscard]] constexpr int Compare(const IPAddress& other) const noexcept
@@ -370,7 +375,7 @@ namespace mtasa
             if (m_addressFamily != other.m_addressFamily)
                 return static_cast<std::int8_t>(m_addressFamily) - static_cast<std::int8_t>(other.m_addressFamily);
 
-            if (m_addressFamily == IPAddressFamily::Invalid)
+            if (m_addressFamily == IPAddressFamily::Unspecified)
                 return 0;
 
             for (std::size_t i = 0; i < std::size(m_bytes); i++)
@@ -385,50 +390,52 @@ namespace mtasa
         }
 
         constexpr bool operator==(const IPAddress& other) const noexcept { return Compare(other) == 0; }
+
         constexpr bool operator!=(const IPAddress& other) const noexcept { return Compare(other) != 0; }
+
         constexpr bool operator<(const IPAddress& other) const noexcept { return Compare(other) < 0; }
+
         constexpr bool operator>(const IPAddress& other) const noexcept { return Compare(other) > 0; }
+
         constexpr bool operator<=(const IPAddress& other) const noexcept { return Compare(other) <= 0; }
+
         constexpr bool operator>=(const IPAddress& other) const noexcept { return Compare(other) >= 0; }
 
-        constexpr operator bool() const noexcept { return !IsInvalid(); }
+        explicit constexpr operator bool() const noexcept { return !IsInvalid(); }
 
     public:
         // Creates an ip address that represents localhost (127.0.0.1 for IPv4, ::1 for IPv6)
-        static constexpr IPAddress CreateLocalhost(IPAddressFamily addressFamily)
+        static constexpr IPAddress CreateLocalhost(IPAddressFamily addressFamily) noexcept
         {
             switch (addressFamily)
             {
                 case IPAddressFamily::IPv4:
-                    return IPAddress{ 127, 0, 0, 1 };
+                    return IPAddress{127, 0, 0, 1};
                 case IPAddressFamily::IPv6:
-                    return IPAddress{ 0, 0, 0, 0, 0, 0, 0, 1 };
-                case IPAddressFamily::Invalid:
+                    return IPAddress{0, 0, 0, 0, 0, 0, 0, 1};
+                case IPAddressFamily::Unspecified:
                 default:
                     return IPAddress{};
             }
         }
 
         // Creates an unspecified ip address (0.0.0.0 for IPv4, :: for IPv6)
-        static constexpr IPAddress CreateUnspecified(IPAddressFamily addressFamily)
+        static constexpr IPAddress CreateUnspecified(IPAddressFamily addressFamily) noexcept
         {
             switch (addressFamily)
             {
                 case IPAddressFamily::IPv4:
-                    return IPAddress{ 0, 0, 0, 0 };
+                    return IPAddress{0, 0, 0, 0};
                 case IPAddressFamily::IPv6:
-                    return IPAddress{ 0, 0, 0, 0, 0, 0, 0, 0 };
-                case IPAddressFamily::Invalid:
+                    return IPAddress{0, 0, 0, 0, 0, 0, 0, 0};
+                case IPAddressFamily::Unspecified:
                 default:
                     return IPAddress{};
             }
         }
 
         // Creates an IPv4 broadcast ip address
-        static constexpr IPAddress CreateBroadcast()
-        {
-            return IPAddress{ 255, 255, 255, 255 };
-        }
+        static constexpr IPAddress CreateBroadcast() noexcept { return IPAddress{255, 255, 255, 255}; }
 
     public:
         // Translates a node name to a list of IPAddress'es
@@ -444,8 +451,6 @@ namespace mtasa
         // Large enough to store either an IPv4 or an IPv6 address.
         // For an IPv4 address, the remaining bytes [4..15] must always be zero.
         std::array<std::uint8_t, 16> m_bytes{};
-        IPAddressFamily              m_addressFamily = IPAddressFamily::Invalid;
+        IPAddressFamily              m_addressFamily = IPAddressFamily::Unspecified;
     };
 }            // namespace mtasa
-
-#endif

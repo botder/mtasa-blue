@@ -261,9 +261,6 @@ double       GetRandomDouble();
 
 SString GetDataUnit(unsigned long long ullInput);
 
-// Utility network functions
-void LongToDottedIP(unsigned long ulIP, char* szDottedIP);
-
 bool BitStreamReadUsString(class NetBitStreamInterface& bitStream, SString& strOut);
 #else
 
@@ -276,9 +273,6 @@ void ReadCameraOrientation(const CVector& vecBasePosition, NetBitStreamInterface
 // Validation funcs
 bool IsNickValid(const char* szNick);
 bool IsNametagValid(const char* szNick);
-
-// Network funcs
-SString LongToDottedIP(unsigned long ulIP);
 
 inline SString SQLEscape(const SString& strEscapeString, bool bSingleQuotes, bool bDoubleQuotes)
 {

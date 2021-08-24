@@ -10,6 +10,10 @@
  *****************************************************************************/
 
 #include "StdInc.h"
+#include <mtasa/IPAddress.h>
+
+using namespace mtasa;
+
 extern CNetServer* g_pRealNetServer;
 
 namespace
@@ -262,7 +266,8 @@ void CPerfStatPlayerPacketUsageImpl::UpdatePlayerPacketUsage()
             }
             else if (pStats->playerId.GetBinaryAddress())
             {
-                strName = LongToDottedIP(pStats->playerId.GetBinaryAddress());
+                IPAddress address{pStats->playerId.GetBinaryAddress()};
+                strName = address.ToString();
             }
 
             // Custom data packets get sent to all other players

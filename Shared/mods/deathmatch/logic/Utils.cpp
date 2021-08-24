@@ -157,20 +157,6 @@ void AttachedMatrix(const CMatrix& matrix, CMatrix& returnMatrix, const CVector&
     returnMatrix = CMatrix(vecPosition, vecRotation) * matrix;
 }
 
-void LongToDottedIP(unsigned long ulIP, char* szDottedIP)
-{
-    in_addr in;
-    in.s_addr = ulIP;
-    char* szTemp = inet_ntoa(in);
-    if (szTemp)
-    {
-        strncpy(szDottedIP, szTemp, 22);
-    }
-    else
-    {
-        szDottedIP[0] = 0;
-    }
-}
 #else
 
 bool DoesDirectoryExist(const char* szPath)
@@ -1002,12 +988,6 @@ void RotateVector(CVector& vecLine, const CVector& vecRotation)
     vecLine.fY = -sin(vecRotation.fZ) * fLineX + cos(vecRotation.fZ) * vecLine.fY;
 }
 
-SString LongToDottedIP(unsigned long ulIP)
-{
-    in_addr in;
-    in.s_addr = ulIP;
-    return inet_ntoa(in);
-}
 #endif
 
 // RX(theta)

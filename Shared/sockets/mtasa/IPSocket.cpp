@@ -20,6 +20,7 @@
     #include <netinet/in.h>
     #include <unistd.h>
     #include <fcntl.h>
+    #include <errno.h>
 #endif
 
 namespace mtasa
@@ -382,6 +383,9 @@ namespace mtasa
 
     bool IPSocket::GetMTU(int& mtu) const
     {
+#ifdef __APPLE__
+        return false;
+#else
         unsigned int length = sizeof(mtu);
 
         if (m_addressFamily == IPAddressFamily::IPv6)
@@ -390,6 +394,7 @@ namespace mtasa
             return GetOption(IPPROTO_IP, IP_MTU, reinterpret_cast<char*>(&mtu), &length);
         else
             return false;
+#endif
     }
 
     bool IPSocket::GetTransferTTL(int& ttl) const

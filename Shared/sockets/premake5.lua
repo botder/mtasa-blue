@@ -1,4 +1,4 @@
-project "Shared Sockets"
+project "Sockets"
 	language "C++"
 	kind "StaticLib"
 

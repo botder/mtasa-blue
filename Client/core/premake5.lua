@@ -47,7 +47,7 @@ project "Client Core"
 	links {
 		"d3dx9", "Userenv", "DbgHelp", "xinput", "Imagehlp", "dxguid", "dinput8",
 		"strmiids",	"odbc32", "odbccp32", "shlwapi", "winmm", "gdi32", "Imm32", "Psapi",
-		"pthread", "libpng", "jpeg", "zlib", "tinygettext", "Shared Sockets"
+		"pthread", "libpng", "jpeg", "zlib", "tinygettext", "Sockets"
 	}
 
 	defines {

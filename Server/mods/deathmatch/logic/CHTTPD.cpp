@@ -8,10 +8,14 @@
  *  Multi Theft Auto is available from http://www.multitheftauto.com/
  *
  *****************************************************************************/
+
 #include "StdInc.h"
 #include <cryptopp/rsa.h>
 #include <cryptopp/osrng.h>
 #include <SharedUtil.Crypto.h>
+#include <mtasa/IPAddress.h>
+
+using namespace mtasa;
 
 extern CGame* g_pGame;
 
@@ -66,8 +70,13 @@ bool CHTTPD::StartHTTPD(const char* szIP, unsigned int port)
         if (szIP && szIP[0])
         {
             // Convert the dotted ip to a long
-            long lIP = inet_addr(szIP);
-            parameters["bindip"] = lIP;
+            IPAddress address = IPAddress::TranslateToIPv4(szIP, true);
+            long      addressLong = 0;
+
+            if (std::optional<std::array<std::uint8_t, 4>> bytes = address.GetIPv4Bytes(); bytes.has_value())
+                std::copy_n(bytes->data(), bytes->size(), reinterpret_cast<std::uint8_t*>(&addressLong));
+
+            parameters["bindip"] = addressLong;
         }
         else
         {

@@ -31,6 +31,7 @@ namespace mtasa
 
         static IPAddress IPv6Any;
         static IPAddress IPv6Localhost;
+        static IPAddress IPv6MulticastAllNodes;
 
     public:
         // Constructs an invalid address (IPv4 nor IPv6)

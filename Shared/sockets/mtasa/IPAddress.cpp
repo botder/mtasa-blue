@@ -35,6 +35,7 @@ namespace mtasa
 
     IPAddress IPAddress::IPv6Any = IPAddress::CreateUnspecified(IPAddressFamily::IPv6);
     IPAddress IPAddress::IPv6Localhost = IPAddress::CreateLocalhost(IPAddressFamily::IPv6);
+    IPAddress IPAddress::IPv6MulticastAllNodes = IPAddress{0xFF02, 0, 0, 0, 0, 0, 0, 1};
 
     IPAddress::IPAddress(const sockaddr_in& address)
     {

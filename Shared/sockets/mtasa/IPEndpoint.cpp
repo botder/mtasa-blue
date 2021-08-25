@@ -110,16 +110,21 @@ namespace mtasa
     std::string IPEndpoint::ToString() const
     {
         IPAddressFamily addressFamily = m_address.GetAddressFamily();
+        std::string     address;
 
         if (addressFamily == IPAddressFamily::IPv4)
-        {
-            return m_address.ToString() + ":" + std::to_string(m_port);
-        }
+            address = m_address.ToString();
         else if (addressFamily == IPAddressFamily::IPv6)
+            address = std::string("[") + m_address.ToString() + "]";
+        else
+            return {};
+
+        if (m_port > 0)
         {
-            return std::string("[") + m_address.ToString() + "]:" + std::to_string(m_port);
+            address += ':';
+            address += std::to_string(m_port);
         }
 
-        return {};
+        return address;
     }
 }            // namespace mtasa

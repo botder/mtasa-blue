@@ -124,6 +124,8 @@ namespace mtasa
         [[nodiscard]] bool SetDontFragment(bool enabled);
         [[nodiscard]] bool SetIPv6Only(bool ipv6Only);
         [[nodiscard]] bool GetIPv6Only(bool& ipv6Only) const;
+        [[nodiscard]] bool JoinMulticastGroup(const IPAddress& address, std::uint32_t interfaceIndex);
+        [[nodiscard]] bool LeaveMulticastGroup(const IPAddress& address, std::uint32_t interfaceIndex);
 
     public:
         [[nodiscard]] IPEndpoint GetLocalEndpoint() const noexcept;

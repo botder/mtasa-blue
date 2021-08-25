@@ -439,6 +439,34 @@ namespace mtasa
         return GetBoolean(IPPROTO_IPV6, IPV6_V6ONLY, ipv6Only);
     }
 
+    bool IPSocket::JoinMulticastGroup(const IPAddress& address, std::uint32_t interfaceIndex)
+    {
+        if (m_addressFamily != IPAddressFamily::IPv6 || address.IsIPv4())
+            return false;
+
+        ipv6_mreq request{};
+        request.ipv6mr_interface = interfaceIndex;
+
+        if (auto bytes = address.GetIPv6Bytes(); bytes.has_value())
+            std::copy_n(bytes->data(), bytes->size(), reinterpret_cast<std::uint8_t*>(&request.ipv6mr_multiaddr));
+
+        return SetOption(IPPROTO_IPV6, IPV6_JOIN_GROUP, reinterpret_cast<char*>(&request), sizeof(request));
+    }
+
+    bool IPSocket::LeaveMulticastGroup(const IPAddress& address, std::uint32_t interfaceIndex)
+    {
+        if (m_addressFamily != IPAddressFamily::IPv6 || address.IsIPv4())
+            return false;
+
+        ipv6_mreq request{};
+        request.ipv6mr_interface = interfaceIndex;
+
+        if (auto bytes = address.GetIPv6Bytes(); bytes.has_value())
+            std::copy_n(bytes->data(), bytes->size(), reinterpret_cast<std::uint8_t*>(&request.ipv6mr_multiaddr));
+
+        return SetOption(IPPROTO_IPV6, IPV6_LEAVE_GROUP, reinterpret_cast<char*>(&request), sizeof(request));
+    }
+
     IPEndpoint IPSocket::GetLocalEndpoint() const noexcept
     {
         if (!Exists())

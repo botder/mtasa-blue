@@ -652,9 +652,22 @@ void CVersionUpdater::InitiateSidegradeLaunch(const SString& strVersion, const S
     RunProgram(EUpdaterProgramType::SidegradeLaunch);
 
     m_strSidegradeVersion = strVersion;
-    m_strSidegradeHost = SString("%s:%d", *strIp, usPort);
     m_strSidegradeName = strName;
     m_strSidegradePassword = strPassword;
+
+    if (size_t delimiterPos = strIp.find_first_of(".:"); delimiterPos != std::string::npos)
+    {
+        char delimiter = strIp[delimiterPos];
+
+        if (delimiter == ':')
+            m_strSidegradeHost = SString("[%s]:%d", *strIp, usPort); // Wrap an IPv6 address with square brackets
+        else
+            m_strSidegradeHost = SString("%s:%d", *strIp, usPort); // Do not wrap an IPv4 address
+    }
+    else
+    {
+        m_strSidegradeHost = SString("%s:%d", *strIp, usPort);
+    }
 }
 
 ///////////////////////////////////////////////////////////////

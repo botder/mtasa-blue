@@ -23,6 +23,7 @@
 #include <ServerBrowser/CServerCache.h>
 #include "CDiscordManager.h"
 #include <mtasa/IPEndpoint.h>
+#include <charconv>
 
 using SharedUtil::CalcMTASAPath;
 using namespace std;
@@ -1524,136 +1525,75 @@ SString CCore::GetConnectCommandFromURI(const char* szURI)
     return strDest;
 }
 
-void CCore::GetConnectParametersFromURI(const char* szURI, std::string& strHost, unsigned short& usPort, std::string& strNick, std::string& strPassword)
+void CCore::GetConnectParametersFromURI(std::string_view uri, std::string& strHost, unsigned short& usPort, std::string& strNick, std::string& strPassword)
 {
-    // Grab the length of the string
-    size_t sizeURI = strlen(szURI);
-
-    // Parse it right to left
-    char szLeft[256];
-    szLeft[255] = 0;
-    char* szLeftIter = szLeft + 255;
-
-    char szRight[256];
-    szRight[255] = 0;
-    char* szRightIter = szRight + 255;
-
-    const char* szIterator = szURI + sizeURI;
-    bool        bHitAt = false;
-
-    for (; szIterator >= szURI + 8; szIterator--)
+    // Parse a mtasa-URI: "mtasa://[username:password@]hostname:port"
+    if (uri.size() > 8) // 8 = length-of "mtasa://"
     {
-        if (!bHitAt && *szIterator == '@')
-        {
-            bHitAt = true;
-        }
-        else
-        {
-            if (bHitAt)
-            {
-                if (szLeftIter > szLeft)
-                {
-                    *(--szLeftIter) = *szIterator;
-                }
-            }
-            else
-            {
-                if (szRightIter > szRight)
-                {
-                    *(--szRightIter) = *szIterator;
-                }
-            }
-        }
-    }
+        std::string_view scheme = uri.substr(0, 8);
+        std::string_view authority = uri.substr(8);
 
-    // Parse the host/port
-    char  szHost[64];
-    char  szPort[12];
-    char* szHostIter = szHost;
-    char* szPortIter = szPort;
-    memset(szHost, 0, sizeof(szHost));
-    memset(szPort, 0, sizeof(szPort));
+        // Check if the URI begins with the 'mtasa' scheme
+        if (scheme == "mtasa://" && !authority.empty())
+        {
+            // Try to extract user information first ("username:password@")
+            std::size_t userinfoDelimiterPos = authority.find('@');
 
-    bool   bIsInPort = false;
-    size_t sizeRight = strlen(szRightIter);
-    for (size_t i = 0; i < sizeRight; i++)
-    {
-        if (!bIsInPort && szRightIter[i] == ':')
-        {
-            bIsInPort = true;
-        }
-        else
-        {
-            if (bIsInPort)
+            if (userinfoDelimiterPos != std::string_view::npos)
             {
-                if (szPortIter < szPort + 11)
+                std::string_view userinfo = authority.substr(0, userinfoDelimiterPos);
+                std::size_t      passwordDelimiterPos = userinfo.find(':');
+
+                authority = authority.substr(userinfoDelimiterPos + 1);
+
+                if (passwordDelimiterPos != std::string_view::npos)
                 {
-                    *(szPortIter++) = szRightIter[i];
+                    strNick = userinfo.substr(0, passwordDelimiterPos);
+                    strPassword = userinfo.substr(passwordDelimiterPos + 1);
+                }
+                else
+                {
+                    strNick = userinfo;
                 }
             }
-            else
+
+            // Try to extract hostname and port next ("hostname:port")
+            if (!authority.empty())
             {
-                if (szHostIter < szHost + 63)
+                std::size_t      delimiterPos = authority.find_last_of("]:");
+                std::string_view hostname;
+
+                if (delimiterPos != std::string_view::npos && authority[delimiterPos] == ':')
                 {
-                    *(szHostIter++) = szRightIter[i];
+                    hostname = authority.substr(0, delimiterPos);
+                    std::string_view port = authority.substr(delimiterPos + 1);
+
+                    if (!port.empty())
+                        std::from_chars(port.data(), port.data() + port.size(), usPort);
+                }
+                else
+                {
+                    hostname = authority;
+                }
+
+                if (!hostname.empty())
+                {
+                    // Remove square brackets from this IPv6 address
+                    if (hostname.front() == '[' && hostname.back() == ']')
+                        hostname = hostname.substr(1, hostname.size() - 2);
+
+                    strHost = hostname;
                 }
             }
         }
     }
 
-    // Parse the nickname / password
-    char  szNickname[64];
-    char  szPassword[64];
-    char* szNicknameIter = szNickname;
-    char* szPasswordIter = szPassword;
-    memset(szNickname, 0, sizeof(szNickname));
-    memset(szPassword, 0, sizeof(szPassword));
+    // Set default values
+    if (!usPort)
+        usPort = 22003;
 
-    bool   bIsInPassword = false;
-    size_t sizeLeft = strlen(szLeftIter);
-    for (size_t i = 0; i < sizeLeft; i++)
-    {
-        if (!bIsInPassword && szLeftIter[i] == ':')
-        {
-            bIsInPassword = true;
-        }
-        else
-        {
-            if (bIsInPassword)
-            {
-                if (szPasswordIter < szPassword + 63)
-                {
-                    *(szPasswordIter++) = szLeftIter[i];
-                }
-            }
-            else
-            {
-                if (szNicknameIter < szNickname + 63)
-                {
-                    *(szNicknameIter++) = szLeftIter[i];
-                }
-            }
-        }
-    }
-
-    // If we got any port, convert it to an integral type
-    usPort = 22003;
-    if (strlen(szPort) > 0)
-    {
-        usPort = static_cast<unsigned short>(atoi(szPort));
-    }
-
-    // Grab the nickname
-    if (strlen(szNickname) > 0)
-    {
-        strNick = szNickname;
-    }
-    else
-    {
+    if (strNick.empty())
         CVARS_GET("nick", strNick);
-    }
-    strHost = szHost;
-    strPassword = szPassword;
 }
 
 void CCore::UpdateRecentlyPlayed()

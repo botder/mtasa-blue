@@ -38,9 +38,6 @@ This can be found in the 'COPYING' file.
     #ifndef Sleep
         #define Sleep(x) usleep((x)*1000)
     #endif
-
-	#include <poll.h>
-	#include <unistd.h>
 #endif
 
 using namespace mtasa;

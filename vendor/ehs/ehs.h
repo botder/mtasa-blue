@@ -68,6 +68,8 @@
 #include <sys/time.h>
 #include <string.h>
 #include <sys/fcntl.h>
+#include <poll.h>
+#include <unistd.h>
 
 ///////////////////////////////////
 #endif // end platform headers   //

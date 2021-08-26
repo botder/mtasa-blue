@@ -1,9 +1,8 @@
-
-#ifndef DATUM_H
-#define DATUM_H
+#pragma once
 
 #include <string>
-
+#include <vector>
+#include <mtasa/IPAddressBinding.h>
 
 /// class that makes it easy to go between numbers and strings
 /** 
@@ -17,8 +16,8 @@ class Datum {
 	/// holds the data in string form
 	std::string sDatum;
 
-	/// holds the data in pointer form
-	void * pDatum;
+	/// holds a list of ip address bindings
+	std::vector<mtasa::IPAddressBinding> bindings;
 
   public:
 
@@ -40,8 +39,15 @@ class Datum {
 	/// assignment operator for const char * strings
 	Datum & operator= ( const char * ipsString );
 
-	/// assignment operator for void *
-	Datum & operator= ( void * ipVoid );
+	/// assignment operator for vector of IPAddressBinding
+    Datum& operator=(const std::vector<mtasa::IPAddressBinding>& bindings_)
+    {
+        bindings = bindings_;
+        return *this;
+    }
+
+	/// explicit accessor for bindings
+    const std::vector<mtasa::IPAddressBinding>& GetBindings() const noexcept { return bindings; }
 
 	/// equality operator for const char * string
 	bool operator== ( const char * ipsString );
@@ -66,7 +72,6 @@ class Datum {
 
 	/// explicit accessor for const char *
 	const char * GetCharString ( ) { return (const char*)(*this); }
-  
 
 	/// inequality operator to test against int
 	bool operator!= ( int );
@@ -75,5 +80,3 @@ class Datum {
 	bool operator!= ( const char * );
 
 };
-
-#endif // DATUM_H

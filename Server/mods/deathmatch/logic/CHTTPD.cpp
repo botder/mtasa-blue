@@ -273,13 +273,7 @@ bool CHTTPD::Start(const std::vector<IPAddressBinding>& bindings, std::uint16_t 
     parameters["port"] = std::to_string(port);
     parameters["mode"] = "threadpool";
     parameters["threadcount"] = g_pGame->GetConfig()->GetHTTPThreadCount();
-    parameters["bindip"] = "0";            // Bind to IPv4-any
-
-    for (const IPAddressBinding& binding : bindings)
-    {
-        // TODO
-    }
-
+    parameters["bindings"] = bindings;
     return m_impl->StartServer(parameters) == EHS::STARTSERVER_SUCCESS;
 }
 
@@ -305,10 +299,10 @@ void CHTTPD::SetDefaultResourceName(std::string_view resourceName)
 
 int CHTTPD::RegisterEHS(EHS* ehs, const char* path)
 {
-    return m_impl->RegisterEHS(ehs, path);
+    return static_cast<int>(m_impl->RegisterEHS(ehs, path));
 }
 
 int CHTTPD::UnregisterEHS(const char* path)
 {
-    return m_impl->UnregisterEHS(path);
+    return static_cast<int>(m_impl->UnregisterEHS(path));
 }

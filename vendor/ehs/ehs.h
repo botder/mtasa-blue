@@ -82,6 +82,8 @@
 #include <map>
 #include <string>
 #include <typeinfo>
+#include <vector>
+#include <memory>
 
 // C headers
 #include <ctype.h>
@@ -104,6 +106,7 @@
 #include "httpresponse.h"
 #include "httprequest.h"
 #include "threadabstractionlayer.h"
+#include "CPollFdSet.h"
 
 class EHSServer;
 
@@ -407,7 +410,8 @@ class EHSServer {
 	void CheckClientSockets ( );
 
 	/// check the listen socket for a new connection
-	void CheckAcceptSocket ( );
+    void CheckEveryAcceptSocket();
+	void CheckAcceptSocket(NetworkAbstraction* socket);
 
 	/// Enumeration on the current running status of the EHSServer
 	enum ServerRunningStatus { SERVERRUNNING_INVALID = 0,
@@ -471,7 +475,7 @@ class EHSServer {
 	std::string sServerName;
 
 	/// creates the poll array with the accept socket and any connections present
-	int CreateFdSet ( );
+	void CreateFdSet ( );
 
 	/// this is the read set for sending to select(2)
 	CPollFdSet m_oReadFds;
@@ -482,8 +486,8 @@ class EHSServer {
     // List of all connections that are no longer used
 	EHSConnectionList m_oEHSConnectionUnusedList;
 
-	/// the network abstraction this server is listening on
-	NetworkAbstraction * m_poNetworkAbstraction;
+	/// the network abstractions this server is listening on
+	std::vector<std::unique_ptr<NetworkAbstraction>> m_listeners;
 
 	/// pthread identifier for the accept thread -- only used when started in threaded mode
 	pthread_t m_nAcceptThreadId;

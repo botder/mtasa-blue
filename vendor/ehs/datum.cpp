@@ -47,12 +47,6 @@ Datum & Datum::operator= ( const char * ipsString )
 	return *this;
 }
 
-Datum & Datum::operator= ( void * ipVoid )
-{
-	pDatum = ipVoid;
-	return *this;
-}
-	
 bool Datum::operator== ( const char * ipsString )
 {
 

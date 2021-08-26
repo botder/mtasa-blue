@@ -5,6 +5,7 @@ project "ehs"
 
 	includedirs {
 		"../../Shared/sdk",
+		"../../Shared/sockets",
 		"../pcre",
 		"../pme",
 	}
@@ -20,13 +21,14 @@ project "ehs"
 	files {
 		"premake5.lua",
 		"*.h",
-
 		"datum.cpp",
 		"ehs.cpp",
 		"httprequest.cpp",
 		"httpresponse.cpp",
 		"socket.cpp"
 	}
+
+	links { "Sockets" }
 
 	filter "system:windows"
 		includedirs { "../pthreads/include" }

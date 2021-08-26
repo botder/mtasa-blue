@@ -97,6 +97,15 @@ namespace mtasa
         // Accepts an incomming connection on the underlying socket (TCP listeners only)
         [[nodiscard]] std::optional<IPSocket> Accept() const noexcept;
 
+        // Returns true if the socket is readable
+        [[nodiscard]] bool IsReadable(int millisecondsTimeout) const noexcept;
+
+        // Returns true if the socket is writable
+        [[nodiscard]] bool IsWritable(int millisecondsTimeout) const noexcept;
+
+        // Returns true if the socket has an error, was either disconnected or aborted, or the socket is invalid
+        [[nodiscard]] bool IsErrored(int millisecondsTimeout) const noexcept;
+
     public:
         [[nodiscard]] bool GetOption(int level, int name, char* buffer, unsigned int* length) const;
         [[nodiscard]] bool SetOption(int level, int name, const char* buffer, unsigned int length);

@@ -27,6 +27,14 @@ This can be found in the 'COPYING' file.
 #include <fstream>
 #include <assert.h>
 
+#ifdef _WIN32
+    #define poll(fds,nfds,timeout) WSAPoll(fds,nfds,timeout)
+	#define GetLastSocketError() WSAGetLastError()
+	#define E_WOULDBLOCK WSAEWOULDBLOCK
+#endif
+
+using namespace mtasa;
+
 long long ms_HttpTotalBytesSent = 0;
 SAllocationStats ms_AllocationStats = { 0 };
 CCriticalSection ms_StatsCS;
@@ -37,16 +45,15 @@ static bool MUTEX_TRY_LOCK( MUTEX_TYPE& x )
     return ( pthread_mutex_trylock( &x ) != EBUSY );
 }
 
-int EHSServer::CreateFdSet ( )
+void EHSServer::CreateFdSet ( )
 {
     MUTEX_LOCK ( m_oMutex );
 
 	m_oReadFds.Reset();
 
-	// add the accepting FD	
-	m_oReadFds.Add( m_poNetworkAbstraction->GetFd(), POLLIN );
-
-	int nHighestFd = m_poNetworkAbstraction->GetFd ( );
+	// add the accepting FDs
+	for (auto& listener : m_listeners)
+        m_oReadFds.Add(listener->GetFd(), POLLIN);
 
 	for ( EHSConnectionList::iterator oCurrentConnection = m_oEHSConnectionList.begin ( );
 		  !( oCurrentConnection == m_oEHSConnectionList.end ( ) );
@@ -62,13 +69,6 @@ int EHSServer::CreateFdSet ( )
 
 			m_oReadFds.Add( nCurrentFd, POLLIN );
 
-			// store the highest FD in the set to return it
-			if ( nCurrentFd > nHighestFd ) {
-
-				nHighestFd = nCurrentFd;
-
-			}
-
 		} else {
 
 			EHS_TRACE ( "FD %d isn't reading anymore\n", 
@@ -78,9 +78,6 @@ int EHSServer::CreateFdSet ( )
 	}
 
     MUTEX_UNLOCK ( m_oMutex );
-
-	return nHighestFd;
-
 }
 
 
@@ -409,11 +406,32 @@ EHSServer::EHSServer ( EHS * ipoTopLevelEHS ///< pointer to top-level EHS for re
 		EHS_TRACE ( "EHSServer running in plain-text mode (no HTTPS)\n");
 	}
 
-	
+#ifdef _WIN32
+    // Confirm that the WinSock DLL supports 2.2
+    WSADATA wsaData{};
+
+    if (WSAStartup(MAKEWORD(2, 2), &wsaData))
+        assert(false);
+
+    if (LOBYTE(wsaData.wVersion) < 2 || (LOBYTE(wsaData.wVersion) == 2 && HIBYTE(wsaData.wVersion) < 2))
+    {
+        WSACleanup();
+        assert(false);
+    }
+#endif
 
 	// are we using secure sockets?
 	if ( !nHttps ) {
-		m_poNetworkAbstraction = new Socket ( );
+        int port = roEHSServerParameters["port"];
+
+        for (const IPAddressBinding& binding : roEHSServerParameters["bindings"].GetBindings())
+        {
+            auto socket = new Socket();
+            m_listeners.emplace_back(socket);
+
+			if (!socket->Create(binding, static_cast<std::uint16_t>(port)))
+                return;
+		}
 	} else {
 
 #ifdef COMPILE_WITH_SSL		
@@ -467,22 +485,6 @@ EHSServer::EHSServer ( EHS * ipoTopLevelEHS ///< pointer to top-level EHS for re
 
 	}
 	
-
-	// initialize the socket
-	assert ( m_poNetworkAbstraction != NULL );
-	int nResult = m_poNetworkAbstraction->Init ( roEHSServerParameters [ "bindip" ], roEHSServerParameters [ "port" ] ); // initialize socket stuff
-
-	
-
-	
-	if ( nResult != NetworkAbstraction::INITSOCKET_SUCCESS ) {
-
-		EHS_TRACE ( "Error: Failed to initialize sockets\n" );
-
-		return;
-	}
-
-
 	if ( roEHSServerParameters [ "mode" ] == "threadpool" ) {
 
 		// need to set this here because the thread will check this to make
@@ -527,10 +529,10 @@ EHSServer::EHSServer ( EHS * ipoTopLevelEHS ///< pointer to top-level EHS for re
 		m_nServerRunningStatus = SERVERRUNNING_ONETHREADPERREQUEST;
 
 		// spawn off one thread just to deal with basic stuff
-		nResult = pthread_create ( &m_nAcceptThreadId,
-								   NULL,
-								   EHSServer::PthreadHandleData_ThreadedStub,
-								   (void *) this );
+		int nResult = pthread_create ( &m_nAcceptThreadId,
+								       NULL,
+								       EHSServer::PthreadHandleData_ThreadedStub,
+								       (void *) this );
 		pthread_detach ( m_nAcceptThreadId );
 	
 		// check to make sure the thread was created properly
@@ -571,12 +573,7 @@ EHSServer::EHSServer ( EHS * ipoTopLevelEHS ///< pointer to top-level EHS for re
 
 EHSServer::~EHSServer ( )
 {
-    if ( m_poNetworkAbstraction )
-    {
-        m_poNetworkAbstraction->Close ();
-        delete m_poNetworkAbstraction;
-        m_poNetworkAbstraction = NULL;
-    }
+    m_listeners.clear();
     MUTEX_CLEANUP ( m_oMutex );
 
 #ifdef EHS_MEMORY
@@ -911,8 +908,8 @@ void EHSServer::HandleData ( int inTimeoutMilliseconds, ///< milliseconds for ti
 			// if no sockets have data to read, clear accepting flag and return
 			if ( nSocketCount > 0 ) {
 
-				// Check the accept socket for a new connection
-				CheckAcceptSocket ( );
+				// Check the accept sockets for a new connection
+                CheckEveryAcceptSocket();
 
 				// check client sockets for data
 				CheckClientSockets ( );
@@ -953,18 +950,23 @@ void EHSServer::HandleData ( int inTimeoutMilliseconds, ///< milliseconds for ti
 
 }
 
-void EHSServer::CheckAcceptSocket ( )
+void EHSServer::CheckEveryAcceptSocket()
+{
+    for (auto& listener : m_listeners)
+        CheckAcceptSocket(listener.get());
+}
+
+void EHSServer::CheckAcceptSocket(NetworkAbstraction* socket)
 {
 
 	// see if we got data on this socket
-	if ( m_oReadFds.IsSet( m_poNetworkAbstraction->GetFd(), POLLIN ) ) {
+	if ( m_oReadFds.IsSet( socket->GetFd(), POLLIN ) ) {
 		
 
         //printf ( "Accept new connection\n");
 		// THIS SHOULD BE NON-BLOCKING OR ELSE A HANG CAN OCCUR IF THEY DISCONNECT BETWEEN WHEN
 		//   POLL SEES THE CONNECTION AND WHEN WE ACTUALLY CALL ACCEPT
-		NetworkAbstraction * poNewClient = 
-			m_poNetworkAbstraction->Accept ( );
+		NetworkAbstraction * poNewClient = socket->Accept ( );
 		
         
 

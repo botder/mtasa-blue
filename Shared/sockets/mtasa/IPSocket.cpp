@@ -45,6 +45,15 @@ namespace mtasa
 #endif
     }
 
+    static int PollSockets(pollfd* sockets, std::size_t length, int timeout)
+    {
+#ifdef _WIN32
+        return WSAPoll(sockets, static_cast<ULONG>(length), timeout);
+#else
+        return poll(sockets, static_cast<nfds_t>(length), timeout);
+#endif
+    }
+
     IPSocket::~IPSocket() noexcept
     {
         if (Exists())
@@ -265,6 +274,43 @@ namespace mtasa
             return {};
 
         return std::optional<IPSocket>{std::in_place, handle, m_addressFamily, m_protocol};
+    }
+
+    bool IPSocket::IsReadable(int millisecondsTimeout) const noexcept
+    {
+        if (!Exists())
+            return false;
+
+        pollfd sockets[1] = {};
+        sockets[0].fd = m_handle;
+        sockets[0].events = POLLIN;
+        return PollSockets(sockets, std::size(sockets), millisecondsTimeout) > 0;
+    }
+
+    bool IPSocket::IsWritable(int millisecondsTimeout) const noexcept
+    {
+        if (!Exists())
+            return false;
+
+        pollfd sockets[1] = {};
+        sockets[0].fd = m_handle;
+        sockets[0].events = POLLOUT;
+        return PollSockets(sockets, std::size(sockets), millisecondsTimeout) > 0;
+    }
+
+    bool IPSocket::IsErrored(int millisecondsTimeout) const noexcept
+    {
+        if (!Exists())
+            return false;
+
+        pollfd sockets[1] = {};
+        sockets[0].fd = m_handle;
+        sockets[0].events = POLLIN | POLLOUT;
+
+        if (PollSockets(sockets, std::size(sockets), millisecondsTimeout) < 1)
+            return false;
+
+        return (sockets[0].revents & (POLLERR | POLLHUP | POLLNVAL)) != 0;
     }
 
     bool IPSocket::GetOption(int level, int name, char* buffer, unsigned int* length) const

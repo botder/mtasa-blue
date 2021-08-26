@@ -21,6 +21,7 @@
     #include <unistd.h>
     #include <fcntl.h>
     #include <errno.h>
+    #include <poll.h>
 #endif
 
 namespace mtasa

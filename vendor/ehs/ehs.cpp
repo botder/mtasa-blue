@@ -28,9 +28,16 @@ This can be found in the 'COPYING' file.
 #include <assert.h>
 
 #ifdef _WIN32
-    #define poll(fds,nfds,timeout) WSAPoll(fds,nfds,timeout)
-	#define GetLastSocketError() WSAGetLastError()
-	#define E_WOULDBLOCK WSAEWOULDBLOCK
+    #define poll(fds, nfds, timeout) WSAPoll(fds, nfds, timeout)
+    #define GetLastSocketError()     WSAGetLastError()
+    #define E_WOULDBLOCK             WSAEWOULDBLOCK
+#else
+    #define E_WOULDBLOCK         EWOULDBLOCK
+    #define GetLastSocketError() errno
+    #define SOCKET_ERROR         (-1)
+    #ifndef Sleep
+        #define Sleep(x) usleep((x)*1000)
+    #endif
 #endif
 
 using namespace mtasa;

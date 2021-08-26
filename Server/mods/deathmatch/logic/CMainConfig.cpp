@@ -12,6 +12,7 @@
 #include "StdInc.h"
 #include "ASE.h"
 #include "CLanBroadcast.h"
+#include "CHTTPD.h"
 #include <algorithm>
 
 #define MTA_SERVER_CONF_TEMPLATE "mtaserver.conf.template"
@@ -719,10 +720,9 @@ bool CMainConfig::LoadExtended()
                             if (strDefault.compare("true") == 0 || strDefault.compare("yes") == 0 || strDefault.compare("1") == 0)
                             {
                                 std::string strName = loadedResource->GetName();
+
                                 if (!strName.empty())
-                                {
-                                    g_pGame->GetHTTPD()->SetDefaultResource(strName.c_str());
-                                }
+                                    g_pGame->GetHTTPD()->SetDefaultResourceName(strName);
 
                                 bFoundDefault = true;
                             }

@@ -216,7 +216,6 @@ struct SAclRequest;
 #include "CEvents.h"
 #include "CGame.h"
 #include "CGroups.h"
-#include "CHTTPD.h"
 #include "CHandlingEntry.h"
 #include "CHandlingManager.h"
 #include "CKeyBinds.h"

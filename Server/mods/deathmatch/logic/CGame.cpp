@@ -10,6 +10,7 @@
  *****************************************************************************/
 
 #include "StdInc.h"
+#include "CHTTPD.h"
 #include "CLanBroadcast.h"
 #include "../utils/COpenPortsTester.h"
 #include "../utils/CMasterServerAnnouncer.h"
@@ -255,7 +256,7 @@ CGame::~CGame()
 
     // Stop the web server first to avoid threading issues
     if (m_pHTTPD)
-        m_pHTTPD->StopHTTPD();
+        m_pHTTPD->Stop();
 
     // Stop the performance stats modules
     if (CPerfStatManager::GetSingleton() != NULL)
@@ -610,7 +611,9 @@ bool CGame::Start(int iArgumentCount, char* szArguments[])
 
     const std::string&                   serverName = m_pMainConfig->GetServerName();
     const std::vector<IPAddressBinding>& addressBindings = m_pMainConfig->GetAddressBindings();
+    std::string                          addressCommaList = m_pMainConfig->GetAddressCommaList(IPAddressFamily::Unspecified, true);
     unsigned short                       usServerPort = m_pMainConfig->GetServerPort();
+    unsigned short                       httpPort = m_pMainConfig->GetHTTPPort();
     unsigned int                         uiMaxPlayers = m_pMainConfig->GetMaxPlayers();
 
     // Start async task scheduler
@@ -625,20 +628,17 @@ bool CGame::Start(int iArgumentCount, char* szArguments[])
     m_pAccountManager = new CAccountManager(strBuffer);
 
     // Create and start the HTTP server
-    m_pHTTPD = new CHTTPD;
+    m_pHTTPD = new CHTTPD();
     m_pLatentTransferManager = new CLatentTransferManager();
 
     // Enable it if required
     if (m_pMainConfig->IsHTTPEnabled())
     {
-        // TODO: Support `addressBindings` for HTTPD
-#if 0
-        if (!m_pHTTPD->StartHTTPD(strUseIP, m_pMainConfig->GetHTTPPort()))
+        if (!m_pHTTPD->Start(addressBindings, httpPort))
         {
-            CLogger::ErrorPrintf("Could not start HTTP server on interface '%s' and port '%u'!\n", strUseIP.c_str(), m_pMainConfig->GetHTTPPort());
+            CLogger::ErrorPrintf("Could not start HTTP server on interface '%s' and port '%u'!\n", addressCommaList.c_str(), httpPort);
             return false;
         }
-#endif
     }
 
     m_pFunctionUseLogger = new CFunctionUseLogger(m_pMainConfig->GetLoadstringLogFilename());
@@ -693,8 +693,6 @@ bool CGame::Start(int iArgumentCount, char* szArguments[])
         strBandwidthSaving += SString(" with lightweight sync rate of %dms", g_TickRateSettings.iLightSync);
 
     // Show the server header
-    std::string addressCommaList = m_pMainConfig->GetAddressCommaList(IPAddressFamily::Unspecified, true);
-
     CLogger::LogPrintfNoStamp(
         "==================================================================\n"
         "= Multi Theft Auto: San Andreas v%s\n"
@@ -715,8 +713,8 @@ bool CGame::Start(int iArgumentCount, char* szArguments[])
         " [64 bit]"
 #endif
         ,
-        serverName.c_str(), addressCommaList.c_str(), usServerPort, pszLogFileName, uiMaxPlayers,
-        m_pMainConfig->IsHTTPEnabled() ? m_pMainConfig->GetHTTPPort() : 0, strVoice.c_str(), *strBandwidthSaving);
+        serverName.c_str(), addressCommaList.c_str(), usServerPort, pszLogFileName, uiMaxPlayers, m_pMainConfig->IsHTTPEnabled() ? httpPort : 0,
+        strVoice.c_str(), *strBandwidthSaving);
 
     if (!bLogFile)
         CLogger::ErrorPrintf("Unable to save logfile to '%s'\n", m_pMainConfig->GetLogFile().c_str());

@@ -1,59 +1,44 @@
 /*****************************************************************************
  *
- *  PROJECT:     Multi Theft Auto v1.0
+ *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
  *  FILE:        mods/deathmatch/logic/CHTTPD.h
  *  PURPOSE:     Built-in HTTP webserver class
  *
- *  Multi Theft Auto is available from http://www.multitheftauto.com/
+ *  Multi Theft Auto is available from https://multitheftauto.com/
  *
  *****************************************************************************/
 
-// This class implements the webserver, it uses EHS to do this
-
 #pragma once
 
-#include <string>
-#include <list>
+#include <mtasa/IPAddressBinding.h>
+#include <string_view>
+#include <vector>
+#include <memory>
 
-#include "ehs/ehs.h"
+class EHS;
+class HttpRequest;
+class HttpResponse;
 
-class CHTTPD : public EHS
+class CHTTPD final
 {
 public:
-    CHTTPD();            // start the initial server
+    CHTTPD();
     ~CHTTPD();
-    // EHS interface
-    HttpResponse* RouteRequest(HttpRequest* ipoHttpRequest);
-    ResponseCode  HandleRequest(HttpRequest* ipoHttpRequest, HttpResponse* ipoHttpResponse);
-    void          HttpPulse();
-    bool          ShouldAllowConnection(const char* szAddress);
 
-    // CHTTPD methods
-    bool            StartHTTPD(const char* szIP, unsigned int port);
-    bool            StopHTTPD();
-    void            SetResource(CResource* resource) { m_resource = resource; }
-    CResource*      GetResource() { return m_resource; }
-    class CAccount* CheckAuthentication(HttpRequest* ipoHttpRequest);
-    void            SetDefaultResource(const char* szResourceName) { m_strDefaultResourceName = szResourceName ? szResourceName : ""; }
-    ResponseCode    RequestLogin(HttpRequest* ipoHttpRequest, HttpResponse* ipoHttpResponse);
+public:
+    bool Start(const std::vector<mtasa::IPAddressBinding>& bindings, std::uint16_t port);
+    void Stop();
+
+    void SetDefaultResourceName(std::string_view resourceName);
+
+    int RegisterEHS(EHS* ehs, const char* path);
+    int UnregisterEHS(const char* path);
+
+    int       RequestLogin(HttpRequest* request, HttpResponse* response);
+    CAccount* CheckAuthentication(HttpRequest* request);
 
 private:
-    CResource*  m_resource;
-    CHTTPD*     m_server;
-    std::string m_strDefaultResourceName;            // default resource name
-
-    EHSServerParameters m_Parameters;
-
-    bool m_bStartedServer;
-
-    class CAccount*             m_pGuestAccount;
-    std::map<string, long long> m_LoggedInMap;
-    CConnectHistory             m_BruteForceProtect;
-    CConnectHistory             m_HttpDosProtect;
-    std::set<SString>           m_HttpDosExcludeMap;
-    std::mutex                  m_mutexHttpDosProtect;
-    std::mutex                  m_mutexLoggedInMap;
-    SString                     m_strWarnMessageForIp;
-    CElapsedTime                m_WarnMessageTimer;
+    class Impl;
+    std::unique_ptr<Impl> m_impl;
 };

@@ -13,13 +13,15 @@
 //#define RESOURCE_DEBUG_MESSAGES
 
 #include "StdInc.h"
+#include "CHTTPD.h"
 #include "net/SimHeaders.h"
+
 #ifndef WIN32
-#include <utime.h>
+    #include <utime.h>
 #endif
 
 #ifndef MAX_PATH
-#define MAX_PATH 260
+    #define MAX_PATH 260
 #endif
 
 int           do_extract_currentfile(unzFile uf, const int* popt_extract_without_path, int* popt_overwrite, const char* password, const char* szFilePath);
@@ -2370,7 +2372,7 @@ ResponseCode CResource::HandleRequestCall(HttpRequest* ipoHttpRequest, HttpRespo
 {
     if (!IsHttpAccessAllowed(pAccount))
     {
-        return g_pGame->GetHTTPD()->RequestLogin(ipoHttpRequest, ipoHttpResponse);
+        return static_cast<ResponseCode>(g_pGame->GetHTTPD()->RequestLogin(ipoHttpRequest, ipoHttpResponse));
     }
 
 #define MAX_INPUT_VARIABLES 25
@@ -2448,7 +2450,7 @@ ResponseCode CResource::HandleRequestCall(HttpRequest* ipoHttpRequest, HttpRespo
             continue;
 
         if (!Exported.IsHTTPAccessible())
-            return g_pGame->GetHTTPD()->RequestLogin(ipoHttpRequest, ipoHttpResponse);
+            return static_cast<ResponseCode>(g_pGame->GetHTTPD()->RequestLogin(ipoHttpRequest, ipoHttpResponse));
 
         SString strResourceFuncName("%s.function.%s", m_strResourceName.c_str(), strFuncName.c_str());
 
@@ -2456,7 +2458,7 @@ ResponseCode CResource::HandleRequestCall(HttpRequest* ipoHttpRequest, HttpRespo
         if (!g_pGame->GetACLManager()->CanObjectUseRight(pAccount->GetName().c_str(), CAccessControlListGroupObject::OBJECT_TYPE_USER,
                                                          strResourceFuncName.c_str(), CAccessControlListRight::RIGHT_TYPE_RESOURCE, true))
         {
-            return g_pGame->GetHTTPD()->RequestLogin(ipoHttpRequest, ipoHttpResponse);
+            return static_cast<ResponseCode>(g_pGame->GetHTTPD()->RequestLogin(ipoHttpRequest, ipoHttpResponse));
         }
 
         CLuaArguments Arguments;
@@ -2667,7 +2669,7 @@ ResponseCode CResource::HandleRequestActive(HttpRequest* ipoHttpRequest, HttpRes
                 {
                     if (!IsHttpAccessAllowed(pAccount))
                     {
-                        return g_pGame->GetHTTPD()->RequestLogin(ipoHttpRequest, ipoHttpResponse);
+                        return static_cast<ResponseCode>(g_pGame->GetHTTPD()->RequestLogin(ipoHttpRequest, ipoHttpResponse));
                     }
 
                     SString strResourceFileName("%s.file.%s", m_strResourceName.c_str(), pHtml->GetName());
@@ -2678,7 +2680,7 @@ ResponseCode CResource::HandleRequestActive(HttpRequest* ipoHttpRequest, HttpRes
                         return pHtml->Request(ipoHttpRequest, ipoHttpResponse, pAccount);
                     }
 
-                    return g_pGame->GetHTTPD()->RequestLogin(ipoHttpRequest, ipoHttpResponse);
+                    return static_cast<ResponseCode>(g_pGame->GetHTTPD()->RequestLogin(ipoHttpRequest, ipoHttpResponse));
                 }
                 else
                 {
@@ -2700,7 +2702,7 @@ ResponseCode CResource::HandleRequestActive(HttpRequest* ipoHttpRequest, HttpRes
         {
             if (!IsHttpAccessAllowed(pAccount))
             {
-                return g_pGame->GetHTTPD()->RequestLogin(ipoHttpRequest, ipoHttpResponse);
+                return static_cast<ResponseCode>(g_pGame->GetHTTPD()->RequestLogin(ipoHttpRequest, ipoHttpResponse));
             }
 
             if (pResourceFile->GetType() == CResourceFile::RESOURCE_FILE_TYPE_HTML)
@@ -2721,7 +2723,7 @@ ResponseCode CResource::HandleRequestActive(HttpRequest* ipoHttpRequest, HttpRes
                     }
                     else
                     {
-                        return g_pGame->GetHTTPD()->RequestLogin(ipoHttpRequest, ipoHttpResponse);
+                        return static_cast<ResponseCode>(g_pGame->GetHTTPD()->RequestLogin(ipoHttpRequest, ipoHttpResponse));
                     }
                 }
             }

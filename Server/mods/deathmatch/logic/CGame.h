@@ -71,7 +71,7 @@ class CConsoleClient;
 class CElementDeleter;
 class CGroups;
 class CHandlingManager;
-class CHTTPD;
+class CHTTPD_OLD;
 class CMainConfig;
 class CMapManager;
 class CMarkerManager;
@@ -131,6 +131,7 @@ class CVehiclePuresyncPacket;
 class CVehicleTrailerPacket;
 class CVoiceDataPacket;
 class CWeaponDamageCheckPacket;
+class CHTTPD;
 
 typedef SFixedArray<bool, MAX_GARAGES> SGarageStates;
 

@@ -446,7 +446,22 @@ std::string ASE::QueryLight()
 
 CLanBroadcast* ASE::InitLan()
 {
-    return new CLanBroadcast(m_usPort);
+    IPAddressMode addressMode = IPAddressMode::IPv4Only;
+
+    for (const IPAddressBinding& binding : m_addressBindings)
+    {
+        if (binding.addressMode == IPAddressMode::IPv6Only)
+        {
+            addressMode = IPAddressMode::IPv6Only;
+        }
+        else if (binding.addressMode == IPAddressMode::IPv6DualStack)
+        {
+            addressMode = IPAddressMode::IPv6DualStack;
+            break;
+        }
+    }
+
+    return new CLanBroadcast(m_usPort, addressMode);
 }
 
 void ASE::SetGameType(const char* szGameType)

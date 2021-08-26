@@ -14,15 +14,20 @@
 #include <Common.h>
 #include <string>
 #include <mtasa/IPSocket.h>
+#include <mtasa/IPAddressMode.h>
 
 class CLanBroadcast final
 {
 public:
-    CLanBroadcast(unsigned short usServerPort);
+    CLanBroadcast(unsigned short usServerPort, mtasa::IPAddressMode addressMode);
 
     void DoPulse();
 
     unsigned short GetPort() { return SERVER_LIST_BROADCAST_PORT; };
+
+private:
+    bool CreateIPv6Socket(bool isIPv6Only);
+    bool CreateIPv4Socket();
 
 private:
     mtasa::IPSocket m_socket;

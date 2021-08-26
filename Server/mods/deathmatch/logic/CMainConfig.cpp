@@ -812,7 +812,7 @@ bool CMainConfig::Save()
     return false;
 }
 
-const std::vector<IPAddressBinding> CMainConfig::GetAddressFamilyBindings(IPAddressFamily addressFamily) const noexcept
+const std::vector<IPAddressBinding> CMainConfig::GetAddressFamilyBindings(IPAddressFamily addressFamily) const
 {
     std::vector<IPAddressBinding> result;
 
@@ -828,7 +828,7 @@ const std::vector<IPAddressBinding> CMainConfig::GetAddressFamilyBindings(IPAddr
     return result;
 }
 
-const std::string CMainConfig::GetAddressCommaList(IPAddressFamily addressFamily, bool showUnspecified) const noexcept
+const std::string CMainConfig::GetAddressCommaList(IPAddressFamily addressFamily, bool showUnspecified) const
 {
     std::string names;
 

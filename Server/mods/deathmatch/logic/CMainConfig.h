@@ -50,8 +50,8 @@ public:
 
     // const mtasa::IPAddressBinding&              GetFirstAddressBinding() const noexcept { return m_addressBindings[0]; }
     const std::vector<mtasa::IPAddressBinding>& GetAddressBindings() const noexcept { return m_addressBindings; }
-    const std::vector<mtasa::IPAddressBinding>  GetAddressFamilyBindings(mtasa::IPAddressFamily addressFamily) const noexcept;
-    const std::string                           GetAddressCommaList(mtasa::IPAddressFamily addressFamily, bool showUnspecified) const noexcept;
+    const std::vector<mtasa::IPAddressBinding>  GetAddressFamilyBindings(mtasa::IPAddressFamily addressFamily) const;
+    const std::string                           GetAddressCommaList(mtasa::IPAddressFamily addressFamily, bool showUnspecified) const;
 
     const std::string& GetServerName() { return m_strServerName; }
     unsigned short     GetServerPort() const noexcept { return m_usServerPort; }

@@ -12,6 +12,7 @@
 #include "StdInc.h"
 #include "ASE.h"
 #include "CLanBroadcast.h"
+#include <algorithm>
 
 #define MTA_SERVER_CONF_TEMPLATE "mtaserver.conf.template"
 
@@ -21,6 +22,7 @@ CBandwidthSettings* g_pBandwidthSettings = new CBandwidthSettings();
 CTickRateSettings   g_TickRateSettings;
 
 using namespace std;
+using namespace mtasa;
 
 // Used to identify <client_file> names
 struct
@@ -40,7 +42,6 @@ CMainConfig::CMainConfig(CConsole* pConsole) : CXMLConfig(NULL)
 {
     m_pConsole = pConsole;
     m_pRootNode = NULL;
-    m_pCommandLineParser = NULL;
 
     m_usServerPort = 0;
     m_uiHardMaxPlayers = 0;
@@ -125,10 +126,8 @@ bool CMainConfig::Load()
     }
 
     // Grab the forced server ip(s)
-    GetString(m_pRootNode, "serverip", m_strServerIP);
-    m_strServerIP = SString(m_strServerIP).Replace(" ", "");
-    if (m_strServerIP == "auto" || m_strServerIP == "any")
-        m_strServerIP = "";
+    if (!ParseServerAddresses())
+        return false;
 
     // Grab the port
     int iTemp;
@@ -813,6 +812,66 @@ bool CMainConfig::Save()
     return false;
 }
 
+const std::vector<IPAddressBinding> CMainConfig::GetAddressFamilyBindings(IPAddressFamily addressFamily) const noexcept
+{
+    std::vector<IPAddressBinding> result;
+
+    if (addressFamily == IPAddressFamily::Unspecified)
+        return {};
+
+    for (const IPAddressBinding& binding : m_addressBindings)
+    {
+        if (addressFamily == binding.address.GetAddressFamily())
+            result.push_back(binding);
+    }
+
+    return result;
+}
+
+const std::string CMainConfig::GetAddressCommaList(IPAddressFamily addressFamily, bool showUnspecified) const noexcept
+{
+    std::string names;
+
+    for (const IPAddressBinding& binding : m_addressBindings)
+    {
+        if (addressFamily != IPAddressFamily::Unspecified && addressFamily != binding.address.GetAddressFamily())
+            continue;
+
+        std::string name = binding.address.ToString();
+
+        if (binding.address.IsUnspecified())
+        {
+            if (!showUnspecified)
+                continue;
+
+            if (!names.empty())
+                names += ", ";
+
+            switch (binding.addressMode)
+            {
+                case IPAddressMode::IPv4Only:
+                    names += "auto";
+                    break;
+                case IPAddressMode::IPv6Only:
+                    names += "auto(v6)";
+                    break;
+                case IPAddressMode::IPv6DualStack:
+                    names += "auto(v6+v4)";
+                    break;
+            }
+        }
+        else
+        {
+            if (!names.empty())
+                names += ", ";
+
+            names += binding.address.ToString();
+        }
+    }
+
+    return names;
+}
+
 //
 // Compare against default config and add missing nodes.
 // Returns true if nodes were added.
@@ -862,6 +921,205 @@ bool CMainConfig::AddMissingSettings()
     g_pServerInterface->GetXML()->DeleteXML(pFileTemplate);
     FileDelete(strTemplateFilename);
     return bChanged;
+}
+
+bool CMainConfig::ParseServerAddresses()
+{
+    unsigned int i = 0;
+
+    for (CXMLNode* node = m_pRootNode->FindSubNode("serverip", i); node != nullptr; node = m_pRootNode->FindSubNode("serverip", ++i))
+    {
+        // An attribute to restrict name translation (via DNS) to an address family
+        SString dns = node->GetAttributeValue("dns");
+        bool    translateToIPv4 = (dns == "any" || dns == "ipv4" || dns.empty());
+        bool    translateToIPv6 = (dns == "any" || dns == "ipv6");
+
+        // An attribute to disable IPv6 Dual-Stack mode for an unspecified IPv6 addresses
+        SString ipv6only = node->GetAttributeValue("ipv6only");
+        bool    isIPv6Only = ipv6only == "true" || ipv6only == "yes" || ipv6only == "1";
+
+        if (!ProcessServerAddress(translateToIPv4, translateToIPv6, isIPv6Only, node->GetTagContent()))
+            return false;
+    }
+
+    PostProcessServerAddresses();
+    return true;
+}
+
+void CMainConfig::AddUniqueServerAddress(const IPAddress& address, IPAddressMode addressMode)
+{
+    if (address.IsIPv4Mapped())
+    {
+        CLogger::LogPrintf("WARNING: Ignoring an IPv4-mapped IPv6 server ip '%s' (%s)!\n", address.ToString().c_str());
+        return;
+    }
+
+    auto existing = std::find_if(m_addressBindings.begin(), m_addressBindings.end(),
+                                 [&](const IPAddressBinding& entry) { return entry.address == address && entry.addressMode == addressMode; });
+
+    if (existing != m_addressBindings.end())
+    {
+        const char* addressModeName = "?";
+
+        switch (addressMode)
+        {
+            case IPAddressMode::IPv4Only:
+                addressModeName = "IPv4";
+                break;
+            case IPAddressMode::IPv6Only:
+                addressModeName = "IPv6";
+                break;
+            case IPAddressMode::IPv6DualStack:
+                addressModeName = "IPv6+IPv4";
+                break;
+        }
+
+        CLogger::LogPrintf("WARNING: Ignoring duplicate server ip '%s' (%s)!\n", existing->address.ToString().c_str(), addressModeName);
+        return;
+    }
+
+    m_addressBindings.emplace_back(address, addressMode);
+}
+
+bool CMainConfig::TranslateSingleAddress(bool translateToIPv4, bool translateToIPv6, bool isIPv6Only, const SString& name)
+{
+    // Try to translate a numeric host first
+    std::vector<IPAddress> addresses = IPAddress::Translate(name.c_str(), true);
+
+    if (!addresses.empty())
+    {
+        // A numeric host should only resolve to a single ip address
+        AddUniqueServerAddress(addresses[0], addresses[0].IsIPv4() ? IPAddressMode::IPv4Only : IPAddressMode::IPv6Only);
+        return true;
+    }
+
+    // Try to translate a non-numeric host second
+    addresses = IPAddress::Translate(name.c_str(), false);
+
+    if (!addresses.empty())
+    {
+        for (const IPAddress& address : addresses)
+        {
+            if (address.IsIPv4() && translateToIPv4)
+            {
+                AddUniqueServerAddress(address, IPAddressMode::IPv4Only);
+            }
+            else if (address.IsIPv6() && translateToIPv6)
+            {
+                auto addressMode = (!address.IsUnspecified() || isIPv6Only) ? IPAddressMode::IPv6Only : IPAddressMode::IPv6DualStack;
+                AddUniqueServerAddress(address, addressMode);
+            }
+        }
+
+        return true;
+    }
+    else
+    {
+        CLogger::ErrorPrintf("WARNING: Server ip '%s' doesn't resolve to any ip address!\n", name.c_str());
+        return false;
+    }
+
+    return true;
+}
+
+bool CMainConfig::ProcessServerAddress(bool translateToIPv4, bool translateToIPv6, bool isIPv6Only, const SString& name)
+{
+    SString value = name.Replace(" ", "");
+
+    if (value == "auto" || value == "any" || value == "0.0.0.0" || value.empty())
+    {
+        // This is an unspecified IPv4 address
+        AddUniqueServerAddress(IPAddress::IPv4Any, IPAddressMode::IPv4Only);
+    }
+    else if (value == "auto6" || value == "any6" || value == "::")
+    {
+        // This is an unspecified IPv6 address
+        auto addressMode = isIPv6Only ? IPAddressMode::IPv6Only : IPAddressMode::IPv6DualStack;
+        AddUniqueServerAddress(IPAddress::IPv6Any, addressMode);
+    }
+    else if (value.find(',') != std::string::npos)
+    {
+        std::vector<SString> nameList;
+        value.Split(",", nameList);
+
+        for (const SString& name : nameList)
+        {
+            if (name.empty())
+                continue;
+
+            if (!TranslateSingleAddress(translateToIPv4, translateToIPv6, isIPv6Only, name))
+                return false;
+        }
+    }
+    else
+    {
+        if (!TranslateSingleAddress(translateToIPv4, translateToIPv6, isIPv6Only, value))
+            return false;
+    }
+
+    return true;
+}
+
+void CMainConfig::PostProcessServerAddresses()
+{
+    // Check if we have unspecified addresses in our address list
+    bool isIPv4Unspecified = false;
+    bool isIPv6Unspecified = false;
+
+    for (const IPAddressBinding& binding : m_addressBindings)
+    {
+        // Skip specific addresses
+        if (!binding.address.IsUnspecified())
+            continue;
+
+        if (binding.address.IsIPv4())
+        {
+            isIPv4Unspecified = true;
+        }
+        else if (binding.address.IsIPv6())
+        {
+            if (binding.addressMode == IPAddressMode::IPv6Only)
+            {
+                isIPv6Unspecified = true;
+            }
+            else if (binding.addressMode == IPAddressMode::IPv6DualStack)
+            {
+                isIPv4Unspecified = true;
+                isIPv6Unspecified = true;
+                break;
+            }
+        }
+    }
+
+    if (!isIPv4Unspecified && !isIPv6Unspecified)
+        return;
+
+    // Remove non-unspecified addresses in our address list, if our unspecified addresses cover them
+    std::vector<IPAddressBinding> bindings = std::exchange(m_addressBindings, {});
+
+    if (isIPv4Unspecified && isIPv6Unspecified)
+    {
+        // An unspecified IPv6 Dual-Stack ip address also covers the unspecified IPv4 range
+        m_addressBindings.emplace_back(IPAddress::IPv6Any, IPAddressMode::IPv6DualStack);
+        return;
+    }
+    else if (isIPv4Unspecified)
+    {
+        m_addressBindings.emplace_back(IPAddress::IPv4Any, IPAddressMode::IPv4Only);
+    }
+    else
+    {
+        m_addressBindings.emplace_back(IPAddress::IPv6Any, IPAddressMode::IPv6Only);
+    }
+
+    for (IPAddressBinding& binding : bindings)
+    {
+        // Only add ip addresses, which aren't covered by our unspecified range
+        if ((!isIPv4Unspecified && binding.address.IsIPv4()) || (!isIPv6Unspecified && binding.address.IsIPv6()))
+        {
+            m_addressBindings.emplace_back(std::move(binding));
+        }
+    }
 }
 
 bool CMainConfig::IsValidPassword(const char* szPassword)
@@ -924,41 +1182,48 @@ void CMainConfig::RegisterCommand(const char* szName, FCommandHandler* pFunction
     m_pConsole->AddCommand(pFunction, szName, bRestricted, szConsoleHelpText);
 }
 
-void CMainConfig::SetCommandLineParser(CCommandLineParser* pCommandLineParser)
+bool CMainConfig::ApplyCommandLineOptions(CCommandLineParser& commandLineParser)
 {
-    m_pCommandLineParser = pCommandLineParser;
-
     // Adjust max player limits for command line arguments
     uint uiMaxPlayers;
-    if (m_pCommandLineParser && m_pCommandLineParser->GetMaxPlayers(uiMaxPlayers))
+    if (commandLineParser.GetMaxPlayers(uiMaxPlayers))
     {
         m_uiHardMaxPlayers = Clamp<uint>(1, uiMaxPlayers, MAX_PLAYER_COUNT);
         m_uiSoftMaxPlayers = uiMaxPlayers;
     }
-}
 
-SString CMainConfig::GetServerIP()
-{
-    std::string strServerIP;
-    if (m_pCommandLineParser && m_pCommandLineParser->GetIP(strServerIP))
-        return strServerIP;
-    return SString(m_strServerIP).SplitLeft(",");
-}
+    // Adjust server addresses
+    std::string addresses;
+    std::string dns;
+    std::string ipv6only;
+    commandLineParser.GetDNS(dns);
+    commandLineParser.GetIPv6Only(ipv6only);
+    if (commandLineParser.GetIP(addresses))
+    {
+        m_addressBindings.clear();
 
-SString CMainConfig::GetServerIPList()
-{
-    std::string strServerIP;
-    if (m_pCommandLineParser && m_pCommandLineParser->GetIP(strServerIP))
-        return strServerIP;
-    return m_strServerIP;
-}
+        bool translateToIPv4 = (dns == "any" || dns == "ipv4" || dns.empty());
+        bool translateToIPv6 = (dns == "any" || dns == "ipv6");
+        bool isIPv6Only = ipv6only == "true" || ipv6only == "yes" || ipv6only == "1";
 
-unsigned short CMainConfig::GetServerPort()
-{
-    unsigned short usPort;
-    if (m_pCommandLineParser && m_pCommandLineParser->GetPort(usPort))
-        return usPort;
-    return m_usServerPort;
+        if (!ProcessServerAddress(translateToIPv4, translateToIPv6, isIPv6Only, addresses))
+            return false;
+
+        PostProcessServerAddresses();
+    }
+
+    // Adjust server port
+    commandLineParser.GetPort(m_usServerPort);
+
+    // Adjust http port
+    commandLineParser.GetHTTPPort(m_usHTTPPort);
+
+    // Adjust voice-enabled
+    bool isDisabled;
+    if (commandLineParser.IsVoiceDisabled(isDisabled))
+        m_bVoiceEnabled = !isDisabled;
+
+    return true;
 }
 
 unsigned int CMainConfig::GetHardMaxPlayers()
@@ -969,22 +1234,6 @@ unsigned int CMainConfig::GetHardMaxPlayers()
 unsigned int CMainConfig::GetMaxPlayers()
 {
     return std::min(GetHardMaxPlayers(), m_uiSoftMaxPlayers);
-}
-
-unsigned short CMainConfig::GetHTTPPort()
-{
-    unsigned short usHTTPPort;
-    if (m_pCommandLineParser && m_pCommandLineParser->GetHTTPPort(usHTTPPort))
-        return usHTTPPort;
-    return m_usHTTPPort;
-}
-
-bool CMainConfig::IsVoiceEnabled()
-{
-    bool bDisabled;
-    if (m_pCommandLineParser && m_pCommandLineParser->IsVoiceDisabled(bDisabled))
-        return !bDisabled;
-    return m_bVoiceEnabled;
 }
 
 int CMainConfig::GetPendingWorkToDoSleepTime()

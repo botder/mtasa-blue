@@ -230,8 +230,16 @@ public:
                 return;
         }
 
+        // TODO(botder): Support IPv6 here
+        std::vector<mtasa::IPAddressBinding> bindings = g_pGame->GetConfig()->GetAddressFamilyBindings(mtasa::IPAddressFamily::IPv4);
+
+        if (bindings.empty())
+            return;
+
+        const mtasa::IPAddress& primaryBinding = bindings[0].address;
+        std::string             primaryAddress = (primaryBinding.IsUnspecified()) ? "" : primaryBinding.ToString();
+
         CMainConfig* pMainConfig = g_pGame->GetConfig();
-        SString      strServerIP = pMainConfig->GetServerIP();
         ushort       usServerPort = pMainConfig->GetServerPort();
         ushort       usHTTPPort = pMainConfig->GetHTTPPort();
         uint         uiMaxPlayerCount = pMainConfig->GetMaxPlayers();
@@ -248,7 +256,7 @@ public:
         strUrl = strUrl.Replace("%HTTP%", SString("%u", usHTTPPort));
         strUrl = strUrl.Replace("%VER%", strVersion);
         strUrl = strUrl.Replace("%EXTRA%", strExtra);
-        strUrl = strUrl.Replace("%IP%", strServerIP);
+        strUrl = strUrl.Replace("%IP%", primaryAddress.c_str());
 
         SMasterServerDefinition masterServerDefinition = {bAcceptsPush, bDoReminders, bHideProblems, bHideSuccess, uiReminderIntervalMins, strDesc, strUrl};
         m_MasterServerList.push_back(new CMasterServer(masterServerDefinition));

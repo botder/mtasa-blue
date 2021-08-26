@@ -581,7 +581,8 @@ bool CGame::Start(int iArgumentCount, char* szArguments[])
         return false;
 
     // Let the main config handle selecting settings from the command line where appropriate
-    m_pMainConfig->SetCommandLineParser(&m_CommandLineParser);
+    if (!m_pMainConfig->ApplyCommandLineOptions(m_CommandLineParser))
+        return false;
 
     // Do basic backup
     HandleBackup();
@@ -606,10 +607,11 @@ bool CGame::Start(int iArgumentCount, char* szArguments[])
 
     // Read some settings
     m_pACLManager->SetFileName(m_pMainConfig->GetAccessControlListFile().c_str());
-    const SString  strServerIP = m_pMainConfig->GetServerIP();
-    const SString  strServerIPList = m_pMainConfig->GetServerIPList();
-    unsigned short usServerPort = m_pMainConfig->GetServerPort();
-    unsigned int   uiMaxPlayers = m_pMainConfig->GetMaxPlayers();
+
+    const std::string&                   serverName = m_pMainConfig->GetServerName();
+    const std::vector<IPAddressBinding>& addressBindings = m_pMainConfig->GetAddressBindings();
+    unsigned short                       usServerPort = m_pMainConfig->GetServerPort();
+    unsigned int                         uiMaxPlayers = m_pMainConfig->GetMaxPlayers();
 
     // Start async task scheduler
     m_pAsyncTaskScheduler = new SharedUtil::CAsyncTaskScheduler(2);
@@ -629,13 +631,14 @@ bool CGame::Start(int iArgumentCount, char* szArguments[])
     // Enable it if required
     if (m_pMainConfig->IsHTTPEnabled())
     {
-        // Slight hack for internal HTTPD: Listen on all IPs if multiple IPs declared
-        SString strUseIP = (strServerIP == strServerIPList) ? strServerIP : "";
+        // TODO: Support `addressBindings` for HTTPD
+#if 0
         if (!m_pHTTPD->StartHTTPD(strUseIP, m_pMainConfig->GetHTTPPort()))
         {
             CLogger::ErrorPrintf("Could not start HTTP server on interface '%s' and port '%u'!\n", strUseIP.c_str(), m_pMainConfig->GetHTTPPort());
             return false;
         }
+#endif
     }
 
     m_pFunctionUseLogger = new CFunctionUseLogger(m_pMainConfig->GetLoadstringLogFilename());
@@ -690,6 +693,8 @@ bool CGame::Start(int iArgumentCount, char* szArguments[])
         strBandwidthSaving += SString(" with lightweight sync rate of %dms", g_TickRateSettings.iLightSync);
 
     // Show the server header
+    std::string addressCommaList = m_pMainConfig->GetAddressCommaList(IPAddressFamily::Unspecified, true);
+
     CLogger::LogPrintfNoStamp(
         "==================================================================\n"
         "= Multi Theft Auto: San Andreas v%s\n"
@@ -710,7 +715,7 @@ bool CGame::Start(int iArgumentCount, char* szArguments[])
         " [64 bit]"
 #endif
         ,
-        m_pMainConfig->GetServerName().c_str(), strServerIPList.empty() ? "auto" : strServerIPList.c_str(), usServerPort, pszLogFileName, uiMaxPlayers,
+        serverName.c_str(), addressCommaList.c_str(), usServerPort, pszLogFileName, uiMaxPlayers,
         m_pMainConfig->IsHTTPEnabled() ? m_pMainConfig->GetHTTPPort() : 0, strVoice.c_str(), *strBandwidthSaving);
 
     if (!bLogFile)
@@ -727,12 +732,12 @@ bool CGame::Start(int iArgumentCount, char* szArguments[])
 
     if (m_pMainConfig->GetAseInternetListenEnabled())
     {
-        // Check if IP is one of the most common IPv4 private addresses
-        IPAddress ipAddress(strServerIP.c_str());
-
-        if (ipAddress.IsPrivate())
+        for (const IPAddressBinding& binding : addressBindings)
         {
-            CLogger::LogPrintf("WARNING: Private IP '%s' with ase enabled! Use: <serverip>auto</serverip>\n", *strServerIP);
+            if (binding.address.IsPrivate())
+            {
+                CLogger::LogPrintf("WARNING: Private IP '%s' with ase enabled!\n", binding.address.ToString().c_str());
+            }
         }
     }
 
@@ -851,9 +856,14 @@ bool CGame::Start(int iArgumentCount, char* szArguments[])
     g_pNetServer->RegisterPacketHandler(CGame::StaticProcessPacket);
 
     // Try to start the network
-    if (!g_pNetServer->StartNetwork(strServerIPList, usServerPort, uiMaxPlayers, m_pMainConfig->GetServerName().c_str()))
+    const IPAddressBinding* bindings = addressBindings.data();
+    const std::size_t       numBindings = addressBindings.size();
+
+    // TODO:
+    // g_pNetServer->StartNetwork(bindings, numBindings, usServerPort, uiMaxPlayers, serverName.c_str())
+    if (!g_pNetServer->StartNetwork(m_pMainConfig->GetAddressCommaList(IPAddressFamily::IPv4, false).c_str(), usServerPort, uiMaxPlayers, serverName.c_str()))
     {
-        CLogger::ErrorPrintf("Could not bind the server on interface '%s' and port '%u'!\n", strServerIPList.c_str(), usServerPort);
+        CLogger::ErrorPrintf("Could not bind the server on interface(s) '%s' and port '%u'!\n", addressCommaList.c_str(), usServerPort);
         return false;
     }
 
@@ -877,7 +887,7 @@ bool CGame::Start(int iArgumentCount, char* szArguments[])
     }
 
     // If ASE is enabled
-    m_pASE = new ASE(m_pMainConfig, m_pPlayerManager, static_cast<int>(usServerPort), strServerIPList);
+    m_pASE = new ASE(m_pMainConfig, m_pPlayerManager, static_cast<int>(usServerPort), addressBindings);
     if (m_pMainConfig->GetSerialVerificationEnabled())
         m_pASE->SetRuleValue("SerialVerification", "yes");
     ApplyAseSetting();

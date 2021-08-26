@@ -18,6 +18,8 @@ class CMainConfig;
 #include "CConsole.h"
 #include "CXMLConfig.h"
 #include <list>
+#include <vector>
+#include <mtasa/IPAddressBinding.h>
 
 #define MAX_MAP_NAME_LENGTH 64
 class CMainConfig;
@@ -46,10 +48,13 @@ public:
     bool LoadExtended();
     bool Save();
 
-    const std::string& GetServerName() { return m_strServerName; };
-    SString            GetServerIP();
-    SString            GetServerIPList();
-    unsigned short     GetServerPort();
+    // const mtasa::IPAddressBinding&              GetFirstAddressBinding() const noexcept { return m_addressBindings[0]; }
+    const std::vector<mtasa::IPAddressBinding>& GetAddressBindings() const noexcept { return m_addressBindings; }
+    const std::vector<mtasa::IPAddressBinding>  GetAddressFamilyBindings(mtasa::IPAddressFamily addressFamily) const noexcept;
+    const std::string                           GetAddressCommaList(mtasa::IPAddressFamily addressFamily, bool showUnspecified) const noexcept;
+
+    const std::string& GetServerName() { return m_strServerName; }
+    unsigned short     GetServerPort() const noexcept { return m_usServerPort; }
     unsigned int       GetMaxPlayers();
     unsigned int       GetHardMaxPlayers();
     void               SetSoftMaxPlayers(unsigned int v) { m_uiSoftMaxPlayers = v; }
@@ -60,7 +65,7 @@ public:
     const std::string& GetPassword() { return m_strPassword; };
     bool               SetPassword(const char* szPassword, bool bSave);
 
-    bool         IsVoiceEnabled();
+    bool         IsVoiceEnabled() const noexcept { return m_bVoiceEnabled; }
     unsigned int GetVoiceSampleRate() { return m_uiVoiceSampleRate; };
     unsigned int GetVoiceQuality() { return m_ucVoiceQuality; };
     unsigned int GetVoiceBitrate() { return m_uiVoiceBitrate; };
@@ -68,7 +73,7 @@ public:
     bool                        GetAseInternetPushEnabled() { return m_iAseMode == 2 && !IsFakeLagCommandEnabled(); }
     bool                        GetAseInternetListenEnabled() { return m_iAseMode == 1 && !IsFakeLagCommandEnabled(); }
     bool                        GetAseLanListenEnabled() { return m_bDontBroadcastLan ? false : true; }
-    unsigned short              GetHTTPPort();
+    unsigned short              GetHTTPPort() const noexcept { return m_usHTTPPort; }
     eHTTPDownloadType           GetHTTPDownloadType() { return m_ucHTTPDownloadType; };
     const std::string&          GetHTTPDownloadURL() { return m_strHTTPDownloadURL; };
     int                         GetHTTPMaxConnectionsPerClient() { return m_iHTTPMaxConnectionsPerClient; };
@@ -129,7 +134,7 @@ public:
     bool    SetSetting(const SString& configSetting, const SString& strValue, bool bSave);
     bool    GetSettingTable(const SString& strName, CLuaArguments* outTable);
 
-    void               SetCommandLineParser(CCommandLineParser* pCommandLineParser);
+    bool               ApplyCommandLineOptions(CCommandLineParser& commandLineParser);
     void               ApplyNetOptions();
     void               ApplyBandwidthReductionMode();
     void               ApplyThreadNetEnabled();
@@ -145,16 +150,31 @@ private:
     bool GetSettingTable(const SString& strName, const char** szAttribNames, uint uiNumAttribNames, CLuaArguments* outTable);
     bool AddMissingSettings();
 
-    CConsole*           m_pConsole;
-    CXMLNode*           m_pRootNode;
-    CCommandLineParser* m_pCommandLineParser;
+    // Parses each <serverip> node from the configuration file
+    bool ParseServerAddresses();
+
+    // Adds the supplied address to our address list, but only if it's unique and valid
+    void AddUniqueServerAddress(const mtasa::IPAddress& address, mtasa::IPAddressMode addressMode);
+
+    // Translates a hostname to, possible more than one, ip addresses and adds them
+    bool TranslateSingleAddress(bool translateToIPv4, bool translateToIPv6, bool isIPv6Only, const SString& name);
+
+    // Analyzes an ip address value (also supports a comma-separated list of them) and adds them to our address list
+    bool ProcessServerAddress(bool translateToIPv4, bool translateToIPv6, bool isIPv6Only, const SString& name);
+
+    // Removes address bindings, which are covered by an unspecified IP address binding
+    void PostProcessServerAddresses();
+
+    CConsole* m_pConsole;
+    CXMLNode* m_pRootNode;
 
     unsigned int  m_uiVoiceSampleRate;
     unsigned char m_ucVoiceQuality;
     unsigned int  m_uiVoiceBitrate;
 
+    std::vector<mtasa::IPAddressBinding> m_addressBindings;
+
     bool                       m_bVoiceEnabled;
-    std::string                m_strServerIP;
     std::string                m_strServerName;
     unsigned short             m_usServerPort;
     unsigned int               m_uiHardMaxPlayers;

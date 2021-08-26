@@ -1,68 +1,112 @@
 /*****************************************************************************
  *
- *  PROJECT:     Multi Theft Auto v1.0
+ *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
  *  FILE:        mods/deathmatch/logic/CCommandLineParser.h
  *  PURPOSE:     Command line parser class
  *
- *  Multi Theft Auto is available from http://www.multitheftauto.com/
+ *  Multi Theft Auto is available from https://multitheftauto.com/
  *
  *****************************************************************************/
 
 #pragma once
 
-#include "../Config.h"
+#include <string>
 
 class CCommandLineParser
 {
 public:
-    CCommandLineParser();
-
     bool Parse(int iArgumentCount, char* szArguments[]);
 
     bool GetMainConfig(const char*& szMainConfig)
     {
-        szMainConfig = m_strMainConfig.c_str();
-        return m_bMainConfig;
+        if (m_bMainConfig)
+        {
+            szMainConfig = m_strMainConfig.c_str();
+            return true;
+        }
+        return false;
     }
     bool GetIP(std::string& strIP)
     {
-        strIP = m_strIP;
-        return m_bIP;
+        if (m_bIP)
+        {
+            strIP = m_strIP;
+            return true;
+        }
+        return false;
+    }
+    bool GetDNS(std::string& out) const noexcept
+    {
+        if (m_usingDNS)
+        {
+            out = m_dns;
+            return true;
+        }
+        return false;
+    }
+    bool GetIPv6Only(std::string& out) const noexcept
+    {
+        if (m_usingIpv6Only)
+        {
+            out = m_ipv6Only;
+            return true;
+        }
+        return false;
     }
     bool GetPort(unsigned short& usPort)
     {
-        usPort = m_usPort;
-        return m_bPort;
+        if (m_bPort)
+        {
+            usPort = m_usPort;
+            return true;
+        }
+        return false;
     }
     bool GetHTTPPort(unsigned short& usHTTPPort)
     {
-        usHTTPPort = m_usHTTPPort;
-        return m_bHTTPPort;
+        if (m_bHTTPPort)
+        {
+            usHTTPPort = m_usHTTPPort;
+            return true;
+        }
+        return false;
     }
     bool GetMaxPlayers(unsigned int& uiMaxPlayers)
     {
-        uiMaxPlayers = m_uiMaxPlayers;
-        return m_bMaxPlayers;
+        if (m_bMaxPlayers)
+        {
+            uiMaxPlayers = m_uiMaxPlayers;
+            return true;
+        }
+        return false;
     }
     bool IsVoiceDisabled(bool& bDisabled)
     {
-        bDisabled = m_bDisableVoice;
-        return m_bNoVoice;
+        if (m_bNoVoice)
+        {
+            bDisabled = m_bDisableVoice;
+            return true;
+        }
+        return false;
     }
 
 private:
-    bool m_bMainConfig;
-    bool m_bIP;
-    bool m_bPort;
-    bool m_bHTTPPort;
-    bool m_bMaxPlayers;
-    bool m_bNoVoice;
+    bool m_bMainConfig = false;
+    bool m_bIP = false;
+    bool m_usingDNS = false;
+    bool m_usingIpv6Only = false;
+    bool m_bPort = false;
+    bool m_bHTTPPort = false;
+    bool m_bMaxPlayers = false;
+    bool m_bNoVoice = false;
 
     std::string    m_strMainConfig;
     std::string    m_strIP;
-    unsigned short m_usPort;
-    unsigned short m_usHTTPPort;
-    unsigned int   m_uiMaxPlayers;
-    bool           m_bDisableVoice;
+    std::string    m_dns;
+    std::string    m_ipv6Only;
+    unsigned short m_usPort = 0;
+    unsigned short m_usHTTPPort = 0;
+    unsigned int   m_uiMaxPlayers = 0;
+    bool           m_bDisableVoice = false;
 };

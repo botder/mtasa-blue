@@ -44,9 +44,18 @@ public:
             m_CheckTimer.Reset();
             m_Stage = HQCOMMS_STAGE_QUERY;
 
+            // TODO(botder): Support IPv6 here (don't forget the `GetAddressCommaList` line below)
+            std::vector<mtasa::IPAddressBinding> bindings = g_pGame->GetConfig()->GetAddressFamilyBindings(mtasa::IPAddressFamily::IPv4);
+
+            if (bindings.empty())
+                return;
+
+            const mtasa::IPAddress& primaryBinding = bindings[0].address;
+            std::string             primaryAddress = (primaryBinding.IsUnspecified()) ? "" : primaryBinding.ToString();
+
             CBitStream bitStream;
             bitStream->Write((char)4);            // Data version
-            bitStream->WriteStr(g_pGame->GetConfig()->GetServerIP());
+            bitStream->WriteStr(primaryAddress);
             bitStream->Write(g_pGame->GetConfig()->GetServerPort());
             bitStream->WriteStr(CStaticFunctionDefinitions::GetVersionSortable());
             bitStream->Write(g_pGame->GetConfig()->GetMinClientVersionAutoUpdate());
@@ -78,7 +87,7 @@ public:
             bitStream->WriteStr(strCrashDumpContent);
 
             bitStream->WriteStr(MTA_OS_STRING);
-            bitStream->WriteStr(g_pGame->GetConfig()->GetServerIPList());
+            bitStream->WriteStr(g_pGame->GetConfig()->GetAddressCommaList(mtasa::IPAddressFamily::IPv4, false));
 
             bitStream->Write(g_pGame->GetConfig()->IsDatabaseCredentialsProtectionEnabled() ? 1 : 0);
             bitStream->Write(g_pGame->GetConfig()->IsFakeLagCommandEnabled() ? 1 : 0);

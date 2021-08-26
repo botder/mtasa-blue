@@ -12,6 +12,8 @@
 #pragma once
 
 #include <mtasa/IPSocket.h>
+#include <mtasa/IPAddressBinding.h>
+#include <vector>
 
 #define MAX_ASE_GAME_TYPE_LENGTH    200
 #define MAX_ASE_MAP_NAME_LENGTH     200
@@ -25,7 +27,7 @@ class ASE
 {
 public:
     ZERO_ON_NEW
-    ASE(CMainConfig* pMainConfig, CPlayerManager* pPlayerManager, unsigned short usPort, const SString& strServerIPList);
+    ASE(CMainConfig* pMainConfig, CPlayerManager* pPlayerManager, unsigned short usPort, const std::vector<mtasa::IPAddressBinding>& bindings);
     ~ASE();
 
     void DoPulse();
@@ -72,8 +74,9 @@ private:
 
     std::string m_strGameType;
     SString     m_strMapName;
-    SString     m_strIPList;
     std::string m_strPort;
+
+    std::vector<mtasa::IPAddressBinding> m_addressBindings;
 
     static ASE* _instance;
     time_t      m_tStartTime;

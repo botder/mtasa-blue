@@ -18,8 +18,9 @@ using namespace mtasa;
 
 ASE* ASE::_instance = NULL;
 
-ASE::ASE(CMainConfig* pMainConfig, CPlayerManager* pPlayerManager, unsigned short usPort, const SString& strServerIPList /*, bool bLan*/)
+ASE::ASE(CMainConfig* pMainConfig, CPlayerManager* pPlayerManager, unsigned short usPort, const std::vector<mtasa::IPAddressBinding>& bindings)
     : m_QueryDosProtect(5, 6000, 7000)            // Max of 5 queries per 6 seconds, then 7 second ignore
+    , m_addressBindings(bindings)
 {
     _instance = this;
     m_tStartTime = time(NULL);
@@ -48,7 +49,6 @@ ASE::ASE(CMainConfig* pMainConfig, CPlayerManager* pPlayerManager, unsigned shor
 
     m_strGameType = "MTA:SA";
     m_strMapName = "None";
-    m_strIPList = strServerIPList;
     m_strPort = std::to_string(usPort);
 
     m_strMtaAseVersion = MTA_DM_ASE_VERSION;
@@ -77,27 +77,19 @@ bool ASE::SetPortEnabled(bool bInternetEnabled, bool bLanEnabled)
     if (!bPortEnableReq)
         return true;
 
-    // Start new thingmy
-    // If a local IP has been specified, ensure it is used for sending
-    std::vector<SString> ipList;
-    m_strIPList.Split(",", ipList);
-
-    for (const SString& ip : ipList)
+    // Create an ASE socket for each address binding
+    for (const IPAddressBinding& binding : m_addressBindings)
     {
-        IPAddress address{IPAddress::IPv4Any};
+        IPSocket   socket{binding.address.GetAddressFamily(), IPSocketProtocol::UDP};
+        IPEndpoint endpoint{binding.address, m_usPort};
 
-        if (!ip.empty())
-        {
-            address = IPAddress{ip.c_str()};
+        if (!socket.Create() || !socket.SetAddressReuse(true) || !socket.SetNonBlocking(true))
+            return false;
 
-            if (!address.IsIPv4())
-                return false;
-        }
+        if (endpoint.IsIPv6() && !socket.SetIPv6Only(binding.addressMode == IPAddressMode::IPv6Only))
+            return false;
 
-        IPSocket   socket{address.GetAddressFamily(), IPSocketProtocol::UDP};
-        IPEndpoint endpoint{address, m_usPort};
-
-        if (!socket.Create() || !socket.SetAddressReuse(true) || !socket.SetNonBlocking(true) || !socket.Bind(endpoint))
+        if (!socket.Bind(endpoint))
             return false;
 
         m_sockets.emplace_back(std::move(socket));

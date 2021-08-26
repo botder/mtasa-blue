@@ -19,6 +19,7 @@ project "Sockets"
 		"mtasa/IPAddress.h",
 		"mtasa/IPAddressFamily.cpp",
 		"mtasa/IPAddressFamily.h",
+		"mtasa/IPAddressBinding.h",
 		"mtasa/IPAddressMode.h",
 		"mtasa/IPEndpoint.cpp",
 		"mtasa/IPEndpoint.h",

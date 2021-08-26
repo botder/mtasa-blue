@@ -1,27 +1,16 @@
 /*****************************************************************************
  *
- *  PROJECT:     Multi Theft Auto v1.0
+ *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
  *  FILE:        mods/deathmatch/logic/CCommandLineParser.cpp
  *  PURPOSE:     Command line parser class
  *
- *  Multi Theft Auto is available from http://www.multitheftauto.com/
+ *  Multi Theft Auto is available from https://multitheftauto.com/
  *
  *****************************************************************************/
 
 #include "StdInc.h"
-
-using namespace std;
-
-CCommandLineParser::CCommandLineParser()
-{
-    m_bMainConfig = false;
-    m_bIP = false;
-    m_bPort = false;
-    m_bHTTPPort = false;
-    m_bMaxPlayers = false;
-    m_bNoVoice = false;
-}
+#include "CCommandLineParser.h"
 
 bool CCommandLineParser::Parse(int iArgumentCount, char* szArguments[])
 {
@@ -45,6 +34,22 @@ bool CCommandLineParser::Parse(int iArgumentCount, char* szArguments[])
             {
                 m_bIP = true;
                 m_strIP = szArguments[iIndex];
+            }
+        }
+        else if (stricmp(szArguments[iIndex], "--dns") == 0)
+        {
+            if (++iIndex < iArgumentCount)
+            {
+                m_usingDNS = true;
+                m_dns = szArguments[iIndex];
+            }
+        }
+        else if (stricmp(szArguments[iIndex], "--ipv6only") == 0)
+        {
+            if (++iIndex < iArgumentCount)
+            {
+                m_usingIpv6Only = true;
+                m_ipv6Only = szArguments[iIndex];
             }
         }
         else if (stricmp(szArguments[iIndex], "--port") == 0)
@@ -76,14 +81,6 @@ bool CCommandLineParser::Parse(int iArgumentCount, char* szArguments[])
             m_bNoVoice = true;
             m_bDisableVoice = true;
         }
-
-        // We can't disable HTTP because then downloading resource files doesn't work
-        /*
-        else if ( stricmp ( szArguments [iIndex], "-nohttp" ) == 0 )
-        {
-            m_bHTTPEnabled = false;
-        }
-        */
 
         // Increment the index
         ++iIndex;

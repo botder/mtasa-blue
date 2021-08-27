@@ -2356,6 +2356,15 @@ void CServerBrowser::SetSelectedIndex(unsigned int uiIndex)
     }
 }
 
+void CServerBrowser::SetAddressMode(mtasa::IPAddressMode addressMode)
+{
+    if (m_addressMode == addressMode)
+        return;
+
+    m_addressMode = addressMode;
+    m_ServersLAN.SetAddressMode(addressMode);
+}
+
 void CServerBrowser::TabSkip(bool bBackwards)
 {
     unsigned int uiTabCount = m_pPanel->GetTabCount();

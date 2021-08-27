@@ -590,7 +590,9 @@ void CCore::ApplyGameSettings()
 
 void CCore::ApplyMultiplayerSettings()
 {
-    CVARS_GET("connection_type", reinterpret_cast<int&>(m_addressMode));
+    int addressMode = static_cast<int>(IPAddressMode::IPv6DualStack);
+    CVARS_GET("connection_type", addressMode);
+    SetAddressMode(static_cast<IPAddressMode>(addressMode));
 }
 
 void CCore::SetConnected(bool bConnected)
@@ -2238,4 +2240,6 @@ void CCore::SetAddressMode(mtasa::IPAddressMode addressMode)
         return;
 
     m_addressMode = addressMode;
+
+    CServerBrowser::GetSingleton().SetAddressMode(addressMode);
 }

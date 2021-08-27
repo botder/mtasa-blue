@@ -21,6 +21,7 @@ class CMasterServerManagerInterface;
 #include <vector>
 #include "CSingleton.h"
 #include <mtasa/IPSocket.h>
+#include <mtasa/IPAddressMode.h>
 
 // Master server list URL
 #define SERVER_LIST_MASTER_URL              "http://master.multitheftauto.com/ase/mta/"
@@ -347,16 +348,21 @@ public:
     int          GetRevision() { return m_iRevision; }
     void         SortByASEVersion();
 
+    void SetAddressMode(mtasa::IPAddressMode addressMode);
+
 protected:
-    bool                m_bUpdated;
-    int                 m_iPass;
-    unsigned int        m_nScanned;
-    unsigned int        m_nSkipped;
-    int                 m_iRevision;
-    CServerListItemList m_Servers;
-    std::string         m_strStatus;
-    std::string         m_strStatus2;
-    long long           m_llLastTickCount;
+    virtual void OnAddressModeChange() {}
+
+    bool                 m_bUpdated;
+    int                  m_iPass;
+    unsigned int         m_nScanned;
+    unsigned int         m_nSkipped;
+    int                  m_iRevision;
+    CServerListItemList  m_Servers;
+    std::string          m_strStatus;
+    std::string          m_strStatus2;
+    long long            m_llLastTickCount;
+    mtasa::IPAddressMode m_addressMode = mtasa::IPAddressMode::IPv6DualStack;
 };
 
 // Internet list (grabs the master server list on refresh)
@@ -375,13 +381,17 @@ private:
 };
 
 // LAN list (scans for LAN-broadcasted servers on refresh)
-class CServerListLAN : public CServerList
+class CServerListLAN final : public CServerList
 {
 public:
     void Pulse();
     void Refresh();
 
 private:
+    void OnAddressModeChange() override;
+    bool CreateSocket();
+    bool CreateIPv6Socket(bool isIPv6Only);
+    bool CreateIPv4Socket();
     void Discover();
 
     mtasa::IPSocket m_socket;

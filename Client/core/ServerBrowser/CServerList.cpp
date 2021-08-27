@@ -230,6 +230,15 @@ void CServerList::SortByASEVersion()
     m_Servers.GetList().sort(SortByASEVersionCallback);
 }
 
+void CServerList::SetAddressMode(mtasa::IPAddressMode addressMode)
+{
+    if (m_addressMode == addressMode)
+        return;
+
+    m_addressMode = addressMode;
+    OnAddressModeChange();
+}
+
 void CServerListInternet::Pulse()
 {            // We also need to take care of the master server list here
     unsigned long ulTime = m_ElapsedTime.Get();
@@ -319,15 +328,8 @@ void CServerListLAN::Refresh()
     (void)m_socket.Close();
 
     // Create the LAN-broadcast socket
-    IPSocket socket{IPAddressFamily::IPv4, IPSocketProtocol::UDP};
-
-    if (!socket.Create() || !socket.SetAddressReuse(true) || !socket.SetBroadcast(true) || !socket.SetNonBlocking(true))
-    {
-        m_strStatus = _("Cannot bind LAN-broadcast socket");
+    if (!CreateSocket())
         return;
-    }
-
-    m_socket = std::move(socket);
 
     // Clear the previous server list
     Clear();
@@ -336,12 +338,78 @@ void CServerListLAN::Refresh()
     Discover();
 }
 
+void CServerListLAN::OnAddressModeChange()
+{
+    (void)m_socket.Close();
+}
+
+bool CServerListLAN::CreateSocket()
+{
+    if (m_addressMode == IPAddressMode::IPv4Only)
+    {
+        if (!CreateIPv4Socket())
+        {
+            m_strStatus = _("Cannot bind LAN-broadcast socket");
+            return false;
+        }
+    }
+    else
+    {
+        bool isIPv6Only = (m_addressMode == IPAddressMode::IPv6Only);
+
+        if (!CreateIPv6Socket(isIPv6Only))
+        {
+            // Try to create an IPv4 socket, if creating the IPv6 Dual-Stack socket failed
+            if (!isIPv6Only || !CreateIPv4Socket())
+            {
+                m_strStatus = _("Cannot bind LAN-broadcast socket");
+                return false;
+            }
+        }
+    }
+
+    return true;
+}
+
+bool CServerListLAN::CreateIPv6Socket(bool isIPv6Only)
+{
+    IPSocket socket{IPAddressFamily::IPv6, IPSocketProtocol::UDP};
+
+    if (!socket.Create() || !socket.SetAddressReuse(true) || !socket.SetNonBlocking(true) || !socket.SetIPv6Only(isIPv6Only))
+        return false;
+
+    if (!socket.JoinMulticastGroup(IPAddress::IPv6MulticastAllNodes, 0))
+        return false;
+
+    m_socket = std::move(socket);
+    return true;
+}
+
+bool CServerListLAN::CreateIPv4Socket()
+{
+    IPSocket socket{IPAddressFamily::IPv4, IPSocketProtocol::UDP};
+
+    if (!socket.Create() || !socket.SetAddressReuse(true) || !socket.SetBroadcast(true) || !socket.SetNonBlocking(true))
+        return false;
+
+    m_socket = std::move(socket);
+    return true;
+}
+
 void CServerListLAN::Discover()
 {
+    if (!m_socket.Exists() && !CreateSocket())
+        return;
+
     m_strStatus = _("Attempting to discover LAN servers");
 
     // Send out the broadcast packet
-    IPEndpoint  endpoint{IPAddress::IPv4Broadcast, SERVER_LIST_BROADCAST_PORT};
+    IPAddress address = IPAddress::IPv4Broadcast;
+
+    if (m_socket.IsIPv6())
+        address = IPAddress::IPv6MulticastAllNodes;
+
+    IPEndpoint  endpoint{address, SERVER_LIST_BROADCAST_PORT};
     std::string query = std::string(SERVER_LIST_CLIENT_BROADCAST_STR) + " " + std::string(MTA_DM_ASE_VERSION);
     (void)m_socket.SendTo(endpoint, query.c_str(), query.size() + 1);
 

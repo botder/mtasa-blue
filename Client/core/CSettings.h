@@ -132,6 +132,8 @@ protected:
     CGUIButton*   m_pButtonCancel;
     CGUILabel*    m_pLabelNick;
     CGUIEdit*     m_pEditNick;
+    CGUILabel*    m_pLabelConnectionType = nullptr;
+    CGUIComboBox* m_pComboConnectionType = nullptr;
     CGUICheckBox* m_pSavePasswords;
     CGUICheckBox* m_pAutoRefreshBrowser;
 

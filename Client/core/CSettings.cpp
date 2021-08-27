@@ -349,21 +349,48 @@ void CSettings::CreateGUI()
     /**
      *    Multiplayer tab
      **/
-    m_pLabelNick = reinterpret_cast<CGUILabel*>(pManager->CreateLabel(pTabMultiplayer, _("Nick:")));
-    m_pLabelNick->SetPosition(CVector2D(11, 13));
-    m_pLabelNick->GetPosition(vecTemp, false);
-    m_pLabelNick->AutoSize(_("Nick:"));
-    m_pLabelNick->GetSize(vecSize);
 
-    // Nick edit
-    m_pEditNick = reinterpret_cast<CGUIEdit*>(pManager->CreateEdit(pTabMultiplayer));
-    m_pEditNick->SetPosition(CVector2D(vecSize.fX + vecTemp.fX + 50.0f, vecTemp.fY - 1.0f));
-    m_pEditNick->SetSize(CVector2D(178.0f, 24.0f));
-    m_pEditNick->SetMaxLength(MAX_PLAYER_NICK_LENGTH);
-    m_pEditNick->SetTextAcceptedHandler(GUI_CALLBACK(&CSettings::OnOKButtonClick, this));
+    SString strNick = _("Nick:"), strConnectionType = _("Connection type:");
+    fIndentX = pManager->CGUI_GetMaxTextExtent("default-normal", strNick, strConnectionType) + 20.0f;
+
+    float fCommonWidth = std::max(180.0f, fIndentX + 10.0f);
+
+    // Nickname
+    {
+        m_pLabelNick = reinterpret_cast<CGUILabel*>(pManager->CreateLabel(pTabMultiplayer, strNick));
+        m_pLabelNick->SetPosition(CVector2D(10.0f, 12.0f));
+        m_pLabelNick->GetPosition(vecTemp, false);
+        m_pLabelNick->AutoSize(strNick);
+
+        m_pEditNick = reinterpret_cast<CGUIEdit*>(pManager->CreateEdit(pTabMultiplayer));
+        m_pEditNick->SetPosition(CVector2D(fIndentX, vecTemp.fY - 3.0f));
+        m_pEditNick->SetSize(CVector2D(fCommonWidth, 24.0f));
+        m_pEditNick->SetMaxLength(MAX_PLAYER_NICK_LENGTH);
+        m_pEditNick->SetTextAcceptedHandler(GUI_CALLBACK(&CSettings::OnOKButtonClick, this));
+
+        vecTemp.fY += 30.0f;
+    }
+
+    // Connection type
+    {
+        m_pLabelConnectionType = pManager->CreateLabel(pTabMultiplayer, strConnectionType);
+        m_pLabelConnectionType->SetPosition(CVector2D(vecTemp.fX, vecTemp.fY));
+        m_pLabelConnectionType->GetPosition(vecTemp, false);
+        m_pLabelConnectionType->AutoSize(strConnectionType);
+
+        m_pComboConnectionType = pManager->CreateComboBox(pTabMultiplayer, "");
+        m_pComboConnectionType->SetPosition(CVector2D(fIndentX, vecTemp.fY - 3.0f));
+        m_pComboConnectionType->SetSize(CVector2D(fCommonWidth, 80.0f));
+        m_pComboConnectionType->AddItem(_("Automatic"))->SetData((void*)0);
+        m_pComboConnectionType->AddItem(_("IPv6"))->SetData((void*)1);
+        m_pComboConnectionType->AddItem(_("IPv4"))->SetData((void*)2);
+        m_pComboConnectionType->SetReadOnly(true);
+
+        vecTemp.fY += 30.0f;
+    }
 
     m_pSavePasswords = reinterpret_cast<CGUICheckBox*>(pManager->CreateCheckBox(pTabMultiplayer, _("Save server passwords"), true));
-    m_pSavePasswords->SetPosition(CVector2D(vecTemp.fX, vecTemp.fY + 50.0f));
+    m_pSavePasswords->SetPosition(CVector2D(vecTemp.fX, vecTemp.fY + 10.0f));
     m_pSavePasswords->GetPosition(vecTemp, false);
     m_pSavePasswords->AutoSize(NULL, 20.0f);
 

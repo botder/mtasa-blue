@@ -39,6 +39,7 @@ class CCore;
 #include <ijsify.h>
 #include <core/CWebCoreInterface.h>
 #include "CTrayIcon.h"
+#include <mtasa/IPAddressMode.h>
 
 #define DIRECTINPUT_VERSION 0x0800
 #include <dinput.h>
@@ -143,6 +144,7 @@ public:
     // Configuration
     void ApplyConsoleSettings();
     void ApplyGameSettings();
+    void ApplyMultiplayerSettings();
     void UpdateRecentlyPlayed();
 
     // Net
@@ -279,6 +281,9 @@ public:
     SString     GetBlueCopyrightString();
     bool        IsFirstFrame() const noexcept { return m_bFirstFrame; }
 
+    void                 SetAddressMode(mtasa::IPAddressMode addressMode);
+    mtasa::IPAddressMode GetAddressMode() const noexcept { return m_addressMode; }
+
 private:
     void ApplyCoreInitSettings();
 
@@ -373,6 +378,7 @@ private:
     bool                 m_bDummyProgressUpdateAlways;
     bool                 m_bIsRenderingGrass;
     bool                 m_bFakeLagCommandEnabled;
+    mtasa::IPAddressMode m_addressMode = mtasa::IPAddressMode::IPv6DualStack;
 
     // Command line
     static void                        ParseCommandLine(std::map<std::string, std::string>& options, const char*& szArgs, const char** pszNoValOptions = NULL);

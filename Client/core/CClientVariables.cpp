@@ -10,6 +10,9 @@
  *****************************************************************************/
 
 #include "StdInc.h"
+#include <mtasa/IPAddressMode.h>
+
+using namespace mtasa;
 
 template <>
 CClientVariables* CSingleton<CClientVariables>::m_pSingleton = NULL;
@@ -256,6 +259,7 @@ void CClientVariables::ValidateValues()
     ClampValue("mtavolume", 0.0f, 1.0f);
     ClampValue("voicevolume", 0.0f, 1.0f);
     ClampValue("mapalpha", 0, 255);
+    ClampValue("connection_type", 0, 2); // see IPAddressMode
 }
 
 void CClientVariables::LoadDefaults()
@@ -270,6 +274,7 @@ void CClientVariables::LoadDefaults()
         CCore::GetSingleton().RequestNewNickOnStart();                 // Request the user to set a new nickname
     }
 
+    DEFAULT("connection_type", static_cast<int>(IPAddressMode::IPv6DualStack));
     DEFAULT("host", _S("127.0.0.1"));                                    // hostname
     DEFAULT("port", 22003);                                              // port
     DEFAULT("password", _S(""));                                         // password

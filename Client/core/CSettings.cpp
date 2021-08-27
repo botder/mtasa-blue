@@ -12,8 +12,10 @@
 #include "StdInc.h"
 #include <core/CClientCommands.h>
 #include <game/CGame.h>
+#include <mtasa/IPAddressMode.h>
 
 using namespace std;
+using namespace mtasa;
 
 #define CORE_MTA_FILLER "cgui\\images\\mta_filler.png"
 #define CORE_SETTINGS_UPDATE_INTERVAL 30            // Settings update interval in frames
@@ -381,9 +383,9 @@ void CSettings::CreateGUI()
         m_pComboConnectionType = pManager->CreateComboBox(pTabMultiplayer, "");
         m_pComboConnectionType->SetPosition(CVector2D(fIndentX, vecTemp.fY - 3.0f));
         m_pComboConnectionType->SetSize(CVector2D(fCommonWidth, 80.0f));
-        m_pComboConnectionType->AddItem(_("Automatic"))->SetData((void*)0);
-        m_pComboConnectionType->AddItem(_("IPv6"))->SetData((void*)1);
-        m_pComboConnectionType->AddItem(_("IPv4"))->SetData((void*)2);
+        m_pComboConnectionType->AddItem(_("IPv4"))->SetData(reinterpret_cast<void*>(IPAddressMode::IPv4Only));
+        m_pComboConnectionType->AddItem(_("IPv6"))->SetData(reinterpret_cast<void*>(IPAddressMode::IPv6Only));
+        m_pComboConnectionType->AddItem(_("Automatic"))->SetData(reinterpret_cast<void*>(IPAddressMode::IPv6DualStack));
         m_pComboConnectionType->SetReadOnly(true);
 
         vecTemp.fY += 30.0f;
@@ -2944,6 +2946,11 @@ void CSettings::LoadData()
         m_pEditNick->SetText(CNickGen::GetRandomNickname());
     }
 
+    // Connection type
+    int addressMode = static_cast<int>(IPAddressMode::IPv6DualStack);
+    CVARS_GET("connection_type", addressMode);
+    m_pComboConnectionType->SetSelectedItemByIndex(addressMode);
+
     // Save server password
     CVARS_GET("save_server_passwords", bVar);
     m_pSavePasswords->SetSelected(bVar);
@@ -3264,6 +3271,15 @@ void CSettings::SaveData()
     {
         CVARS_SET("nick", m_pEditNick->GetText());
     }
+
+    // Connection type
+    int addressMode = m_pComboConnectionType->GetSelectedItemIndex();
+
+    if (addressMode < 0 || addressMode > 2)
+        addressMode = 2;            // IPAddressMode::IPv6DualStack
+
+    g_pCore->SetAddressMode(static_cast<IPAddressMode>(addressMode));
+    CVARS_SET("connection_type", addressMode);
 
     // Server pass saving
     bool bServerPasswords = m_pSavePasswords->GetSelected();

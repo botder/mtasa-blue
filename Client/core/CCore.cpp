@@ -588,6 +588,11 @@ void CCore::ApplyGameSettings()
     pGameSettings->SetSFXVolume(pGameSettings->GetSFXVolume() * fVal);
 }
 
+void CCore::ApplyMultiplayerSettings()
+{
+    CVARS_GET("connection_type", reinterpret_cast<int&>(m_addressMode));
+}
+
 void CCore::SetConnected(bool bConnected)
 {
     m_pLocalGUI->GetMainMenu()->SetIsIngame(bConnected);
@@ -1154,6 +1159,7 @@ void CCore::DoPostFramePulse()
         // Apply all settings
         ApplyConsoleSettings();
         ApplyGameSettings();
+        ApplyMultiplayerSettings();
 
         m_pGUI->SelectInputHandlers(INPUT_CORE);
 
@@ -2224,4 +2230,12 @@ SString CCore::GetBlueCopyrightString()
 {
     SString strCopyright = BLUE_COPYRIGHT_STRING;
     return strCopyright.Replace("%BUILD_YEAR%", std::to_string(BUILD_YEAR).c_str());
+}
+
+void CCore::SetAddressMode(mtasa::IPAddressMode addressMode)
+{
+    if (m_addressMode == addressMode)
+        return;
+
+    m_addressMode = addressMode;
 }

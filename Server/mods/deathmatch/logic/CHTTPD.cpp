@@ -274,12 +274,17 @@ bool CHTTPD::Start(const std::vector<IPAddressBinding>& bindings, std::uint16_t 
     parameters["mode"] = "threadpool";
     parameters["threadcount"] = g_pGame->GetConfig()->GetHTTPThreadCount();
     parameters["bindings"] = bindings;
-    return m_impl->StartServer(parameters) == EHS::STARTSERVER_SUCCESS;
+    m_isRunning = (m_impl->StartServer(parameters) == EHS::STARTSERVER_SUCCESS);
+    return m_isRunning;
 }
 
 void CHTTPD::Stop()
 {
-    m_impl->StopServer();
+    if (m_isRunning)
+    {
+        m_impl->StopServer();
+        m_isRunning = false;
+    }
 }
 
 int CHTTPD::RequestLogin(HttpRequest* request, HttpResponse* response)

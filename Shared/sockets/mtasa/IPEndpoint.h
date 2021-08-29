@@ -22,13 +22,13 @@ namespace mtasa
     {
     public:
         // Constructs an invalid endpoint
-        constexpr IPEndpoint() = default;
+        constexpr IPEndpoint() noexcept = default;
 
         // Constructs an endpoint from an IP address and a port
-        explicit IPEndpoint(const IPAddress& address, std::uint16_t port) : m_address{address}, m_port{port} {}
+        explicit IPEndpoint(const IPAddress& address, std::uint16_t port) noexcept : m_address{address}, m_port{port} {}
 
         // Constructs an endpoint from an IP address and a port
-        explicit IPEndpoint(IPAddress&& address, std::uint16_t port) : m_address{address}, m_port{port} {}
+        explicit IPEndpoint(IPAddress&& address, std::uint16_t port) noexcept : m_address{address}, m_port{port} {}
 
     public:
         constexpr void SetAddress(const IPAddress& address) noexcept { m_address = address; }
@@ -36,8 +36,7 @@ namespace mtasa
         constexpr void SetAddress(IPAddress&& address) noexcept { m_address = address; }
 
         constexpr void SetHostOrderPort(std::uint16_t port) noexcept { m_port = port; }
-
-        void SetNetworkOrderPort(std::uint16_t port) noexcept;
+        void           SetNetworkOrderPort(std::uint16_t port) noexcept { m_port = StoreBigEndian16(port); }
 
         // Fill this endpoint with the IPv4 address information
         void FromSocketAddress(const sockaddr_in& address) noexcept;
@@ -65,11 +64,14 @@ namespace mtasa
         [[nodiscard]] const IPAddress& GetAddress() const noexcept { return m_address; }
 
         [[nodiscard]] std::uint16_t GetHostOrderPort() const noexcept { return m_port; }
-        [[nodiscard]] std::uint16_t GetNetworkOrderPort() const noexcept;
+        [[nodiscard]] std::uint16_t GetNetworkOrderPort() const noexcept { return LoadBigEndian16(m_port); }
 
     public:
+        // Returns true if this is either an IPv4 or IPv6 endpoint (port > 0)
+        [[nodiscard]] constexpr bool IsValid() const noexcept { return m_port && m_address.IsValid(); }
+
         // Returns true if this is neither an IPv4 nor IPv6 endpoint (port > 0)
-        [[nodiscard]] constexpr bool IsInvalid() const noexcept { return !m_port || m_address.IsInvalid(); }
+        [[nodiscard]] constexpr bool IsInvalid() const noexcept { return !IsValid(); }
 
         // Returns true if this is a valid IPv4 endpoint (port > 0)
         [[nodiscard]] constexpr bool IsIPv4() const noexcept { return m_port && m_address.IsIPv4(); }
@@ -102,7 +104,10 @@ namespace mtasa
         explicit constexpr operator bool() const noexcept { return !IsInvalid(); }
 
     private:
-        IPAddress     m_address{};
+        // Internet Protocol address.
+        IPAddress m_address{};
+
+        // Port number in host byte order.
         std::uint16_t m_port = 0;
     };
 }            // namespace mtasa

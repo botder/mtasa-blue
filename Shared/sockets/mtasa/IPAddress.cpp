@@ -37,15 +37,16 @@ namespace mtasa
     IPAddress IPAddress::IPv6Localhost = IPAddress::CreateLocalhost(IPAddressFamily::IPv6);
     IPAddress IPAddress::IPv6MulticastAllNodes = IPAddress{0xFF02, 0, 0, 0, 0, 0, 0, 1};
 
-    IPAddress::IPAddress(const sockaddr_in& address)
+    IPAddress::IPAddress(const sockaddr_in& address) noexcept
     {
         std::copy_n(reinterpret_cast<const std::uint8_t*>(&address.sin_addr), sizeof(address.sin_addr), m_bytes.data());
         m_addressFamily = IPAddressFamily::IPv4;
     }
 
-    IPAddress::IPAddress(const sockaddr_in6& address)
+    IPAddress::IPAddress(const sockaddr_in6& address) noexcept
     {
         std::copy_n(reinterpret_cast<const std::uint8_t*>(&address.sin6_addr), sizeof(address.sin6_addr), m_bytes.data());
+        m_scope = address.sin6_scope_id;
         m_addressFamily = IPAddressFamily::IPv6;
     }
 
@@ -136,19 +137,13 @@ namespace mtasa
         {
             if (addressFamily == AF_INET)
             {
-                auto ipv4 = reinterpret_cast<sockaddr_in*>(address);
-
-                std::array<std::uint8_t, 4> bytes{};
-                std::copy_n(reinterpret_cast<std::uint8_t*>(&ipv4->sin_addr), sizeof(ipv4->sin_addr), bytes.data());
-                results.emplace_back(bytes);
+                auto& ipv4 = *reinterpret_cast<sockaddr_in*>(address);
+                results.emplace_back(ipv4);
             }
             else if (addressFamily == AF_INET6)
             {
-                auto ipv6 = reinterpret_cast<sockaddr_in6*>(address);
-
-                std::array<std::uint8_t, 16> bytes{};
-                std::copy_n(reinterpret_cast<std::uint8_t*>(&ipv6->sin6_addr), sizeof(ipv6->sin6_addr), bytes.data());
-                results.emplace_back(bytes);
+                auto& ipv6 = *reinterpret_cast<sockaddr_in6*>(address);
+                results.emplace_back(ipv6);
             }
         };
 

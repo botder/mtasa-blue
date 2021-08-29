@@ -11,6 +11,7 @@
 #pragma once
 
 #include "IPAddressFamily.h"
+#include "Endianness.h"
 #include <array>
 #include <vector>
 #include <cstdint>
@@ -35,22 +36,22 @@ namespace mtasa
 
     public:
         // Constructs an invalid address (IPv4 nor IPv6)
-        constexpr IPAddress() = default;
+        constexpr IPAddress() noexcept = default;
 
         // Constructs an IPv4 address from four 8-bit integers in network byte order (a.b.c.d)
-        explicit constexpr IPAddress(std::uint8_t a, std::uint8_t b, std::uint8_t c, std::uint8_t d)
+        explicit constexpr IPAddress(std::uint8_t a, std::uint8_t b, std::uint8_t c, std::uint8_t d) noexcept
             : m_bytes{a, b, c, d}, m_addressFamily{IPAddressFamily::IPv4}
         {
         }
 
         // Constructs an IPv4 address from an 8-bit integer array in network byte order (bytes[0].bytes[1].bytes[2].bytes[3])
-        explicit constexpr IPAddress(const std::array<std::uint8_t, 4>& bytes)
+        explicit constexpr IPAddress(const std::array<std::uint8_t, 4>& bytes) noexcept
             : m_bytes{bytes[0], bytes[1], bytes[2], bytes[3]}, m_addressFamily{IPAddressFamily::IPv4}
         {
         }
 
         // Constructs an IPv4 address from a single 32-bit integer in network byte order (<byte 1>.<byte 2>.<byte 3>.<byte 4>)
-        explicit constexpr IPAddress(std::uint32_t a)
+        explicit constexpr IPAddress(std::uint32_t a) noexcept
             : m_bytes{static_cast<std::uint8_t>(a & 0xFF), static_cast<std::uint8_t>((a >> 8) & 0xFF), static_cast<std::uint8_t>((a >> 16) & 0xFF),
                       static_cast<std::uint8_t>((a >> 24) & 0xFF)},
               m_addressFamily{IPAddressFamily::IPv4}
@@ -60,7 +61,7 @@ namespace mtasa
         // Constructs an IPv6 address from eight 16-bit integers in network byte order (a:b:c:d:e:f:g:h).
         // Each 16-bit quartet must be coded in host endianness.
         explicit constexpr IPAddress(std::uint16_t a, std::uint16_t b, std::uint16_t c, std::uint16_t d, std::uint16_t e, std::uint16_t f, std::uint16_t g,
-                                     std::uint16_t h)
+                                     std::uint16_t h) noexcept
             : m_bytes{static_cast<std::uint8_t>((a >> 8) & 0xFF), static_cast<std::uint8_t>(a & 0xFF),        static_cast<std::uint8_t>((b >> 8) & 0xFF),
                       static_cast<std::uint8_t>(b & 0xFF),        static_cast<std::uint8_t>((c >> 8) & 0xFF), static_cast<std::uint8_t>(c & 0xFF),
                       static_cast<std::uint8_t>((d >> 8) & 0xFF), static_cast<std::uint8_t>(d & 0xFF),        static_cast<std::uint8_t>((e >> 8) & 0xFF),
@@ -75,10 +76,10 @@ namespace mtasa
         explicit constexpr IPAddress(const std::array<std::uint8_t, 16>& bytes) : m_bytes{bytes}, m_addressFamily{IPAddressFamily::IPv6} {}
 
         // Constructs an IPv4 address from a socket address
-        explicit IPAddress(const sockaddr_in& address);
+        explicit IPAddress(const sockaddr_in& address) noexcept;
 
         // Constructs an IPv6 address from a socket address
-        explicit IPAddress(const sockaddr_in6& address);
+        explicit IPAddress(const sockaddr_in6& address) noexcept;
 
         // Constructs an IPAddress from a string representation. This supports the following representations:
         // 1) [IPv4] "a.b.c.d" - each part specifies a byte [0-255]
@@ -110,9 +111,20 @@ namespace mtasa
             return {m_bytes};
         }
 
+        [[nodiscard]] std::uint32_t GetHostOrderScope() const noexcept { return LoadBigEndian32(m_scope); }
+
+        [[nodiscard]] constexpr std::uint32_t GetNetworkOrderScope() const noexcept { return m_scope; }
+
+        void SetHostOrderScope(std::uint32_t scope) noexcept { m_scope = StoreBigEndian32(scope); }
+
+        void SetNetworkOrderScope(std::uint32_t scope) noexcept { m_scope = scope; }
+
     public:
+        // Returns true if this is either an IPv4 or IPv6 address
+        [[nodiscard]] constexpr bool IsValid() const noexcept { return m_addressFamily != IPAddressFamily::Unspecified; }
+
         // Returns true if this is neither an IPv4 nor IPv6 address
-        [[nodiscard]] constexpr bool IsInvalid() const noexcept { return m_addressFamily == IPAddressFamily::Unspecified; }
+        [[nodiscard]] constexpr bool IsInvalid() const noexcept { return !IsValid(); }
 
         // Returns true if this is an IPv4 address
         [[nodiscard]] constexpr bool IsIPv4() const noexcept { return m_addressFamily == IPAddressFamily::IPv4; }
@@ -387,6 +399,9 @@ namespace mtasa
                     return 1;
             }
 
+            if (IsIPv6() && m_scope != other.m_scope)
+                return static_cast<std::int32_t>(m_scope) - static_cast<std::int32_t>(other.m_scope);
+
             return 0;
         }
 
@@ -452,6 +467,14 @@ namespace mtasa
         // Large enough to store either an IPv4 or an IPv6 address.
         // For an IPv4 address, the remaining bytes [4..15] must always be zero.
         std::array<std::uint8_t, 16> m_bytes{};
-        IPAddressFamily              m_addressFamily = IPAddressFamily::Unspecified;
+
+        // An IPv6 address scope number in network byte order (Big-Endian).
+        // For IPv6 link-local and site-local addresses (read: scoped addresses) we must differentiate
+        // the same ip address by the scope id. For link-local addresses (fe80::/10), this specifies the
+        // interface number. For site-local addresses (fec0::/10), this specifies a site identifier.
+        std::uint32_t m_scope = 0;
+
+        // Address family this IP address belongs to.
+        IPAddressFamily m_addressFamily = IPAddressFamily::Unspecified;
     };
 }            // namespace mtasa

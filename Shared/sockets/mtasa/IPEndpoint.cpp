@@ -85,6 +85,7 @@ namespace mtasa
                     auto& ipv6 = reinterpret_cast<sockaddr_in6&>(address);
                     ipv6.sin6_family = AF_INET6;
                     ipv6.sin6_port = GetNetworkOrderPort();
+                    ipv6.sin6_scope_id = m_address.GetNetworkOrderScope();
                     std::copy(maybeBytes->begin(), maybeBytes->end(), reinterpret_cast<std::uint8_t*>(&ipv6.sin6_addr));
                     return true;
                 }
@@ -102,10 +103,6 @@ namespace mtasa
 
         return false;
     }
-
-    void IPEndpoint::SetNetworkOrderPort(std::uint16_t port) noexcept { m_port = StoreBigEndian16(port); }
-
-    std::uint16_t IPEndpoint::GetNetworkOrderPort() const noexcept { return StoreBigEndian16(m_port); }
 
     std::string IPEndpoint::ToString() const
     {

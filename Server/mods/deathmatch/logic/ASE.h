@@ -12,7 +12,7 @@
 #pragma once
 
 #include <mtasa/IPSocket.h>
-#include <mtasa/IPAddressBinding.h>
+#include <mtasa/IPBindableEndpoint.h>
 #include <vector>
 
 #define MAX_ASE_GAME_TYPE_LENGTH    200
@@ -27,7 +27,7 @@ class ASE
 {
 public:
     ZERO_ON_NEW
-    ASE(CMainConfig* pMainConfig, CPlayerManager* pPlayerManager, unsigned short usPort, const std::vector<mtasa::IPAddressBinding>& bindings);
+    ASE(CMainConfig* pMainConfig, CPlayerManager* pPlayerManager, const std::vector<mtasa::IPBindableEndpoint>& bindings);
     ~ASE();
 
     void DoPulse();
@@ -76,7 +76,7 @@ private:
     SString     m_strMapName;
     std::string m_strPort;
 
-    std::vector<mtasa::IPAddressBinding> m_addressBindings;
+    std::vector<mtasa::IPBindableEndpoint> m_bindings;
 
     static ASE* _instance;
     time_t      m_tStartTime;
@@ -84,9 +84,6 @@ private:
     std::list<CASERule*> m_Rules;
 
     std::vector<mtasa::IPSocket> m_sockets;
-
-    unsigned short m_usPortBase;
-    unsigned short m_usPort;
 
     // Full query cache
     unsigned int m_uiFullLastPlayerCount;

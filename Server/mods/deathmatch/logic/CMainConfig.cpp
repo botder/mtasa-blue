@@ -126,10 +126,6 @@ bool CMainConfig::Load()
         return false;
     }
 
-    // Grab the forced server ip(s)
-    if (!ParseServerAddresses())
-        return false;
-
     // Grab the port
     int iTemp;
     iResult = GetInteger(m_pRootNode, "serverport", iTemp, 1, 65535);
@@ -145,6 +141,17 @@ bool CMainConfig::Load()
             CLogger::ErrorPrintf("Server port must be between 1 and 65535\n");
 
         return false;
+    }
+
+    // Grab the forced server ip(s)
+    if (!ParseServerAddresses())
+        return false;
+
+    // Default to unspecified IPv4 server binding, if none given
+    if (m_bindings.empty())
+    {
+        CLogger::LogPrint("Server ip not specified in config\n");
+        m_bindings.emplace_back(IPAddress::IPv4Any, m_usServerPort);
     }
 
     // Grab the max players
@@ -812,16 +819,16 @@ bool CMainConfig::Save()
     return false;
 }
 
-const std::vector<IPAddressBinding> CMainConfig::GetAddressFamilyBindings(IPAddressFamily addressFamily) const
+const std::vector<IPBindableEndpoint> CMainConfig::GetAddressFamilyBindings(IPAddressFamily addressFamily) const
 {
-    std::vector<IPAddressBinding> result;
+    std::vector<IPBindableEndpoint> result;
 
     if (addressFamily == IPAddressFamily::Unspecified)
         return {};
 
-    for (const IPAddressBinding& binding : m_addressBindings)
+    for (const IPBindableEndpoint& binding : m_bindings)
     {
-        if (addressFamily == binding.address.GetAddressFamily())
+        if (addressFamily == binding.endpoint.GetAddressFamily())
             result.push_back(binding);
     }
 
@@ -832,14 +839,12 @@ const std::string CMainConfig::GetAddressCommaList(IPAddressFamily addressFamily
 {
     std::string names;
 
-    for (const IPAddressBinding& binding : m_addressBindings)
+    for (const IPBindableEndpoint& binding : m_bindings)
     {
-        if (addressFamily != IPAddressFamily::Unspecified && addressFamily != binding.address.GetAddressFamily())
+        if (addressFamily != IPAddressFamily::Unspecified && addressFamily != binding.endpoint.GetAddressFamily())
             continue;
 
-        std::string name = binding.address.ToString();
-
-        if (binding.address.IsUnspecified())
+        if (binding.endpoint.GetAddress().IsUnspecified())
         {
             if (!showUnspecified)
                 continue;
@@ -847,16 +852,16 @@ const std::string CMainConfig::GetAddressCommaList(IPAddressFamily addressFamily
             if (!names.empty())
                 names += ", ";
 
-            switch (binding.addressMode)
+            switch (binding.endpoint.GetAddressFamily())
             {
-                case IPAddressMode::IPv4Only:
+                case IPAddressFamily::IPv4:
                     names += "auto";
                     break;
-                case IPAddressMode::IPv6Only:
-                    names += "auto(v6)";
-                    break;
-                case IPAddressMode::IPv6DualStack:
-                    names += "auto(v6+v4)";
+                case IPAddressFamily::IPv6:
+                    if (binding.useDualMode)
+                        names += "auto(v6+v4)";
+                    else
+                        names += "auto(v6)";
                     break;
             }
         }
@@ -865,7 +870,7 @@ const std::string CMainConfig::GetAddressCommaList(IPAddressFamily addressFamily
             if (!names.empty())
                 names += ", ";
 
-            names += binding.address.ToString();
+            names += binding.endpoint.GetAddress().ToString();
         }
     }
 
@@ -946,39 +951,38 @@ bool CMainConfig::ParseServerAddresses()
     return true;
 }
 
-void CMainConfig::AddUniqueServerAddress(const IPAddress& address, IPAddressMode addressMode)
+void CMainConfig::AddUniqueServerBinding(const mtasa::IPBindableEndpoint& binding)
 {
-    if (address.IsIPv4Mapped())
+    if (binding.endpoint.GetAddress().IsIPv4Mapped())
     {
-        CLogger::LogPrintf("WARNING: Ignoring an IPv4-mapped IPv6 server ip '%s' (%s)!\n", address.ToString().c_str());
+        CLogger::LogPrintf("WARNING: Ignoring an IPv4-mapped IPv6 server ip '%s' (%s)!\n", binding.endpoint.GetAddress().ToString().c_str());
         return;
     }
 
-    auto existing = std::find_if(m_addressBindings.begin(), m_addressBindings.end(),
-                                 [&](const IPAddressBinding& entry) { return entry.address == address && entry.addressMode == addressMode; });
+    auto existing = std::find_if(m_bindings.begin(), m_bindings.end(), [&](const IPBindableEndpoint& entry) { return entry.endpoint == binding.endpoint; });
 
-    if (existing != m_addressBindings.end())
+    if (existing != m_bindings.end())
     {
         const char* addressModeName = "?";
 
-        switch (addressMode)
+        switch (binding.endpoint.GetAddressFamily())
         {
-            case IPAddressMode::IPv4Only:
+            case IPAddressFamily::IPv4:
                 addressModeName = "IPv4";
                 break;
-            case IPAddressMode::IPv6Only:
-                addressModeName = "IPv6";
-                break;
-            case IPAddressMode::IPv6DualStack:
-                addressModeName = "IPv6+IPv4";
+            case IPAddressFamily::IPv6:
+                if (binding.useDualMode)
+                    addressModeName = "IPv6+IPv4";
+                else
+                    addressModeName = "IPv6";
                 break;
         }
 
-        CLogger::LogPrintf("WARNING: Ignoring duplicate server ip '%s' (%s)!\n", existing->address.ToString().c_str(), addressModeName);
+        CLogger::LogPrintf("WARNING: Ignoring duplicate server ip '%s' (%s)!\n", existing->endpoint.GetAddress().ToString().c_str(), addressModeName);
         return;
     }
 
-    m_addressBindings.emplace_back(address, addressMode);
+    m_bindings.emplace_back(binding);
 }
 
 bool CMainConfig::TranslateSingleAddress(bool translateToIPv4, bool translateToIPv6, bool isIPv6Only, const SString& name)
@@ -989,7 +993,7 @@ bool CMainConfig::TranslateSingleAddress(bool translateToIPv4, bool translateToI
     if (!addresses.empty())
     {
         // A numeric host should only resolve to a single ip address
-        AddUniqueServerAddress(addresses[0], addresses[0].IsIPv4() ? IPAddressMode::IPv4Only : IPAddressMode::IPv6Only);
+        AddUniqueServerBinding(IPBindableEndpoint{addresses[0], m_usServerPort});
         return true;
     }
 
@@ -1002,12 +1006,13 @@ bool CMainConfig::TranslateSingleAddress(bool translateToIPv4, bool translateToI
         {
             if (address.IsIPv4() && translateToIPv4)
             {
-                AddUniqueServerAddress(address, IPAddressMode::IPv4Only);
+                AddUniqueServerBinding(IPBindableEndpoint{address, m_usServerPort});
             }
             else if (address.IsIPv6() && translateToIPv6)
             {
-                auto addressMode = (!address.IsUnspecified() || isIPv6Only) ? IPAddressMode::IPv6Only : IPAddressMode::IPv6DualStack;
-                AddUniqueServerAddress(address, addressMode);
+                bool               useDualMode = address.IsUnspecified() && !isIPv6Only;
+                IPBindableEndpoint binding{IPEndpoint{address, m_usServerPort}, useDualMode};
+                AddUniqueServerBinding(binding);
             }
         }
 
@@ -1029,13 +1034,14 @@ bool CMainConfig::ProcessServerAddress(bool translateToIPv4, bool translateToIPv
     if (value == "auto" || value == "any" || value == "0.0.0.0" || value.empty())
     {
         // This is an unspecified IPv4 address
-        AddUniqueServerAddress(IPAddress::IPv4Any, IPAddressMode::IPv4Only);
+        AddUniqueServerBinding(IPBindableEndpoint{IPAddress::IPv4Any, m_usServerPort});
     }
     else if (value == "auto6" || value == "any6" || value == "::")
     {
         // This is an unspecified IPv6 address
-        auto addressMode = isIPv6Only ? IPAddressMode::IPv6Only : IPAddressMode::IPv6DualStack;
-        AddUniqueServerAddress(IPAddress::IPv6Any, addressMode);
+        bool               useDualMode = !isIPv6Only;
+        IPBindableEndpoint binding{IPEndpoint{IPAddress::IPv6Any, m_usServerPort}, useDualMode};
+        AddUniqueServerBinding(binding);
     }
     else if (value.find(',') != std::string::npos)
     {
@@ -1066,27 +1072,33 @@ void CMainConfig::PostProcessServerAddresses()
     bool isIPv4Unspecified = false;
     bool isIPv6Unspecified = false;
 
-    for (const IPAddressBinding& binding : m_addressBindings)
+    IPBindableEndpoint bindingIPv4;
+    IPBindableEndpoint bindingIPv6;
+
+    for (const IPBindableEndpoint& binding : m_bindings)
     {
         // Skip specific addresses
-        if (!binding.address.IsUnspecified())
+        if (!binding.endpoint.GetAddress().IsUnspecified())
             continue;
 
-        if (binding.address.IsIPv4())
+        if (binding.endpoint.IsIPv4())
         {
             isIPv4Unspecified = true;
+            bindingIPv4 = binding;
         }
-        else if (binding.address.IsIPv6())
+        else if (binding.endpoint.IsIPv6())
         {
-            if (binding.addressMode == IPAddressMode::IPv6Only)
-            {
-                isIPv6Unspecified = true;
-            }
-            else if (binding.addressMode == IPAddressMode::IPv6DualStack)
+            bindingIPv6 = binding;
+
+            if (binding.useDualMode)
             {
                 isIPv4Unspecified = true;
                 isIPv6Unspecified = true;
                 break;
+            }
+            else
+            {
+                isIPv6Unspecified = true;
             }
         }
     }
@@ -1095,29 +1107,29 @@ void CMainConfig::PostProcessServerAddresses()
         return;
 
     // Remove non-unspecified addresses in our address list, if our unspecified addresses cover them
-    std::vector<IPAddressBinding> bindings = std::exchange(m_addressBindings, {});
+    std::vector<IPBindableEndpoint> bindings = std::exchange(m_bindings, {});
 
     if (isIPv4Unspecified && isIPv6Unspecified)
     {
         // An unspecified IPv6 Dual-Stack ip address also covers the unspecified IPv4 range
-        m_addressBindings.emplace_back(IPAddress::IPv6Any, IPAddressMode::IPv6DualStack);
+        m_bindings.emplace_back(bindingIPv6);
         return;
     }
     else if (isIPv4Unspecified)
     {
-        m_addressBindings.emplace_back(IPAddress::IPv4Any, IPAddressMode::IPv4Only);
+        m_bindings.emplace_back(bindingIPv4);
     }
     else
     {
-        m_addressBindings.emplace_back(IPAddress::IPv6Any, IPAddressMode::IPv6Only);
+        m_bindings.emplace_back(bindingIPv6);
     }
 
-    for (IPAddressBinding& binding : bindings)
+    for (IPBindableEndpoint& binding : bindings)
     {
         // Only add ip addresses, which aren't covered by our unspecified range
-        if ((!isIPv4Unspecified && binding.address.IsIPv4()) || (!isIPv6Unspecified && binding.address.IsIPv6()))
+        if ((!isIPv4Unspecified && binding.endpoint.IsIPv4()) || (!isIPv6Unspecified && binding.endpoint.IsIPv6()))
         {
-            m_addressBindings.emplace_back(std::move(binding));
+            m_bindings.emplace_back(std::move(binding));
         }
     }
 }
@@ -1200,7 +1212,7 @@ bool CMainConfig::ApplyCommandLineOptions(CCommandLineParser& commandLineParser)
     commandLineParser.GetIPv6Only(ipv6only);
     if (commandLineParser.GetIP(addresses))
     {
-        m_addressBindings.clear();
+        m_bindings.clear();
 
         bool translateToIPv4 = (dns == "any" || dns == "ipv4" || dns.empty());
         bool translateToIPv6 = (dns == "any" || dns == "ipv6");

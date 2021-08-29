@@ -2,7 +2,7 @@
 
 #include <string>
 #include <vector>
-#include <mtasa/IPAddressBinding.h>
+#include <mtasa/IPBindableEndpoint.h>
 
 /// class that makes it easy to go between numbers and strings
 /** 
@@ -17,7 +17,7 @@ class Datum {
 	std::string sDatum;
 
 	/// holds a list of ip address bindings
-	std::vector<mtasa::IPAddressBinding> bindings;
+    std::vector<mtasa::IPBindableEndpoint> bindings;
 
   public:
 
@@ -40,14 +40,14 @@ class Datum {
 	Datum & operator= ( const char * ipsString );
 
 	/// assignment operator for vector of IPAddressBinding
-    Datum& operator=(const std::vector<mtasa::IPAddressBinding>& bindings_)
+    Datum& operator=(const std::vector<mtasa::IPBindableEndpoint>& bindings_)
     {
         bindings = bindings_;
         return *this;
     }
 
 	/// explicit accessor for bindings
-    const std::vector<mtasa::IPAddressBinding>& GetBindings() const noexcept { return bindings; }
+    const std::vector<mtasa::IPBindableEndpoint>& GetBindings() const noexcept { return bindings; }
 
 	/// equality operator for const char * string
 	bool operator== ( const char * ipsString );

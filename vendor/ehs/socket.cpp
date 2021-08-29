@@ -39,17 +39,17 @@ NetworkAbstraction::InitResult Socket::Init(int iPort, int inPort)
     return INITSOCKET_SUCCESS;
 }
 
-bool Socket::Create(const mtasa::IPAddressBinding& binding, std::uint16_t port)
+bool Socket::Create(const mtasa::IPBindableEndpoint& binding)
 {
-    IPSocket socket{binding.address.GetAddressFamily(), IPSocketProtocol::TCP};
+    IPSocket socket{binding.endpoint.GetAddressFamily(), IPSocketProtocol::TCP};
 
     if (!socket.Create() || !socket.SetAddressReuse(true) || !socket.SetNonBlocking(true))
         return false;
 
-    if (socket.IsIPv6() && !socket.SetIPv6Only(binding.addressMode == IPAddressMode::IPv6Only))
+    if (socket.IsIPv6() && !socket.SetIPv6Only(!binding.useDualMode))
         return false;
 
-    if (!socket.Bind(IPEndpoint{binding.address, port}) || !socket.Listen(20))
+    if (!socket.Bind(binding.endpoint) || !socket.Listen(20))
         return false;
 
     m_socket = std::move(socket);
@@ -58,8 +58,8 @@ bool Socket::Create(const mtasa::IPAddressBinding& binding, std::uint16_t port)
 
 int Socket::Read(void* ipBuffer, int ipBufferLength)
 {
-    std::string_view message = m_socket.Receive(reinterpret_cast<char*>(ipBuffer), static_cast<std::size_t>(ipBufferLength));
-    return static_cast<int>(message.size());
+    std::size_t length = m_socket.Receive(reinterpret_cast<char*>(ipBuffer), static_cast<std::size_t>(ipBufferLength));
+    return static_cast<int>(length);
 }
 
 int Socket::Send(const void* ipMessage, size_t inLength, int inFlags)
@@ -70,10 +70,13 @@ int Socket::Send(const void* ipMessage, size_t inLength, int inFlags)
 
 NetworkAbstraction* Socket::Accept()
 {
-    std::optional<IPSocket> socket = m_socket.Accept();
+    IPSocket newConnection;
 
-    if (!socket.has_value() || !socket->SetNonBlocking(true))
+    if (!m_socket.Accept(newConnection))
         return nullptr;
 
-    return new Socket(std::move(socket.value()));
+    if (!newConnection.SetNonBlocking(true))
+        return nullptr;
+
+    return new Socket(std::move(newConnection));
 }

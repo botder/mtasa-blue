@@ -14,19 +14,20 @@
 #include <Common.h>
 #include <string>
 #include <mtasa/IPSocket.h>
-#include <mtasa/IPAddressMode.h>
+#include <mtasa/IPBindableEndpoint.h>
+#include <vector>
 
 class CLanBroadcast final
 {
 public:
-    CLanBroadcast(unsigned short usServerPort, mtasa::IPAddressMode addressMode);
+    CLanBroadcast(const std::vector<mtasa::IPBindableEndpoint>& bindings);
 
     void DoPulse();
 
     unsigned short GetPort() { return SERVER_LIST_BROADCAST_PORT; };
 
 private:
-    bool CreateIPv6Socket(bool isIPv6Only);
+    bool CreateIPv6Socket(bool useDualMode);
     bool CreateIPv4Socket();
 
 private:

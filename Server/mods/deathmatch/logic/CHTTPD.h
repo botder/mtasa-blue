@@ -11,7 +11,7 @@
 
 #pragma once
 
-#include <mtasa/IPAddressBinding.h>
+#include <mtasa/IPBindableEndpoint.h>
 #include <string_view>
 #include <vector>
 #include <memory>
@@ -27,7 +27,7 @@ public:
     ~CHTTPD();
 
 public:
-    bool Start(const std::vector<mtasa::IPAddressBinding>& bindings, std::uint16_t port);
+    bool Start(const std::vector<mtasa::IPBindableEndpoint>& bindings);
     void Stop();
 
     void SetDefaultResourceName(std::string_view resourceName);

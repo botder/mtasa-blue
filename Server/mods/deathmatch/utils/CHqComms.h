@@ -45,12 +45,12 @@ public:
             m_Stage = HQCOMMS_STAGE_QUERY;
 
             // TODO(botder): Support IPv6 here (don't forget the `GetAddressCommaList` line below)
-            std::vector<mtasa::IPAddressBinding> bindings = g_pGame->GetConfig()->GetAddressFamilyBindings(mtasa::IPAddressFamily::IPv4);
+            std::vector<mtasa::IPBindableEndpoint> bindings = g_pGame->GetConfig()->GetAddressFamilyBindings(mtasa::IPAddressFamily::IPv4);
 
             if (bindings.empty())
                 return;
 
-            const mtasa::IPAddress& primaryBinding = bindings[0].address;
+            const mtasa::IPAddress& primaryBinding = bindings[0].endpoint.GetAddress();
             std::string             primaryAddress = (primaryBinding.IsUnspecified()) ? "" : primaryBinding.ToString();
 
             CBitStream bitStream;

@@ -19,7 +19,7 @@ class CMainConfig;
 #include "CXMLConfig.h"
 #include <list>
 #include <vector>
-#include <mtasa/IPAddressBinding.h>
+#include <mtasa/IPBindableEndpoint.h>
 
 #define MAX_MAP_NAME_LENGTH 64
 class CMainConfig;
@@ -48,10 +48,9 @@ public:
     bool LoadExtended();
     bool Save();
 
-    // const mtasa::IPAddressBinding&              GetFirstAddressBinding() const noexcept { return m_addressBindings[0]; }
-    const std::vector<mtasa::IPAddressBinding>& GetAddressBindings() const noexcept { return m_addressBindings; }
-    const std::vector<mtasa::IPAddressBinding>  GetAddressFamilyBindings(mtasa::IPAddressFamily addressFamily) const;
-    const std::string                           GetAddressCommaList(mtasa::IPAddressFamily addressFamily, bool showUnspecified) const;
+    const std::vector<mtasa::IPBindableEndpoint>& GetAddressBindings() const noexcept { return m_bindings; }
+    const std::vector<mtasa::IPBindableEndpoint>  GetAddressFamilyBindings(mtasa::IPAddressFamily addressFamily) const;
+    const std::string                             GetAddressCommaList(mtasa::IPAddressFamily addressFamily, bool showUnspecified) const;
 
     const std::string& GetServerName() { return m_strServerName; }
     unsigned short     GetServerPort() const noexcept { return m_usServerPort; }
@@ -154,7 +153,7 @@ private:
     bool ParseServerAddresses();
 
     // Adds the supplied address to our address list, but only if it's unique and valid
-    void AddUniqueServerAddress(const mtasa::IPAddress& address, mtasa::IPAddressMode addressMode);
+    void AddUniqueServerBinding(const mtasa::IPBindableEndpoint& binding);
 
     // Translates a hostname to, possible more than one, ip addresses and adds them
     bool TranslateSingleAddress(bool translateToIPv4, bool translateToIPv6, bool isIPv6Only, const SString& name);
@@ -172,7 +171,7 @@ private:
     unsigned char m_ucVoiceQuality;
     unsigned int  m_uiVoiceBitrate;
 
-    std::vector<mtasa::IPAddressBinding> m_addressBindings;
+    std::vector<mtasa::IPBindableEndpoint> m_bindings;
 
     bool                       m_bVoiceEnabled;
     std::string                m_strServerName;

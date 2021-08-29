@@ -267,10 +267,9 @@ CHTTPD::CHTTPD() : m_impl(std::make_unique<Impl>())
 
 CHTTPD::~CHTTPD() = default;
 
-bool CHTTPD::Start(const std::vector<IPAddressBinding>& bindings, std::uint16_t port)
+bool CHTTPD::Start(const std::vector<IPBindableEndpoint>& bindings)
 {
     EHSServerParameters parameters;
-    parameters["port"] = std::to_string(port);
     parameters["mode"] = "threadpool";
     parameters["threadcount"] = g_pGame->GetConfig()->GetHTTPThreadCount();
     parameters["bindings"] = bindings;

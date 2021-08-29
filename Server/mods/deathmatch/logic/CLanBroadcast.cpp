@@ -12,32 +12,60 @@
 #include "StdInc.h"
 #include "CLanBroadcast.h"
 #include <array>
+#include <unordered_set>
 
 using namespace mtasa;
 
-CLanBroadcast::CLanBroadcast(unsigned short usServerPort, IPAddressMode addressMode)
+CLanBroadcast::CLanBroadcast(const std::vector<IPBindableEndpoint>& bindings)
 {
-    // Open the socket on the UDP broadcast port
-    if (addressMode == IPAddressMode::IPv4Only)
+    bool usingIPv4 = false;
+    bool usingIPv6 = false;
+
+    std::unordered_set<std::uint32_t> scopes;
+
+    for (const IPBindableEndpoint& binding : bindings)
     {
-        if (!CreateIPv4Socket())
+        const IPAddress& address = binding.endpoint.GetAddress();
+
+        if (address.IsIPv4())
+        {
+            usingIPv4 = true;
+        }
+        else if (address.IsIPv6())
+        {
+            usingIPv6 = true;
+            scopes.insert(address.GetHostOrderScope());
+
+            if (binding.useDualMode)
+                usingIPv4 = true;
+        }
+    }
+
+    if (usingIPv4 && usingIPv6)
+    {
+        if (!CreateIPv6Socket(true) && !CreateIPv4Socket())
+            return;
+    }
+    else if (usingIPv6)
+    {
+        if (!CreateIPv6Socket(false))
             return;
     }
     else
     {
-        bool isIPv6Only = (addressMode == IPAddressMode::IPv6Only);
+        CreateIPv4Socket();
+    }
 
-        if (!CreateIPv6Socket(isIPv6Only))
-        {
-            // Try to create an IPv4 socket, if creating the IPv6 Dual-Stack socket failed
-            if (!isIPv6Only || !CreateIPv4Socket())
-                return;
-        }
+    // Join the multicast group with the address interface indices (scopes)
+    if (m_socket.Exists() && m_socket.IsIPv6())
+    {
+        for (std::uint32_t scope : scopes)
+            m_socket.JoinMulticastGroup(IPAddress::IPv6MulticastAllNodes, scope);
     }
 
     // Set up the query messages
     m_strClientMessage = std::string(SERVER_LIST_CLIENT_BROADCAST_STR) + " " + std::string(MTA_DM_ASE_VERSION);
-    m_strServerMessage = std::string(SERVER_LIST_SERVER_BROADCAST_STR) + " " + std::to_string(usServerPort);
+    m_strServerMessage = std::string(SERVER_LIST_SERVER_BROADCAST_STR) + " " + std::to_string(bindings[0].endpoint.GetHostOrderPort());
 }
 
 void CLanBroadcast::DoPulse()
@@ -47,22 +75,20 @@ void CLanBroadcast::DoPulse()
 
     std::array<char, 32> buffer{};
     IPEndpoint           endpoint;
-    std::string_view     message = m_socket.ReceiveFrom(endpoint, buffer.data(), buffer.size());
+    std::size_t          length = m_socket.ReceiveFrom(endpoint, buffer.data(), buffer.size());
+    std::string_view     message{buffer.data(), length};
 
     if (!message.empty() && message.substr(0, m_strClientMessage.size()) == m_strClientMessage)
     {
-        (void)m_socket.SendTo(endpoint, m_strServerMessage.c_str(), m_strServerMessage.size() + 1);
+        m_socket.SendTo(endpoint, m_strServerMessage.c_str(), m_strServerMessage.size() + 1);
     }
 }
 
-bool CLanBroadcast::CreateIPv6Socket(bool isIPv6Only)
+bool CLanBroadcast::CreateIPv6Socket(bool useDualMode)
 {
     IPSocket socket{IPAddressFamily::IPv6, IPSocketProtocol::UDP};
 
-    if (!socket.Create() || !socket.SetAddressReuse(true) || !socket.SetNonBlocking(true) || !socket.SetIPv6Only(isIPv6Only))
-        return false;
-
-    if (!socket.JoinMulticastGroup(IPAddress::IPv6MulticastAllNodes, 0))
+    if (!socket.Create() || !socket.SetAddressReuse(true) || !socket.SetNonBlocking(true) || !socket.SetIPv6Only(!useDualMode))
         return false;
 
     if (!socket.Bind(IPEndpoint{IPAddress::IPv6Any, SERVER_LIST_BROADCAST_PORT}))

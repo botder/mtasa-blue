@@ -19,6 +19,10 @@ namespace mtasa
         // Internet Protocol endpoint (address + port) to connect to.
         IPEndpoint endpoint{};
 
-        explicit IPConnectableEndpoint(const IPEndpoint& endpoint_) : endpoint(endpoint_) {}
+        IPConnectableEndpoint() noexcept = default;
+
+        explicit IPConnectableEndpoint(const IPEndpoint& endpoint_) noexcept : endpoint{endpoint_} {}
+
+        explicit IPConnectableEndpoint(const IPAddress& address, std::uint16_t port) noexcept : endpoint{address, port} {}
     };
 }            // namespace mtasa

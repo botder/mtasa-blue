@@ -26,7 +26,7 @@ Zac Hansen ( xaxxon@slackworks.com )
 
 #include "networkabstraction.h"
 #include <mtasa/IPSocket.h>
-#include <mtasa/IPAddressBinding.h>
+#include <mtasa/IPBindableEndpoint.h>
 
 class Socket final : public NetworkAbstraction
 {
@@ -39,7 +39,7 @@ public:
 
 public:
     InitResult Init(int iPort, int inPort) override;
-    bool       Create(const mtasa::IPAddressBinding& binding, std::uint16_t port);
+    bool       Create(const mtasa::IPBindableEndpoint& binding);
     void       Close() override { (void)m_socket.Close(); }
     
     int Read(void* ipBuffer, int ipBufferLength) override;

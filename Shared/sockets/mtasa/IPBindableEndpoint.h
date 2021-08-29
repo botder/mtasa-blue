@@ -23,6 +23,10 @@ namespace mtasa
         // on an unspecified IPv6 address.
         bool useDualMode = false;
 
-        IPBindableEndpoint(const IPEndpoint& endpoint_, bool useDualMode_) : endpoint(endpoint_), useDualMode(useDualMode_) {}
+        IPBindableEndpoint() noexcept = default;
+
+        explicit IPBindableEndpoint(const IPEndpoint& endpoint_, bool useDualMode_) noexcept : endpoint{endpoint_}, useDualMode{useDualMode_} {}
+
+        explicit IPBindableEndpoint(const IPAddress& address, std::uint16_t port) noexcept : endpoint{address, port} {}
     };
 }            // namespace mtasa

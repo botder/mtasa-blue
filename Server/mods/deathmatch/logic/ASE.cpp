@@ -18,14 +18,12 @@ using namespace mtasa;
 
 ASE* ASE::_instance = NULL;
 
-ASE::ASE(CMainConfig* pMainConfig, CPlayerManager* pPlayerManager, unsigned short usPort, const std::vector<mtasa::IPAddressBinding>& bindings)
+ASE::ASE(CMainConfig* pMainConfig, CPlayerManager* pPlayerManager, const std::vector<mtasa::IPBindableEndpoint>& bindings)
     : m_QueryDosProtect(5, 6000, 7000)            // Max of 5 queries per 6 seconds, then 7 second ignore
-    , m_addressBindings(bindings)
+    , m_bindings(bindings)
 {
     _instance = this;
     m_tStartTime = time(NULL);
-
-    m_usPortBase = usPort;
 
     m_pMainConfig = pMainConfig;
     m_pPlayerManager = pPlayerManager;
@@ -49,7 +47,7 @@ ASE::ASE(CMainConfig* pMainConfig, CPlayerManager* pPlayerManager, unsigned shor
 
     m_strGameType = "MTA:SA";
     m_strMapName = "None";
-    m_strPort = std::to_string(usPort);
+    m_strPort = std::to_string(bindings[0].endpoint.GetHostOrderPort());
 
     m_strMtaAseVersion = MTA_DM_ASE_VERSION;
 }
@@ -63,33 +61,30 @@ ASE::~ASE()
 bool ASE::SetPortEnabled(bool bInternetEnabled, bool bLanEnabled)
 {
     // Calc requirements
-    bool   bPortEnableReq = bInternetEnabled || bLanEnabled;
-    bool   bLanOnly = !bInternetEnabled && bLanEnabled;
-    ushort usPortReq = m_usPortBase + SERVER_LIST_QUERY_PORT_OFFSET;
+    bool bPortEnableReq = bInternetEnabled || bLanEnabled;
+    bool bLanOnly = !bInternetEnabled && bLanEnabled;
 
     // Any change?
-    if ((!m_sockets.empty()) == bPortEnableReq && m_usPort == usPortReq)
+    if ((!m_sockets.empty()) == bPortEnableReq)
         return true;
 
-    m_usPort = usPortReq;
     m_sockets.clear();
 
     if (!bPortEnableReq)
         return true;
 
     // Create an ASE socket for each address binding
-    for (const IPAddressBinding& binding : m_addressBindings)
+    for (const IPBindableEndpoint& binding : m_bindings)
     {
-        IPSocket   socket{binding.address.GetAddressFamily(), IPSocketProtocol::UDP};
-        IPEndpoint endpoint{binding.address, m_usPort};
+        IPSocket socket{binding.endpoint.GetAddressFamily(), IPSocketProtocol::UDP};
 
         if (!socket.Create() || !socket.SetAddressReuse(true) || !socket.SetNonBlocking(true))
             return false;
 
-        if (endpoint.IsIPv6() && !socket.SetIPv6Only(binding.addressMode == IPAddressMode::IPv6Only))
+        if (binding.endpoint.IsIPv6() && !socket.SetIPv6Only(!binding.useDualMode))
             return false;
 
-        if (!socket.Bind(endpoint))
+        if (!socket.Bind(binding.endpoint))
             return false;
 
         m_sockets.emplace_back(std::move(socket));
@@ -113,7 +108,8 @@ void ASE::DoPulse()
     {
         for (int i = 0; i < 100; i++)
         {
-            std::string_view message = socket.ReceiveFrom(endpoint, buffer.data(), buffer.size());
+            std::size_t      length = socket.ReceiveFrom(endpoint, buffer.data(), buffer.size());
+            std::string_view message{buffer.data(), length};
 
             if (message.empty())
                 break;
@@ -446,22 +442,7 @@ std::string ASE::QueryLight()
 
 CLanBroadcast* ASE::InitLan()
 {
-    IPAddressMode addressMode = IPAddressMode::IPv4Only;
-
-    for (const IPAddressBinding& binding : m_addressBindings)
-    {
-        if (binding.addressMode == IPAddressMode::IPv6Only)
-        {
-            addressMode = IPAddressMode::IPv6Only;
-        }
-        else if (binding.addressMode == IPAddressMode::IPv6DualStack)
-        {
-            addressMode = IPAddressMode::IPv6DualStack;
-            break;
-        }
-    }
-
-    return new CLanBroadcast(m_usPort, addressMode);
+    return new CLanBroadcast(m_bindings);
 }
 
 void ASE::SetGameType(const char* szGameType)

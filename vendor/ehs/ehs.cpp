@@ -429,14 +429,12 @@ EHSServer::EHSServer ( EHS * ipoTopLevelEHS ///< pointer to top-level EHS for re
 
 	// are we using secure sockets?
 	if ( !nHttps ) {
-        int port = roEHSServerParameters["port"];
-
-        for (const IPAddressBinding& binding : roEHSServerParameters["bindings"].GetBindings())
+        for (const IPBindableEndpoint& binding : roEHSServerParameters["bindings"].GetBindings())
         {
             auto socket = new Socket();
             m_listeners.emplace_back(socket);
 
-			if (!socket->Create(binding, static_cast<std::uint16_t>(port)))
+			if (!socket->Create(binding))
                 return;
 		}
 	} else {

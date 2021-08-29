@@ -17,7 +17,6 @@
 #include "../utils/CHqComms.h"
 #include "../utils/CFunctionUseLogger.h"
 #include "net/SimHeaders.h"
-#include <mtasa/IPAddress.h>
 #include <signal.h>
 
 #define MAX_BULLETSYNC_DISTANCE 400.0f
@@ -609,12 +608,12 @@ bool CGame::Start(int iArgumentCount, char* szArguments[])
     // Read some settings
     m_pACLManager->SetFileName(m_pMainConfig->GetAccessControlListFile().c_str());
 
-    const std::string&                   serverName = m_pMainConfig->GetServerName();
-    const std::vector<IPAddressBinding>& addressBindings = m_pMainConfig->GetAddressBindings();
-    std::string                          addressCommaList = m_pMainConfig->GetAddressCommaList(IPAddressFamily::Unspecified, true);
-    unsigned short                       usServerPort = m_pMainConfig->GetServerPort();
-    unsigned short                       httpPort = m_pMainConfig->GetHTTPPort();
-    unsigned int                         uiMaxPlayers = m_pMainConfig->GetMaxPlayers();
+    const std::string&                     serverName = m_pMainConfig->GetServerName();
+    const std::vector<IPBindableEndpoint>& addressBindings = m_pMainConfig->GetAddressBindings();
+    std::string                            addressCommaList = m_pMainConfig->GetAddressCommaList(IPAddressFamily::Unspecified, true);
+    unsigned short                         usServerPort = m_pMainConfig->GetServerPort();
+    unsigned short                         httpPort = m_pMainConfig->GetHTTPPort();
+    unsigned int                           uiMaxPlayers = m_pMainConfig->GetMaxPlayers();
 
     // Start async task scheduler
     m_pAsyncTaskScheduler = new SharedUtil::CAsyncTaskScheduler(2);
@@ -634,9 +633,14 @@ bool CGame::Start(int iArgumentCount, char* szArguments[])
     // Enable it if required
     if (m_pMainConfig->IsHTTPEnabled())
     {
-        if (!m_pHTTPD->Start(addressBindings, httpPort))
+        std::vector<IPBindableEndpoint> httpBindings = addressBindings;
+
+        for (IPBindableEndpoint& binding : httpBindings)
+            binding.endpoint.SetHostOrderPort(httpPort);
+
+        if (!m_pHTTPD->Start(httpBindings))
         {
-            CLogger::ErrorPrintf("Could not start HTTP server on interface '%s' and port '%u'!\n", addressCommaList.c_str(), httpPort);
+            CLogger::ErrorPrintf("Could not start HTTP server on interface(s) '%s' and port '%u'!\n", addressCommaList.c_str(), httpPort);
             return false;
         }
     }
@@ -730,11 +734,13 @@ bool CGame::Start(int iArgumentCount, char* szArguments[])
 
     if (m_pMainConfig->GetAseInternetListenEnabled())
     {
-        for (const IPAddressBinding& binding : addressBindings)
+        for (const IPBindableEndpoint& binding : addressBindings)
         {
-            if (binding.address.IsPrivate())
+            const IPAddress& address = binding.endpoint.GetAddress();
+
+            if (address.IsPrivate())
             {
-                CLogger::LogPrintf("WARNING: Private IP '%s' with ase enabled!\n", binding.address.ToString().c_str());
+                CLogger::LogPrintf("WARNING: Private IP '%s' with ase enabled!\n", address.ToString().c_str());
             }
         }
     }
@@ -854,8 +860,8 @@ bool CGame::Start(int iArgumentCount, char* szArguments[])
     g_pNetServer->RegisterPacketHandler(CGame::StaticProcessPacket);
 
     // Try to start the network
-    const IPAddressBinding* bindings = addressBindings.data();
-    const std::size_t       numBindings = addressBindings.size();
+    const IPBindableEndpoint* bindings = addressBindings.data();
+    const std::size_t         numBindings = addressBindings.size();
 
     // TODO:
     // g_pNetServer->StartNetwork(bindings, numBindings, usServerPort, uiMaxPlayers, serverName.c_str())
@@ -885,7 +891,7 @@ bool CGame::Start(int iArgumentCount, char* szArguments[])
     }
 
     // If ASE is enabled
-    m_pASE = new ASE(m_pMainConfig, m_pPlayerManager, static_cast<int>(usServerPort), addressBindings);
+    m_pASE = new ASE(m_pMainConfig, m_pPlayerManager, addressBindings);
     if (m_pMainConfig->GetSerialVerificationEnabled())
         m_pASE->SetRuleValue("SerialVerification", "yes");
     ApplyAseSetting();

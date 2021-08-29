@@ -45,10 +45,10 @@ namespace mtasa
         void FromSocketAddress(const sockaddr_in6& address) noexcept;
 
         // Fills this endpoint with the socket address information
-        [[nodiscard]] bool FromSocketAddress(const sockaddr& address) noexcept;
+        bool FromSocketAddress(const sockaddr& address) noexcept;
 
         // Fills the socket address structure with the endpoint
-        [[nodiscard]] bool ToSocketAddress(sockaddr& address, std::size_t addressSize) const noexcept;
+        bool ToSocketAddress(sockaddr& address, std::size_t addressSize) const noexcept;
 
         // Resets this endpoint to an invalid endpoint
         constexpr void Invalidate() noexcept
@@ -58,35 +58,35 @@ namespace mtasa
         }
 
     public:
-        [[nodiscard]] constexpr IPAddressFamily GetAddressFamily() const noexcept { return m_address.GetAddressFamily(); }
+        constexpr IPAddressFamily GetAddressFamily() const noexcept { return m_address.GetAddressFamily(); }
 
-        [[nodiscard]] IPAddress&       GetAddress() noexcept { return m_address; }
-        [[nodiscard]] const IPAddress& GetAddress() const noexcept { return m_address; }
+        IPAddress&       GetAddress() noexcept { return m_address; }
+        const IPAddress& GetAddress() const noexcept { return m_address; }
 
-        [[nodiscard]] std::uint16_t GetHostOrderPort() const noexcept { return m_port; }
-        [[nodiscard]] std::uint16_t GetNetworkOrderPort() const noexcept { return LoadBigEndian16(m_port); }
+        std::uint16_t GetHostOrderPort() const noexcept { return m_port; }
+        std::uint16_t GetNetworkOrderPort() const noexcept { return LoadBigEndian16(m_port); }
 
     public:
         // Returns true if this is either an IPv4 or IPv6 endpoint (port > 0)
-        [[nodiscard]] constexpr bool IsValid() const noexcept { return m_port && m_address.IsValid(); }
+        constexpr bool IsValid() const noexcept { return m_port && m_address.IsValid(); }
 
         // Returns true if this is neither an IPv4 nor IPv6 endpoint (port > 0)
-        [[nodiscard]] constexpr bool IsInvalid() const noexcept { return !IsValid(); }
+        constexpr bool IsInvalid() const noexcept { return !IsValid(); }
 
         // Returns true if this is a valid IPv4 endpoint (port > 0)
-        [[nodiscard]] constexpr bool IsIPv4() const noexcept { return m_port && m_address.IsIPv4(); }
+        constexpr bool IsIPv4() const noexcept { return m_port && m_address.IsIPv4(); }
 
         // Returns true if this is a valid IPv6 endpoint (port > 0)
-        [[nodiscard]] constexpr bool IsIPv6() const noexcept { return m_port && m_address.IsIPv6(); }
+        constexpr bool IsIPv6() const noexcept { return m_port && m_address.IsIPv6(); }
 
         // Returns true if this is an unspecified endpoint (0.0.0.0 or ::, port > 0)
-        [[nodiscard]] constexpr bool IsUnspecified() const noexcept { return m_port && m_address.IsUnspecified(); }
+        constexpr bool IsUnspecified() const noexcept { return m_port && m_address.IsUnspecified(); }
 
         // Returns a string representation of the endpoint ("a.b.c.d:port" for IPv4, "[x:x:x:x:x:x:x:x]:port" for IPv6)
-        [[nodiscard]] std::string ToString() const;
+        std::string ToString() const;
 
     public:
-        [[nodiscard]] constexpr int Compare(const IPEndpoint& other) const noexcept
+        constexpr int Compare(const IPEndpoint& other) const noexcept
         {
             if (m_port != other.m_port)
                 return static_cast<std::int16_t>(m_port) - static_cast<std::int16_t>(other.m_port);

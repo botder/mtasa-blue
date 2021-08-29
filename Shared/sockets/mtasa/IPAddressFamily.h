@@ -20,6 +20,4 @@ namespace mtasa
         IPv4,
         IPv6,
     };
-
-    int TranslateAddressFamily(IPAddressFamily addressFamily);
 }

@@ -1,6 +1,7 @@
 project "Sockets"
 	language "C++"
 	kind "StaticLib"
+	cppdialect "C++14"
 
 	defines {
 		"WIN32_LEAN_AND_MEAN",

@@ -10,16 +10,14 @@
 
 #pragma once
 
-#include <utility>
+#include <cstdint>
 
 namespace mtasa
 {
-    enum class IPSocketProtocol
+    enum class IPSocketProtocol : std::uint8_t
     {
         Unspecified,
         TCP,
         UDP,
     };
-
-    std::pair<int, int> TranslateSocketProtocol(IPSocketProtocol protocol);
 }            // namespace mtasa

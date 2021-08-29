@@ -2,7 +2,7 @@
  *
  *  PROJECT:     Multi Theft Auto
  *  LICENSE:     See LICENSE in the top level directory
- *  FILE:        Shared/sockets/mtasa/IPAddressMode.h
+ *  FILE:        Shared/sockets/mtasa/IPConnectableEndpoint.h
  *
  *  Multi Theft Auto is available from https://multitheftauto.com/
  *
@@ -10,14 +10,15 @@
 
 #pragma once
 
-#include <cstdint>
+#include "IPEndpoint.h"
 
 namespace mtasa
 {
-    enum class IPAddressMode : std::uint8_t
+    struct IPConnectableEndpoint final
     {
-        IPv4Only,
-        IPv6Only,
-        IPv6DualStack,
+        // Internet Protocol endpoint (address + port) to connect to.
+        IPEndpoint endpoint{};
+
+        explicit IPConnectableEndpoint(const IPEndpoint& endpoint_) : endpoint(endpoint_) {}
     };
 }            // namespace mtasa

@@ -39,13 +39,13 @@ namespace mtasa
 
     IPAddress::IPAddress(const sockaddr_in& address) noexcept
     {
-        std::copy_n(reinterpret_cast<const std::uint8_t*>(&address.sin_addr), sizeof(address.sin_addr), m_bytes.data());
+        std::copy_n(reinterpret_cast<const std::uint8_t*>(&address.sin_addr), sizeof(address.sin_addr), m_bytes);
         m_addressFamily = IPAddressFamily::IPv4;
     }
 
     IPAddress::IPAddress(const sockaddr_in6& address) noexcept
     {
-        std::copy_n(reinterpret_cast<const std::uint8_t*>(&address.sin6_addr), sizeof(address.sin6_addr), m_bytes.data());
+        std::copy_n(reinterpret_cast<const std::uint8_t*>(&address.sin6_addr), sizeof(address.sin6_addr), m_bytes);
         m_scope = address.sin6_scope_id;
         m_addressFamily = IPAddressFamily::IPv6;
     }
@@ -64,47 +64,41 @@ namespace mtasa
         {
             std::array<char, INET_ADDRSTRLEN> buffer{};
 
-            if (inet_ntop(AF_INET, m_bytes.data(), buffer.data(), buffer.size()))
+            if (inet_ntop(AF_INET, m_bytes, buffer.data(), buffer.size()))
                 return std::string{buffer.data()};
         }
         else if (m_addressFamily == IPAddressFamily::IPv6)
         {
             std::array<char, INET6_ADDRSTRLEN> buffer{};
 
-            if (inet_ntop(AF_INET6, m_bytes.data(), buffer.data(), buffer.size()))
+            if (inet_ntop(AF_INET6, m_bytes, buffer.data(), buffer.size()))
                 return std::string{buffer.data()};
         }
 
         return {};
     }
 
-    std::string_view IPAddress::ToString(char* buffer, std::size_t bufferSize) const
+    bool IPAddress::ToString(char* buffer, std::size_t bufferSize) const
     {
         if (m_addressFamily == IPAddressFamily::IPv4)
-        {
-            if (inet_ntop(AF_INET, m_bytes.data(), buffer, bufferSize))
-                return std::string_view{buffer};
-        }
+            return inet_ntop(AF_INET, m_bytes, buffer, bufferSize) != nullptr;
         else if (m_addressFamily == IPAddressFamily::IPv6)
-        {
-            if (inet_ntop(AF_INET6, m_bytes.data(), buffer, bufferSize))
-                return std::string_view{buffer};
-        }
+            return inet_ntop(AF_INET6, m_bytes, buffer, bufferSize) != nullptr;
 
-        return {};
+        return false;
     }
 
     std::string IPAddress::ToHexString() const
     {
         std::array<char, 32> buffer{};
-        std::string_view     view = ToHexString(buffer.data(), buffer.size());
-        return {view.data(), view.size()};
+        std::size_t          length = ToHexString(buffer.data(), buffer.size());
+        return {buffer.data(), length};
     }
 
-    std::string_view IPAddress::ToHexString(char* buffer, std::size_t bufferSize) const
+    std::size_t IPAddress::ToHexString(char* buffer, std::size_t bufferSize) const
     {
         if (!buffer || !bufferSize)
-            return {};
+            return 0;
 
         std::size_t numBytes = 0;
 
@@ -114,7 +108,7 @@ namespace mtasa
             numBytes = 16;
 
         if (!numBytes || bufferSize < (numBytes * 2))
-            return {};
+            return 0;
 
         for (std::size_t i = 0, j = 0; i < numBytes; i++, j += 2)
         {
@@ -123,7 +117,7 @@ namespace mtasa
             buffer[j + 1] = hexCharacters[static_cast<std::size_t>(byte & 0xF)];
         }
 
-        return {buffer, numBytes * 2};
+        return numBytes * 2;
     }
 
     std::vector<IPAddress> IPAddress::Translate(const char* nodeName, bool isNumericHost)

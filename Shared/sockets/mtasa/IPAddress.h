@@ -12,11 +12,8 @@
 
 #include "IPAddressFamily.h"
 #include "Endianness.h"
-#include <array>
 #include <vector>
-#include <cstdint>
 #include <string>
-#include <optional>
 
 struct sockaddr_in;
 struct sockaddr_in6;
@@ -73,7 +70,12 @@ namespace mtasa
         }
 
         // Constructs an IPv6 address from an 8-bit integer array in network byte order (bytes[0]bytes[1]:bytes[2]bytes[3]:...)
-        explicit constexpr IPAddress(const std::array<std::uint8_t, 16>& bytes) : m_bytes{bytes}, m_addressFamily{IPAddressFamily::IPv6} {}
+        explicit constexpr IPAddress(const std::array<std::uint8_t, 16>& bytes)
+            : m_bytes{bytes[0], bytes[1], bytes[2],  bytes[3],  bytes[4],  bytes[5],  bytes[6],  bytes[7],
+                      bytes[8], bytes[9], bytes[10], bytes[11], bytes[12], bytes[13], bytes[14], bytes[15]},
+              m_addressFamily{IPAddressFamily::IPv6}
+        {
+        }
 
         // Constructs an IPv4 address from a socket address
         explicit IPAddress(const sockaddr_in& address) noexcept;
@@ -93,49 +95,35 @@ namespace mtasa
         explicit IPAddress(const char* numericHostAddress);
 
     public:
-        [[nodiscard]] constexpr IPAddressFamily GetAddressFamily() const noexcept { return m_addressFamily; }
+        constexpr IPAddressFamily GetAddressFamily() const noexcept { return m_addressFamily; }
 
-        [[nodiscard]] constexpr std::optional<std::array<std::uint8_t, 4>> GetIPv4Bytes() const noexcept
-        {
-            if (m_addressFamily != IPAddressFamily::IPv4)
-                return {};
+        std::uint32_t GetHostOrderScope() const noexcept { return LoadBigEndian32(m_scope); }
 
-            return {{m_bytes[0], m_bytes[1], m_bytes[2], m_bytes[3]}};
-        }
-
-        [[nodiscard]] constexpr std::optional<std::array<std::uint8_t, 16>> GetIPv6Bytes() const noexcept
-        {
-            if (m_addressFamily != IPAddressFamily::IPv6)
-                return {};
-
-            return {m_bytes};
-        }
-
-        [[nodiscard]] std::uint32_t GetHostOrderScope() const noexcept { return LoadBigEndian32(m_scope); }
-
-        [[nodiscard]] constexpr std::uint32_t GetNetworkOrderScope() const noexcept { return m_scope; }
+        constexpr std::uint32_t GetNetworkOrderScope() const noexcept { return m_scope; }
 
         void SetHostOrderScope(std::uint32_t scope) noexcept { m_scope = StoreBigEndian32(scope); }
 
         void SetNetworkOrderScope(std::uint32_t scope) noexcept { m_scope = scope; }
 
+        const std::uint8_t* GetBytes() const noexcept { return m_bytes; }
+
     public:
         // Returns true if this is either an IPv4 or IPv6 address
-        [[nodiscard]] constexpr bool IsValid() const noexcept { return m_addressFamily != IPAddressFamily::Unspecified; }
+        constexpr bool IsValid() const noexcept { return m_addressFamily != IPAddressFamily::Unspecified; }
 
         // Returns true if this is neither an IPv4 nor IPv6 address
-        [[nodiscard]] constexpr bool IsInvalid() const noexcept { return !IsValid(); }
+        constexpr bool IsInvalid() const noexcept { return !IsValid(); }
 
         // Returns true if this is an IPv4 address
-        [[nodiscard]] constexpr bool IsIPv4() const noexcept { return m_addressFamily == IPAddressFamily::IPv4; }
+        constexpr bool IsIPv4() const noexcept { return m_addressFamily == IPAddressFamily::IPv4; }
 
         // Returns true if this is an IPv6 address
-        [[nodiscard]] constexpr bool IsIPv6() const noexcept { return m_addressFamily == IPAddressFamily::IPv6; }
+        constexpr bool IsIPv6() const noexcept { return m_addressFamily == IPAddressFamily::IPv6; }
 
         // IPv4: [RFC 1122]
         // IPv6: [RFC 4291]
         // Returns true if this is an unspecified address (0.0.0.0 or ::)
-        [[nodiscard]] constexpr bool IsUnspecified() const noexcept
+        constexpr bool IsUnspecified() const noexcept
         {
             switch (m_addressFamily)
             {
@@ -151,7 +139,7 @@ namespace mtasa
         // IPv4: [RFC 1122]
         // IPv6: [RFC 4291]
         // Returns true if this is a loopback address (127.0.0.0/8 or ::1)
-        [[nodiscard]] constexpr bool IsLoopback() const noexcept
+        constexpr bool IsLoopback() const noexcept
         {
             switch (m_addressFamily)
             {
@@ -167,7 +155,7 @@ namespace mtasa
 
         // IPv4: [RFC 1918]
         // Returns true if this is an IPv4 private address (10.0.0.0/8 or 172.16.0.0/12 or 192.168.0.0/16)
-        [[nodiscard]] constexpr bool IsPrivate() const noexcept
+        constexpr bool IsPrivate() const noexcept
         {
             switch (m_addressFamily)
             {
@@ -182,7 +170,7 @@ namespace mtasa
 
         // IPv4: [RFC 6598]
         // Returns true if this is an IPv4 shared address (100.64.0.0/10)
-        [[nodiscard]] constexpr bool IsShared() const noexcept
+        constexpr bool IsShared() const noexcept
         {
             switch (m_addressFamily)
             {
@@ -198,7 +186,7 @@ namespace mtasa
         // IPv4: [RFC 3927]
         // IPv6: [RFC 4291]
         // Returns true if this is a link-local address (169.254.0.0/16 or fe80::/10)
-        [[nodiscard]] constexpr bool IsLinkLocal() const noexcept
+        constexpr bool IsLinkLocal() const noexcept
         {
             switch (m_addressFamily)
             {
@@ -215,7 +203,7 @@ namespace mtasa
         // IPv4: [RFC 1112]
         // IPv6: [RFC 2373]
         // Returns true if this is a multicast address (224.0.0.0/4 or ff00::/8)
-        [[nodiscard]] constexpr bool IsMulticast() const noexcept
+        constexpr bool IsMulticast() const noexcept
         {
             switch (m_addressFamily)
             {
@@ -231,7 +219,7 @@ namespace mtasa
 
         // IPv4: [RFC 8190][RFC 919]
         // Returns true if this is an IPv4 broadcast address (255.255.255.255)
-        [[nodiscard]] constexpr bool IsBroadcast() const noexcept
+        constexpr bool IsBroadcast() const noexcept
         {
             switch (m_addressFamily)
             {
@@ -247,7 +235,7 @@ namespace mtasa
         // IPv4: [RFC 5771][RFC 6676]
         // IPv6: [RFC 3849]
         // Returns true if this is a documentation address (192.0.2.0/24 or 198.51.100.0/24 or 203.0.113.0/24 or 233.252.0.0/24 or 2001:db8::/32)
-        [[nodiscard]] constexpr bool IsDocumentation() const noexcept
+        constexpr bool IsDocumentation() const noexcept
         {
             switch (m_addressFamily)
             {
@@ -265,7 +253,7 @@ namespace mtasa
         // IPv4: [RFC 2544]
         // IPv6: [RFC 5180][RFC Errata 1752]
         // Returns true if this is a benchmarking address (198.18.0.0/15 or 2001:2::/48)
-        [[nodiscard]] constexpr bool IsBenchmarking() const noexcept
+        constexpr bool IsBenchmarking() const noexcept
         {
             switch (m_addressFamily)
             {
@@ -282,7 +270,7 @@ namespace mtasa
         // IPv4: [RFC 6890]
         // IPv6: [RFC 2928]
         // Returns true if this is an IETF protocol assignment address (192.0.0.0/24 or 2001::/23)
-        [[nodiscard]] constexpr bool IsIETFProtocolAssignment() const noexcept
+        constexpr bool IsIETFProtocolAssignment() const noexcept
         {
             switch (m_addressFamily)
             {
@@ -298,7 +286,7 @@ namespace mtasa
 
         // IPv6: [RFC 6666]
         // Returns true if this is an IPv6 discard-only address (100::/64)
-        [[nodiscard]] constexpr bool IsDiscard() const noexcept
+        constexpr bool IsDiscard() const noexcept
         {
             switch (m_addressFamily)
             {
@@ -314,7 +302,7 @@ namespace mtasa
 
         // IPv6: [RFC 4291]
         // Returns true if this is an IPv4-mapped IPv6 address (::ffff:0:0/96)
-        [[nodiscard]] constexpr bool IsIPv4Mapped() const noexcept
+        constexpr bool IsIPv4Mapped() const noexcept
         {
             switch (m_addressFamily)
             {
@@ -330,7 +318,7 @@ namespace mtasa
 
     public:
         // Converts an IPv4 address to an IPv4-mapped IPv6 address (a.b.c.d becomes ::ffff:a.b.c.d, anything else becomes invalid)
-        [[nodiscard]] constexpr IPAddress ToIPv4Mapped() const noexcept
+        constexpr IPAddress ToIPv4Mapped() const noexcept
         {
             switch (m_addressFamily)
             {
@@ -353,7 +341,7 @@ namespace mtasa
         }
 
         // Converts an IPv4-mapped IPv6 address to an IPv4 address (::ffff:a.b.c.d becomes a.b.c.d, anything else becomes invalid)
-        [[nodiscard]] constexpr IPAddress FromIPv4Mapped() const noexcept
+        constexpr IPAddress FromIPv4Mapped() const noexcept
         {
             switch (m_addressFamily)
             {
@@ -370,20 +358,21 @@ namespace mtasa
         }
 
         // Returns a string representation of the ip address ("a.b.c.d" for IPv4, "x:x:x:x:x:x:x:x" for IPv6)
-        [[nodiscard]] std::string ToString() const;
+        std::string ToString() const;
 
         // Fills the buffer with a string representation of the ip address ("a.b.c.d" for IPv4, "x:x:x:x:x:x:x:x" for IPv6)
         // For an IPv4 address the buffer size should be at least 16 and for an IPv6 address it should be at least 46.
-        [[nodiscard]] std::string_view ToString(char* buffer, std::size_t bufferSize) const;
+        bool ToString(char* buffer, std::size_t bufferSize) const;
 
         // Returns a hex string representation of the ip address ("AABBCCDD" for IPv4, "AABBCCDDAABBCCDDAABBCCDDAABBCCDD" for IPv6)
-        [[nodiscard]] std::string ToHexString() const;
+        std::string ToHexString() const;
 
         // Fills the buffer with a hex string representation of the ip address ("AABBCCDD" for IPv4, "AABBCCDDAABBCCDDAABBCCDDAABBCCDD" for IPv6)
-        [[nodiscard]] std::string_view ToHexString(char* buffer, std::size_t bufferSize) const;
+        // Returns the total length of the formatted string.
+        std::size_t ToHexString(char* buffer, std::size_t bufferSize) const;
 
     public:
-        [[nodiscard]] constexpr int Compare(const IPAddress& other) const noexcept
+        constexpr int Compare(const IPAddress& other) const noexcept
         {
             if (m_addressFamily != other.m_addressFamily)
                 return static_cast<std::int8_t>(m_addressFamily) - static_cast<std::int8_t>(other.m_addressFamily);
@@ -391,7 +380,7 @@ namespace mtasa
             if (m_addressFamily == IPAddressFamily::Unspecified)
                 return 0;
 
-            for (std::size_t i = 0; i < std::size(m_bytes); i++)
+            for (std::size_t i = 0; i < 16; i++) // 16 equals std::size(m_bytes)
             {
                 if (m_bytes[i] < other.m_bytes[i])
                     return -1;
@@ -466,7 +455,7 @@ namespace mtasa
         // An IP address in network byte order (Big-Endian).
         // Large enough to store either an IPv4 or an IPv6 address.
         // For an IPv4 address, the remaining bytes [4..15] must always be zero.
-        std::array<std::uint8_t, 16> m_bytes{};
+        std::uint8_t m_bytes[16] = {};
 
         // An IPv6 address scope number in network byte order (Big-Endian).
         // For IPv6 link-local and site-local addresses (read: scoped addresses) we must differentiate

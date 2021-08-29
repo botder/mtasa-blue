@@ -20,7 +20,7 @@
     #include <netinet/in.h>
     #include <unistd.h>
     #include <fcntl.h>
-    #include <errno.h>
+    #include <cerrno>
     #include <poll.h>
 #endif
 
@@ -53,6 +53,37 @@ namespace mtasa
 #else
         return poll(sockets, static_cast<nfds_t>(length), timeout);
 #endif
+    }
+
+    static int TranslateAddressFamily(IPAddressFamily addressFamily)
+    {
+        switch (addressFamily)
+        {
+            case IPAddressFamily::IPv4:
+                return AF_INET;
+            case IPAddressFamily::IPv6:
+                return AF_INET6;
+            case IPAddressFamily::Unspecified:
+            default:
+                break;
+        }
+
+        return AF_UNSPEC;
+    }
+
+    static std::pair<int, int> TranslateSocketProtocol(IPSocketProtocol protocol)
+    {
+        switch (protocol)
+        {
+            case IPSocketProtocol::TCP:
+                return {SOCK_STREAM, IPPROTO_TCP};
+            case IPSocketProtocol::UDP:
+                return {SOCK_DGRAM, IPPROTO_UDP};
+            default:
+                break;
+        }
+
+        return {0, 0};
     }
 
     IPSocket::~IPSocket() noexcept
@@ -88,8 +119,8 @@ namespace mtasa
             return false;
 
         int domain = TranslateAddressFamily(m_addressFamily);
-        auto [typeCode, protocolCode] = TranslateSocketProtocol(m_protocol);
-        m_handle = socket(domain, typeCode, protocolCode);
+        std::pair<int, int> protocol = TranslateSocketProtocol(m_protocol);
+        m_handle = socket(domain, protocol.first, protocol.second);
         return m_handle != INVALID_SOCKET_HANDLE;
     }
 
@@ -161,10 +192,10 @@ namespace mtasa
         return listen(m_handle, backlog) >= 0;
     }
 
-    std::string_view IPSocket::Receive(char* buffer, std::size_t length, int flags, IPEndpoint* endpoint) noexcept
+    std::size_t IPSocket::Receive(char* buffer, std::size_t length, int flags, IPEndpoint* endpoint) noexcept
     {
         if (!Exists() || !buffer || !length)
-            return {};
+            return 0;
 
         std::intmax_t bytesReceived = 0;
 
@@ -178,7 +209,7 @@ namespace mtasa
 
             // A truncated message is not an error
             if (bytesReceived < 0 && GetSocketError() == WSAEMSGSIZE)
-                bytesReceived = length;
+                bytesReceived = static_cast<std::intmax_t>(length);
 #else
             bytesReceived = recvfrom(m_handle, buffer, length, flags, reinterpret_cast<sockaddr*>(&address), &addressSize);
 #endif
@@ -195,31 +226,25 @@ namespace mtasa
 #endif
         }
 
-        return (bytesReceived < 0) ? std::string_view{} : std::string_view{buffer, static_cast<std::size_t>(bytesReceived)};
+        return (bytesReceived < 0) ? 0 : static_cast<std::size_t>(bytesReceived);
     }
 
-    std::string_view IPSocket::Peek(char* buffer, std::size_t length) noexcept
-    {
-        return Receive(buffer, length, MSG_PEEK, nullptr);
-    }
+    std::size_t IPSocket::Peek(char* buffer, std::size_t length) noexcept { return Receive(buffer, length, MSG_PEEK, nullptr); }
 
-    std::string_view IPSocket::PeekFrom(IPEndpoint& endpoint, char* buffer, std::size_t length) noexcept
+    std::size_t IPSocket::PeekFrom(IPEndpoint& endpoint, char* buffer, std::size_t length) noexcept
     {
         if (m_protocol != IPSocketProtocol::UDP)
-            return {};
+            return 0;
 
         return Receive(buffer, length, MSG_PEEK, &endpoint);
     }
 
-    [[nodiscard]] std::string_view IPSocket::Receive(char* buffer, std::size_t length) noexcept
-    {
-        return Receive(buffer, length, 0, nullptr);
-    }
+    [[nodiscard]] std::size_t IPSocket::Receive(char* buffer, std::size_t length) noexcept { return Receive(buffer, length, 0, nullptr); }
 
-    [[nodiscard]] std::string_view IPSocket::ReceiveFrom(IPEndpoint& endpoint, char* buffer, std::size_t length) noexcept
+    [[nodiscard]] std::size_t IPSocket::ReceiveFrom(IPEndpoint& endpoint, char* buffer, std::size_t length) noexcept
     {
         if (m_protocol != IPSocketProtocol::UDP)
-            return {};
+            return 0;
 
         return Receive(buffer, length, 0, &endpoint);
     }
@@ -251,7 +276,7 @@ namespace mtasa
         std::size_t      addressSize = sizeof(address);
 
         if (!receiver.ToSocketAddress(reinterpret_cast<sockaddr&>(address), addressSize))
-            return false;
+            return 0;
 
 #ifdef _WIN32
         std::intmax_t bytesWritten = sendto(m_handle, buffer, static_cast<int>(length), 0, reinterpret_cast<sockaddr*>(&address), sizeof(address));
@@ -262,19 +287,20 @@ namespace mtasa
         return (bytesWritten < 0) ? 0 : static_cast<std::size_t>(bytesWritten);
     }
 
-    std::optional<IPSocket> IPSocket::Accept() const noexcept
+    bool IPSocket::Accept(IPSocket& newConnection) const noexcept
     {
         if (!Exists() || m_protocol != IPSocketProtocol::TCP)
-            return {};
+            return false;
 
         sockaddr_storage address{};
         socklen_t        addressSize = sizeof(address);
         SocketHandle     handle = accept(m_handle, reinterpret_cast<sockaddr*>(&address), &addressSize);
 
         if (handle == INVALID_SOCKET_HANDLE)
-            return {};
+            return false;
 
-        return std::optional<IPSocket>{std::in_place, handle, m_addressFamily, m_protocol};
+        newConnection = IPSocket{handle, m_addressFamily, m_protocol};
+        return true;
     }
 
     bool IPSocket::IsReadable(int millisecondsTimeout) const noexcept
@@ -285,7 +311,7 @@ namespace mtasa
         pollfd sockets[1] = {};
         sockets[0].fd = m_handle;
         sockets[0].events = POLLIN;
-        return PollSockets(sockets, std::size(sockets), millisecondsTimeout) > 0;
+        return PollSockets(sockets, 1, millisecondsTimeout) > 0;
     }
 
     bool IPSocket::IsWritable(int millisecondsTimeout) const noexcept
@@ -296,7 +322,7 @@ namespace mtasa
         pollfd sockets[1] = {};
         sockets[0].fd = m_handle;
         sockets[0].events = POLLOUT;
-        return PollSockets(sockets, std::size(sockets), millisecondsTimeout) > 0;
+        return PollSockets(sockets, 1, millisecondsTimeout) > 0;
     }
 
     bool IPSocket::IsErrored(int millisecondsTimeout) const noexcept
@@ -308,7 +334,7 @@ namespace mtasa
         sockets[0].fd = m_handle;
         sockets[0].events = POLLIN | POLLOUT;
 
-        if (PollSockets(sockets, std::size(sockets), millisecondsTimeout) < 1)
+        if (PollSockets(sockets, 1, millisecondsTimeout) < 1)
             return false;
 
         return (sockets[0].revents & (POLLERR | POLLHUP | POLLNVAL)) != 0;
@@ -493,9 +519,7 @@ namespace mtasa
 
         ipv6_mreq request{};
         request.ipv6mr_interface = interfaceIndex;
-
-        if (auto bytes = address.GetIPv6Bytes(); bytes.has_value())
-            std::copy_n(bytes->data(), bytes->size(), reinterpret_cast<std::uint8_t*>(&request.ipv6mr_multiaddr));
+        std::copy_n(address.GetBytes(), sizeof(sockaddr_in6::sin6_addr), reinterpret_cast<std::uint8_t*>(&request.ipv6mr_multiaddr));
 
         return SetOption(IPPROTO_IPV6, IPV6_JOIN_GROUP, reinterpret_cast<char*>(&request), sizeof(request));
     }
@@ -507,9 +531,7 @@ namespace mtasa
 
         ipv6_mreq request{};
         request.ipv6mr_interface = interfaceIndex;
-
-        if (auto bytes = address.GetIPv6Bytes(); bytes.has_value())
-            std::copy_n(bytes->data(), bytes->size(), reinterpret_cast<std::uint8_t*>(&request.ipv6mr_multiaddr));
+        std::copy_n(address.GetBytes(), sizeof(sockaddr_in6::sin6_addr), reinterpret_cast<std::uint8_t*>(&request.ipv6mr_multiaddr));
 
         return SetOption(IPPROTO_IPV6, IPV6_LEAVE_GROUP, reinterpret_cast<char*>(&request), sizeof(request));
     }

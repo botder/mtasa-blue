@@ -9,7 +9,6 @@
  *****************************************************************************/
 
 #include "IPEndpoint.h"
-#include "Endianness.h"
 
 #ifdef _WIN32
     #include <winsock2.h>
@@ -63,14 +62,12 @@ namespace mtasa
         {
             case IPAddressFamily::IPv4:
             {
-                auto maybeBytes = m_address.GetIPv4Bytes();
-
-                if (maybeBytes && addressSize >= sizeof(sockaddr_in))
+                if (addressSize >= sizeof(sockaddr_in))
                 {
                     auto& ipv4 = reinterpret_cast<sockaddr_in&>(address);
                     ipv4.sin_family = AF_INET;
                     ipv4.sin_port = GetNetworkOrderPort();
-                    std::copy(maybeBytes->begin(), maybeBytes->end(), reinterpret_cast<std::uint8_t*>(&ipv4.sin_addr));
+                    std::copy_n(m_address.GetBytes(), sizeof(sockaddr_in::sin_addr), reinterpret_cast<std::uint8_t*>(&ipv4.sin_addr));
                     return true;
                 }
 
@@ -78,15 +75,13 @@ namespace mtasa
             }
             case IPAddressFamily::IPv6:
             {
-                auto maybeBytes = m_address.GetIPv6Bytes();
-
-                if (maybeBytes && addressSize >= sizeof(sockaddr_in6))
+                if (addressSize >= sizeof(sockaddr_in6))
                 {
                     auto& ipv6 = reinterpret_cast<sockaddr_in6&>(address);
                     ipv6.sin6_family = AF_INET6;
                     ipv6.sin6_port = GetNetworkOrderPort();
                     ipv6.sin6_scope_id = m_address.GetNetworkOrderScope();
-                    std::copy(maybeBytes->begin(), maybeBytes->end(), reinterpret_cast<std::uint8_t*>(&ipv6.sin6_addr));
+                    std::copy_n(m_address.GetBytes(), sizeof(sockaddr_in6::sin6_addr), reinterpret_cast<std::uint8_t*>(&ipv6.sin6_addr));
                     return true;
                 }
 

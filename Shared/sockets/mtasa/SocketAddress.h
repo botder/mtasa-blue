@@ -20,5 +20,5 @@ namespace mtasa
         std::array<std::uint8_t, 128> bytes;
     };
 
-    static_assert(sizeof(SocketAddress) == 128);
+    static_assert(sizeof(SocketAddress) == 128, "Invalid size of SocketAddress");
 }            // namespace mtasa

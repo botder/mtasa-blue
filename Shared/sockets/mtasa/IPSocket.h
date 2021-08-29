@@ -60,111 +60,111 @@ namespace mtasa
 
     public:
         // Creates the underlying operating system socket
-        [[nodiscard]] bool Create() noexcept;
+        bool Create() noexcept;
 
         // Shuts down and closes the underlying socket
-        [[nodiscard]] bool Close() noexcept;
+        bool Close() noexcept;
 
         // Connects the underlying socket to an IP endpoint
         // NOTE: For TCP, you can only establish a connection, if the socket is either bound or unbound.
         // NOTE: For UDP, you can set the default endpoint or clear it (with an invalid endpoint).
-        [[nodiscard]] bool Connect(const IPEndpoint& endpoint) noexcept;
+        bool Connect(const IPEndpoint& endpoint) noexcept;
 
         // Binds the underlying socket to an IP endpoint (requires an unbound socket)
-        [[nodiscard]] bool Bind(const IPEndpoint& endpoint) noexcept;
+        bool Bind(const IPEndpoint& endpoint) noexcept;
 
         // Marks the underlying socket as a passive socket that can be used to accept incoming connection requests (TCP only)
-        [[nodiscard]] bool Listen(int backlog = MAX_LISTEN_BACKLOG) noexcept;
+        bool Listen(int backlog = MAX_LISTEN_BACKLOG) noexcept;
 
         // Receives bytes from the underlying socket without discarding them (requires a connection)
-        [[nodiscard]] std::string_view Peek(char* buffer, std::size_t length) noexcept;
+        std::size_t Peek(char* buffer, std::size_t length) noexcept;
 
         // Receives bytes from the underlying socket without discarding them (UDP bound/connected only)
-        [[nodiscard]] std::string_view PeekFrom(IPEndpoint& endpoint, char* buffer, std::size_t length) noexcept;
+        std::size_t PeekFrom(IPEndpoint& endpoint, char* buffer, std::size_t length) noexcept;
 
         // Receives bytes from the underlying socket (requires a connection)
-        [[nodiscard]] std::string_view Receive(char* buffer, std::size_t length) noexcept;
+        std::size_t Receive(char* buffer, std::size_t length) noexcept;
 
         // Receives bytes from the underlying socket (UDP bound/connected only)
-        [[nodiscard]] std::string_view ReceiveFrom(IPEndpoint& endpoint, char* buffer, std::size_t length) noexcept;
+        std::size_t ReceiveFrom(IPEndpoint& endpoint, char* buffer, std::size_t length) noexcept;
 
         // Transfers bytes through the underlying socket (requires a connection)
-        [[nodiscard]] std::size_t Send(const char* buffer, std::size_t length) noexcept;
+        std::size_t Send(const char* buffer, std::size_t length) noexcept;
 
         // Transfers bytes through the underlying socket to the endpoint (UDP only)
-        [[nodiscard]] std::size_t SendTo(const IPEndpoint& receiver, const char* buffer, std::size_t length) noexcept;
+        std::size_t SendTo(const IPEndpoint& receiver, const char* buffer, std::size_t length) noexcept;
 
-        // Accepts an incomming connection on the underlying socket (TCP listeners only)
-        [[nodiscard]] std::optional<IPSocket> Accept() const noexcept;
+        // Accepts an incoming connection on the underlying socket (TCP listeners only)
+        bool Accept(IPSocket& newConnection) const noexcept;
 
         // Returns true if the socket is readable
-        [[nodiscard]] bool IsReadable(int millisecondsTimeout) const noexcept;
+        bool IsReadable(int millisecondsTimeout) const noexcept;
 
         // Returns true if the socket is writable
-        [[nodiscard]] bool IsWritable(int millisecondsTimeout) const noexcept;
+        bool IsWritable(int millisecondsTimeout) const noexcept;
 
         // Returns true if the socket has an error, was either disconnected or aborted, or the socket is invalid
-        [[nodiscard]] bool IsErrored(int millisecondsTimeout) const noexcept;
+        bool IsErrored(int millisecondsTimeout) const noexcept;
 
     public:
-        [[nodiscard]] bool GetOption(int level, int name, char* buffer, unsigned int* length) const;
-        [[nodiscard]] bool SetOption(int level, int name, const char* buffer, unsigned int length);
-        [[nodiscard]] bool GetBoolean(int level, int name, bool& state) const;
-        [[nodiscard]] bool SetBoolean(int level, int name, bool state);
-        [[nodiscard]] bool GetErrorCode(int& errorCode) const;
-        [[nodiscard]] bool SetKeepAlive(bool keepAlive);
-        [[nodiscard]] bool GetKeepAlive(bool& keepAlive) const;
-        [[nodiscard]] bool SetBroadcast(bool broadcast);
-        [[nodiscard]] bool GetBroadcast(bool& broadcast) const;
-        [[nodiscard]] bool SetAddressReuse(bool enabled);
-        [[nodiscard]] bool GetAddressReuse(bool& enabled) const;
-        [[nodiscard]] bool SetLinger(bool enabled, unsigned short seconds);
-        [[nodiscard]] bool GetLinger(bool& enabled, unsigned short& seconds);
-        [[nodiscard]] bool GetTransferBufferSize(int& size) const;
-        [[nodiscard]] bool SetTransferBufferSize(int size);
-        [[nodiscard]] bool GetReceiveBufferSize(int& size) const;
-        [[nodiscard]] bool SetReceiveBufferSize(int size);
-        [[nodiscard]] bool SetNonBlocking(bool enabled);
-        [[nodiscard]] bool SetExclusiveAddressUse(bool enabled);
-        [[nodiscard]] bool GetMTU(int& mtu) const;
-        [[nodiscard]] bool GetTransferTTL(int& ttl) const;
-        [[nodiscard]] bool SetTransferTTL(int ttl);
-        [[nodiscard]] bool GetDontFragment(bool& enabled) const;
-        [[nodiscard]] bool SetDontFragment(bool enabled);
-        [[nodiscard]] bool SetIPv6Only(bool ipv6Only);
-        [[nodiscard]] bool GetIPv6Only(bool& ipv6Only) const;
-        [[nodiscard]] bool JoinMulticastGroup(const IPAddress& address, std::uint32_t interfaceIndex);
-        [[nodiscard]] bool LeaveMulticastGroup(const IPAddress& address, std::uint32_t interfaceIndex);
+        bool GetOption(int level, int name, char* buffer, unsigned int* length) const;
+        bool SetOption(int level, int name, const char* buffer, unsigned int length);
+        bool GetBoolean(int level, int name, bool& state) const;
+        bool SetBoolean(int level, int name, bool state);
+        bool GetErrorCode(int& errorCode) const;
+        bool SetKeepAlive(bool keepAlive);
+        bool GetKeepAlive(bool& keepAlive) const;
+        bool SetBroadcast(bool broadcast);
+        bool GetBroadcast(bool& broadcast) const;
+        bool SetAddressReuse(bool enabled);
+        bool GetAddressReuse(bool& enabled) const;
+        bool SetLinger(bool enabled, unsigned short seconds);
+        bool GetLinger(bool& enabled, unsigned short& seconds);
+        bool GetTransferBufferSize(int& size) const;
+        bool SetTransferBufferSize(int size);
+        bool GetReceiveBufferSize(int& size) const;
+        bool SetReceiveBufferSize(int size);
+        bool SetNonBlocking(bool enabled);
+        bool SetExclusiveAddressUse(bool enabled);
+        bool GetMTU(int& mtu) const;
+        bool GetTransferTTL(int& ttl) const;
+        bool SetTransferTTL(int ttl);
+        bool GetDontFragment(bool& enabled) const;
+        bool SetDontFragment(bool enabled);
+        bool SetIPv6Only(bool ipv6Only);
+        bool GetIPv6Only(bool& ipv6Only) const;
+        bool JoinMulticastGroup(const IPAddress& address, std::uint32_t interfaceIndex);
+        bool LeaveMulticastGroup(const IPAddress& address, std::uint32_t interfaceIndex);
 
     public:
-        [[nodiscard]] IPEndpoint GetLocalEndpoint() const noexcept;
+        IPEndpoint GetLocalEndpoint() const noexcept;
 
-        [[nodiscard]] IPEndpoint GetPeerEndpoint() const noexcept;
+        IPEndpoint GetPeerEndpoint() const noexcept;
 
-        [[nodiscard]] bool SetAddressFamily(IPAddressFamily addressFamily) noexcept;
+        bool SetAddressFamily(IPAddressFamily addressFamily) noexcept;
 
-        [[nodiscard]] bool SetProtocol(IPSocketProtocol protocol) noexcept;
+        bool SetProtocol(IPSocketProtocol protocol) noexcept;
 
-        [[nodiscard]] IPAddressFamily GetAddressFamily() const noexcept { return m_addressFamily; }
+        IPAddressFamily GetAddressFamily() const noexcept { return m_addressFamily; }
 
-        [[nodiscard]] bool IsIPv4() const noexcept { return m_addressFamily == IPAddressFamily::IPv4; }
+        bool IsIPv4() const noexcept { return m_addressFamily == IPAddressFamily::IPv4; }
 
-        [[nodiscard]] bool IsIPv6() const noexcept { return m_addressFamily == IPAddressFamily::IPv6; }
+        bool IsIPv6() const noexcept { return m_addressFamily == IPAddressFamily::IPv6; }
 
-        [[nodiscard]] IPSocketProtocol GetProtocol() const noexcept { return m_protocol; }
+        IPSocketProtocol GetProtocol() const noexcept { return m_protocol; }
 
-        [[nodiscard]] bool IsTCP() const noexcept { return m_protocol == IPSocketProtocol::TCP; }
+        bool IsTCP() const noexcept { return m_protocol == IPSocketProtocol::TCP; }
 
-        [[nodiscard]] bool IsUDP() const noexcept { return m_protocol == IPSocketProtocol::UDP; }
+        bool IsUDP() const noexcept { return m_protocol == IPSocketProtocol::UDP; }
 
-        [[nodiscard]] bool Exists() const noexcept { return m_handle != INVALID_SOCKET_HANDLE; }
+        bool Exists() const noexcept { return m_handle != INVALID_SOCKET_HANDLE; }
 
-        [[nodiscard]] SocketHandle GetHandle() const noexcept { return m_handle; }
+        SocketHandle GetHandle() const noexcept { return m_handle; }
 
-        [[nodiscard]] SocketHandle Release() noexcept { return std::exchange(m_handle, INVALID_SOCKET_HANDLE); }
+        SocketHandle Release() noexcept { return std::exchange(m_handle, INVALID_SOCKET_HANDLE); }
 
     private:
-        [[nodiscard]] std::string_view Receive(char* buffer, std::size_t length, int flags, IPEndpoint* endpoint) noexcept;
+        std::size_t Receive(char* buffer, std::size_t length, int flags, IPEndpoint* endpoint) noexcept;
 
     private:
         IPAddressFamily  m_addressFamily = IPAddressFamily::Unspecified;

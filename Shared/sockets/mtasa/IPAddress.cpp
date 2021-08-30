@@ -72,7 +72,17 @@ namespace mtasa
             std::array<char, INET6_ADDRSTRLEN> buffer{};
 
             if (inet_ntop(AF_INET6, m_bytes, buffer.data(), buffer.size()))
-                return std::string{buffer.data()};
+            {
+                std::string result{buffer.data()};
+
+                if (m_scope)
+                {
+                    result += '%';
+                    result += std::to_string(m_scope);
+                }
+
+                return result;
+            }
         }
 
         return {};

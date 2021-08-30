@@ -10,7 +10,7 @@
  *****************************************************************************/
 
 #include "StdInc.h"
-#include <mtasa/IPAddressMode.h>
+#include <mtasa/IPAddressFamily.h>
 
 using namespace mtasa;
 
@@ -259,7 +259,7 @@ void CClientVariables::ValidateValues()
     ClampValue("mtavolume", 0.0f, 1.0f);
     ClampValue("voicevolume", 0.0f, 1.0f);
     ClampValue("mapalpha", 0, 255);
-    ClampValue("connection_type", 0, 2); // see IPAddressMode
+    ClampValue("connection_type", 0, 2); // see IPAddressFamily
 }
 
 void CClientVariables::LoadDefaults()
@@ -274,7 +274,7 @@ void CClientVariables::LoadDefaults()
         CCore::GetSingleton().RequestNewNickOnStart();                 // Request the user to set a new nickname
     }
 
-    DEFAULT("connection_type", static_cast<int>(IPAddressMode::IPv6DualStack));
+    DEFAULT("connection_type", static_cast<int>(IPAddressFamily::Unspecified));
     DEFAULT("host", _S("127.0.0.1"));                                    // hostname
     DEFAULT("port", 22003);                                              // port
     DEFAULT("password", _S(""));                                         // password

@@ -590,9 +590,9 @@ void CCore::ApplyGameSettings()
 
 void CCore::ApplyMultiplayerSettings()
 {
-    int addressMode = static_cast<int>(IPAddressMode::IPv6DualStack);
-    CVARS_GET("connection_type", addressMode);
-    SetAddressMode(static_cast<IPAddressMode>(addressMode));
+    int connectionType = static_cast<int>(IPAddressFamily::Unspecified);
+    CVARS_GET("connection_type", connectionType);
+    SetConnectionType(static_cast<IPAddressFamily>(connectionType));
 }
 
 void CCore::SetConnected(bool bConnected)
@@ -2234,12 +2234,12 @@ SString CCore::GetBlueCopyrightString()
     return strCopyright.Replace("%BUILD_YEAR%", std::to_string(BUILD_YEAR).c_str());
 }
 
-void CCore::SetAddressMode(mtasa::IPAddressMode addressMode)
+void CCore::SetConnectionType(IPAddressFamily connectionType)
 {
-    if (m_addressMode == addressMode)
+    if (m_connectionType == connectionType)
         return;
 
-    m_addressMode = addressMode;
+    m_connectionType = connectionType;
 
-    CServerBrowser::GetSingleton().SetAddressMode(addressMode);
+    CServerBrowser::GetSingleton().SetConnectionType(connectionType);
 }

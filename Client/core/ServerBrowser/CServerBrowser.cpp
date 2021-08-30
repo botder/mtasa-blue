@@ -2356,13 +2356,13 @@ void CServerBrowser::SetSelectedIndex(unsigned int uiIndex)
     }
 }
 
-void CServerBrowser::SetAddressMode(mtasa::IPAddressMode addressMode)
+void CServerBrowser::SetConnectionType(IPAddressFamily connectionType)
 {
-    if (m_addressMode == addressMode)
+    if (m_connectionType == connectionType)
         return;
 
-    m_addressMode = addressMode;
-    m_ServersLAN.SetAddressMode(addressMode);
+    m_connectionType = connectionType;
+    m_ServersLAN.SetConnectionType(connectionType);
 }
 
 void CServerBrowser::TabSkip(bool bBackwards)

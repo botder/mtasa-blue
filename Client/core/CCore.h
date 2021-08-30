@@ -39,7 +39,7 @@ class CCore;
 #include <ijsify.h>
 #include <core/CWebCoreInterface.h>
 #include "CTrayIcon.h"
-#include <mtasa/IPAddressMode.h>
+#include <mtasa/IPAddressFamily.h>
 
 #define DIRECTINPUT_VERSION 0x0800
 #include <dinput.h>
@@ -281,8 +281,8 @@ public:
     SString     GetBlueCopyrightString();
     bool        IsFirstFrame() const noexcept { return m_bFirstFrame; }
 
-    void                 SetAddressMode(mtasa::IPAddressMode addressMode);
-    mtasa::IPAddressMode GetAddressMode() const noexcept { return m_addressMode; }
+    void                   SetConnectionType(mtasa::IPAddressFamily connectionType);
+    mtasa::IPAddressFamily GetConnectionType() const noexcept { return m_connectionType; }
 
 private:
     void ApplyCoreInitSettings();
@@ -357,28 +357,28 @@ private:
     bool m_bQuitOnPulse;
     bool m_bDestroyMessageBox;
 
-    bool                 m_bDoneFrameRateLimit;
-    uint                 m_uiServerFrameRateLimit;
-    uint                 m_uiClientScriptFrameRateLimit;
-    uint                 m_uiFrameRateLimit;
-    CElapsedTimeHD       m_FrameRateTimer;
-    uint                 m_uiQueuedFrameRate;
-    bool                 m_bQueuedFrameRateValid;
-    bool                 m_bWaitToSetNick;
-    uint                 m_uiNewNickWaitFrames;
-    EDiagnosticDebugType m_DiagnosticDebug;
-    float                m_fMinStreamingMemory;
-    float                m_fMaxStreamingMemory;
-    bool                 m_bGettingIdleCallsFromMultiplayer;
-    bool                 m_bWindowsTimerEnabled;
-    bool                 m_bModulesLoaded;
-    int                  m_iDummyProgressValue;
-    HANDLE               m_DummyProgressTimerHandle;
-    SString              m_strDummyProgressType;
-    bool                 m_bDummyProgressUpdateAlways;
-    bool                 m_bIsRenderingGrass;
-    bool                 m_bFakeLagCommandEnabled;
-    mtasa::IPAddressMode m_addressMode = mtasa::IPAddressMode::IPv6DualStack;
+    bool                   m_bDoneFrameRateLimit;
+    uint                   m_uiServerFrameRateLimit;
+    uint                   m_uiClientScriptFrameRateLimit;
+    uint                   m_uiFrameRateLimit;
+    CElapsedTimeHD         m_FrameRateTimer;
+    uint                   m_uiQueuedFrameRate;
+    bool                   m_bQueuedFrameRateValid;
+    bool                   m_bWaitToSetNick;
+    uint                   m_uiNewNickWaitFrames;
+    EDiagnosticDebugType   m_DiagnosticDebug;
+    float                  m_fMinStreamingMemory;
+    float                  m_fMaxStreamingMemory;
+    bool                   m_bGettingIdleCallsFromMultiplayer;
+    bool                   m_bWindowsTimerEnabled;
+    bool                   m_bModulesLoaded;
+    int                    m_iDummyProgressValue;
+    HANDLE                 m_DummyProgressTimerHandle;
+    SString                m_strDummyProgressType;
+    bool                   m_bDummyProgressUpdateAlways;
+    bool                   m_bIsRenderingGrass;
+    bool                   m_bFakeLagCommandEnabled;
+    mtasa::IPAddressFamily m_connectionType = mtasa::IPAddressFamily::Unspecified;
 
     // Command line
     static void                        ParseCommandLine(std::map<std::string, std::string>& options, const char*& szArgs, const char** pszNoValOptions = NULL);

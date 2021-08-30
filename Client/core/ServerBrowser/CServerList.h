@@ -21,7 +21,6 @@ class CMasterServerManagerInterface;
 #include <vector>
 #include "CSingleton.h"
 #include <mtasa/IPSocket.h>
-#include <mtasa/IPAddressMode.h>
 
 // Master server list URL
 #define SERVER_LIST_MASTER_URL              "http://master.multitheftauto.com/ase/mta/"
@@ -348,21 +347,21 @@ public:
     int          GetRevision() { return m_iRevision; }
     void         SortByASEVersion();
 
-    void SetAddressMode(mtasa::IPAddressMode addressMode);
+    void SetConnectionType(mtasa::IPAddressFamily connectionType);
 
 protected:
     virtual void OnAddressModeChange() {}
 
-    bool                 m_bUpdated;
-    int                  m_iPass;
-    unsigned int         m_nScanned;
-    unsigned int         m_nSkipped;
-    int                  m_iRevision;
-    CServerListItemList  m_Servers;
-    std::string          m_strStatus;
-    std::string          m_strStatus2;
-    long long            m_llLastTickCount;
-    mtasa::IPAddressMode m_addressMode = mtasa::IPAddressMode::IPv6DualStack;
+    bool                   m_bUpdated;
+    int                    m_iPass;
+    unsigned int           m_nScanned;
+    unsigned int           m_nSkipped;
+    int                    m_iRevision;
+    CServerListItemList    m_Servers;
+    std::string            m_strStatus;
+    std::string            m_strStatus2;
+    long long              m_llLastTickCount;
+    mtasa::IPAddressFamily m_connectionType = mtasa::IPAddressFamily::Unspecified;
 };
 
 // Internet list (grabs the master server list on refresh)

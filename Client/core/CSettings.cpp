@@ -12,7 +12,7 @@
 #include "StdInc.h"
 #include <core/CClientCommands.h>
 #include <game/CGame.h>
-#include <mtasa/IPAddressMode.h>
+#include <mtasa/IPAddressFamily.h>
 
 using namespace std;
 using namespace mtasa;
@@ -383,9 +383,9 @@ void CSettings::CreateGUI()
         m_pComboConnectionType = pManager->CreateComboBox(pTabMultiplayer, "");
         m_pComboConnectionType->SetPosition(CVector2D(fIndentX, vecTemp.fY - 3.0f));
         m_pComboConnectionType->SetSize(CVector2D(fCommonWidth, 80.0f));
-        m_pComboConnectionType->AddItem(_("IPv4"))->SetData(reinterpret_cast<void*>(IPAddressMode::IPv4Only));
-        m_pComboConnectionType->AddItem(_("IPv6"))->SetData(reinterpret_cast<void*>(IPAddressMode::IPv6Only));
-        m_pComboConnectionType->AddItem(_("Automatic"))->SetData(reinterpret_cast<void*>(IPAddressMode::IPv6DualStack));
+        m_pComboConnectionType->AddItem(_("Automatic"))->SetData(reinterpret_cast<void*>(IPAddressFamily::Unspecified));
+        m_pComboConnectionType->AddItem(_("IPv4"))->SetData(reinterpret_cast<void*>(IPAddressFamily::IPv4));
+        m_pComboConnectionType->AddItem(_("IPv6"))->SetData(reinterpret_cast<void*>(IPAddressFamily::IPv6));
         m_pComboConnectionType->SetReadOnly(true);
 
         vecTemp.fY += 30.0f;
@@ -2947,9 +2947,9 @@ void CSettings::LoadData()
     }
 
     // Connection type
-    int addressMode = static_cast<int>(IPAddressMode::IPv6DualStack);
-    CVARS_GET("connection_type", addressMode);
-    m_pComboConnectionType->SetSelectedItemByIndex(addressMode);
+    int connectionType = static_cast<int>(IPAddressFamily::Unspecified);
+    CVARS_GET("connection_type", connectionType);
+    m_pComboConnectionType->SetSelectedItemByIndex(connectionType);
 
     // Save server password
     CVARS_GET("save_server_passwords", bVar);
@@ -3273,13 +3273,13 @@ void CSettings::SaveData()
     }
 
     // Connection type
-    int addressMode = m_pComboConnectionType->GetSelectedItemIndex();
+    int connectionType = m_pComboConnectionType->GetSelectedItemIndex();
 
-    if (addressMode < 0 || addressMode > 2)
-        addressMode = 2;            // IPAddressMode::IPv6DualStack
+    if (connectionType < 0 || connectionType > 2)
+        connectionType = 0;            // IPAddressFamily::Unspecified
 
-    g_pCore->SetAddressMode(static_cast<IPAddressMode>(addressMode));
-    CVARS_SET("connection_type", addressMode);
+    g_pCore->SetConnectionType(static_cast<IPAddressFamily>(connectionType));
+    CVARS_SET("connection_type", connectionType);
 
     // Server pass saving
     bool bServerPasswords = m_pSavePasswords->GetSelected();

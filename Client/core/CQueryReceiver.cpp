@@ -70,15 +70,17 @@ SQueryInfo CQueryReceiver::GetServerResponse()
         return info;            // Query not sent
 
     // Poll the socket
-    IPEndpoint                                 endpoint;
     std::array<char, SERVER_LIST_QUERY_BUFFER> buffer{};
-    std::string_view                           message = m_socket.ReceiveFrom(endpoint, buffer.data(), buffer.size());
+
+    IPEndpoint       endpoint;
+    std::size_t      length = m_socket.ReceiveFrom(endpoint, buffer.data(), buffer.size());
+    std::string_view message{buffer.data(), length};
 
     if (!message.empty())
     {
         // Parse data
         const char* szBuffer = message.data();
-        int         len = message.size();
+        int         len = static_cast<int>(length);
 
         // Check length
         if (len < 15)

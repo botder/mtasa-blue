@@ -18,10 +18,16 @@ using namespace mtasa;
 
 ASE* ASE::_instance = NULL;
 
-ASE::ASE(CMainConfig* pMainConfig, CPlayerManager* pPlayerManager, const std::vector<mtasa::IPBindableEndpoint>& bindings)
+ASE::ASE(CMainConfig* pMainConfig, CPlayerManager* pPlayerManager, const std::vector<IPBindableEndpoint>& bindings)
     : m_QueryDosProtect(5, 6000, 7000)            // Max of 5 queries per 6 seconds, then 7 second ignore
     , m_bindings(bindings)
 {
+    for (IPBindableEndpoint& binding : m_bindings)
+    {
+        std::uint16_t port = binding.endpoint.GetHostOrderPort();
+        binding.endpoint.SetHostOrderPort(port + SERVER_LIST_QUERY_PORT_OFFSET);
+    }
+
     _instance = this;
     m_tStartTime = time(NULL);
 

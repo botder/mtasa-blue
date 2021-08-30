@@ -28,7 +28,6 @@ class CServerBrowser;
 #include "CServerInfo.h"
 #include <ctime>
 #include <mtasa/IPEndpoint.h>
-#include <mtasa/IPAddressMode.h>
 
 namespace ServerBrowserTypes
 {
@@ -113,7 +112,7 @@ public:
 
     void SetSelectedIndex(unsigned int uiIndex);
 
-    void SetAddressMode(mtasa::IPAddressMode addressMode);
+    void SetConnectionType(mtasa::IPAddressFamily connectionType);
 
 protected:
     bool OnMouseClick(CGUIMouseEventArgs Args);
@@ -267,5 +266,5 @@ private:
     CGUIWindow*       m_pGeneralHelpWindow;
     long long         m_llLastGeneralHelpTime;
 
-    mtasa::IPAddressMode m_addressMode = mtasa::IPAddressMode::IPv6DualStack;
+    mtasa::IPAddressFamily m_connectionType = mtasa::IPAddressFamily::Unspecified;
 };

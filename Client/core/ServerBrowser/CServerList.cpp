@@ -230,12 +230,12 @@ void CServerList::SortByASEVersion()
     m_Servers.GetList().sort(SortByASEVersionCallback);
 }
 
-void CServerList::SetAddressMode(mtasa::IPAddressMode addressMode)
+void CServerList::SetConnectionType(IPAddressFamily connectionType)
 {
-    if (m_addressMode == addressMode)
+    if (m_connectionType == connectionType)
         return;
 
-    m_addressMode = addressMode;
+    m_connectionType = connectionType;
     OnAddressModeChange();
 }
 
@@ -305,7 +305,8 @@ void CServerListLAN::Pulse()
     // Poll our socket to discover any new servers
     IPEndpoint           endpoint;
     std::array<char, 32> buffer{};
-    std::string_view     message = m_socket.ReceiveFrom(endpoint, buffer.data(), buffer.size());
+    std::size_t          length = m_socket.ReceiveFrom(endpoint, buffer.data(), buffer.size());
+    std::string_view     message{buffer.data(), length};
 
     if (message.size() > sizeof(SERVER_LIST_SERVER_BROADCAST_STR))
     {
@@ -345,7 +346,7 @@ void CServerListLAN::OnAddressModeChange()
 
 bool CServerListLAN::CreateSocket()
 {
-    if (m_addressMode == IPAddressMode::IPv4Only)
+    if (m_connectionType == IPAddressFamily::IPv4)
     {
         if (!CreateIPv4Socket())
         {
@@ -355,7 +356,7 @@ bool CServerListLAN::CreateSocket()
     }
     else
     {
-        bool isIPv6Only = (m_addressMode == IPAddressMode::IPv6Only);
+        bool isIPv6Only = (m_connectionType == IPAddressFamily::IPv6);
 
         if (!CreateIPv6Socket(isIPv6Only))
         {

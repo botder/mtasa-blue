@@ -80,7 +80,7 @@ namespace mtasa
                     auto& ipv6 = reinterpret_cast<sockaddr_in6&>(address);
                     ipv6.sin6_family = AF_INET6;
                     ipv6.sin6_port = GetNetworkOrderPort();
-                    ipv6.sin6_scope_id = m_address.GetNetworkOrderScope();
+                    ipv6.sin6_scope_id = m_address.GetScope();
                     std::copy_n(m_address.GetBytes(), sizeof(sockaddr_in6::sin6_addr), reinterpret_cast<std::uint8_t*>(&ipv6.sin6_addr));
                     return true;
                 }

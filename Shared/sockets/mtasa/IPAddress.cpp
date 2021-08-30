@@ -11,6 +11,7 @@
 #include "IPAddress.h"
 #include <memory>
 #include <algorithm>
+#include <cstring>
 
 #ifdef _WIN32
     #include <winsock2.h>
@@ -60,42 +61,42 @@ namespace mtasa
 
     std::string IPAddress::ToString() const
     {
+        std::array<char, INET6_ADDRSTRLEN> buffer{};
+        return {buffer.data(), ToString(buffer.data(), buffer.size())};
+    }
+
+    std::size_t IPAddress::ToString(char* buffer, std::size_t bufferSize) const
+    {
         if (m_addressFamily == IPAddressFamily::IPv4)
         {
-            std::array<char, INET_ADDRSTRLEN> buffer{};
-
-            if (inet_ntop(AF_INET, m_bytes, buffer.data(), buffer.size()))
-                return std::string{buffer.data()};
+            if (inet_ntop(AF_INET, m_bytes, buffer, bufferSize))
+                return strnlen(buffer, bufferSize);
         }
         else if (m_addressFamily == IPAddressFamily::IPv6)
         {
-            std::array<char, INET6_ADDRSTRLEN> buffer{};
-
-            if (inet_ntop(AF_INET6, m_bytes, buffer.data(), buffer.size()))
+            if (inet_ntop(AF_INET6, m_bytes, buffer, bufferSize))
             {
-                std::string result{buffer.data()};
+                std::size_t length = strnlen(buffer, bufferSize);
 
                 if (m_scope)
                 {
-                    result += '%';
-                    result += std::to_string(m_scope);
+                    std::size_t remainingLength = bufferSize - length;
+                    int         charactersWritten = -1;
+
+                    if (remainingLength >= 3)            // '%' + scope + null-terminator
+                        charactersWritten = snprintf(buffer + length, remainingLength, "%%%u", m_scope);
+
+                    if (charactersWritten < 0 || static_cast<std::size_t>(charactersWritten) >= remainingLength)
+                        return 0;
+
+                    length += static_cast<std::size_t>(charactersWritten);
                 }
 
-                return result;
+                return length;
             }
         }
 
-        return {};
-    }
-
-    bool IPAddress::ToString(char* buffer, std::size_t bufferSize) const
-    {
-        if (m_addressFamily == IPAddressFamily::IPv4)
-            return inet_ntop(AF_INET, m_bytes, buffer, bufferSize) != nullptr;
-        else if (m_addressFamily == IPAddressFamily::IPv6)
-            return inet_ntop(AF_INET6, m_bytes, buffer, bufferSize) != nullptr;
-
-        return false;
+        return 0;
     }
 
     std::string IPAddress::ToHexString() const

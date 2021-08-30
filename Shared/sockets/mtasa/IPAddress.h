@@ -97,13 +97,9 @@ namespace mtasa
     public:
         constexpr IPAddressFamily GetAddressFamily() const noexcept { return m_addressFamily; }
 
-        std::uint32_t GetHostOrderScope() const noexcept { return LoadBigEndian32(m_scope); }
+        std::uint32_t GetScope() const noexcept { return m_scope; }
 
-        constexpr std::uint32_t GetNetworkOrderScope() const noexcept { return m_scope; }
-
-        void SetHostOrderScope(std::uint32_t scope) noexcept { m_scope = StoreBigEndian32(scope); }
-
-        void SetNetworkOrderScope(std::uint32_t scope) noexcept { m_scope = scope; }
+        void SetScope(std::uint32_t scope) noexcept { m_scope = scope; }
 
         const std::uint8_t* GetBytes() const noexcept { return m_bytes; }
 
@@ -372,7 +368,8 @@ namespace mtasa
 
         // Fills the buffer with a string representation of the ip address ("a.b.c.d" for IPv4, "x:x:x:x:x:x:x:x" for IPv6)
         // For an IPv4 address the buffer size should be at least 16 and for an IPv6 address it should be at least 46.
-        bool ToString(char* buffer, std::size_t bufferSize) const;
+        // Returns the length of the string or zero on failure.
+        std::size_t ToString(char* buffer, std::size_t bufferSize) const;
 
         // Returns a hex string representation of the ip address ("AABBCCDD" for IPv4, "AABBCCDDAABBCCDDAABBCCDDAABBCCDD" for IPv6)
         std::string ToHexString() const;
@@ -467,7 +464,7 @@ namespace mtasa
         // For an IPv4 address, the remaining bytes [4..15] must always be zero.
         std::uint8_t m_bytes[16] = {};
 
-        // An IPv6 address scope number in network byte order (Big-Endian).
+        // An IPv6 address scope number in host byte order.
         // For IPv6 link-local and site-local addresses (read: scoped addresses) we must differentiate
         // the same ip address by the scope id. For link-local addresses (fe80::/10), this specifies the
         // interface number. For site-local addresses (fec0::/10), this specifies a site identifier.

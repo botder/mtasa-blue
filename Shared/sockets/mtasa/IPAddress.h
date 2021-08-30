@@ -107,6 +107,16 @@ namespace mtasa
 
         const std::uint8_t* GetBytes() const noexcept { return m_bytes; }
 
+        // Returns the address as a 32-bit integer value in network byte order. This is only usable with IPv4 addresses.
+        const std::uint32_t GetBinaryAddress() const noexcept
+        {
+            if (!IsIPv4())
+                return 0;
+
+            return static_cast<std::uint32_t>(m_bytes[0] << 24) | static_cast<std::uint32_t>(m_bytes[1] << 16) | static_cast<std::uint32_t>(m_bytes[2] << 8) |
+                   static_cast<std::uint32_t>(m_bytes[3] << 0);
+        }
+
     public:
         // Returns true if this is either an IPv4 or IPv6 address
         constexpr bool IsValid() const noexcept { return m_addressFamily != IPAddressFamily::Unspecified; }

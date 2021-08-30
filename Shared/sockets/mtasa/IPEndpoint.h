@@ -36,7 +36,7 @@ namespace mtasa
         constexpr void SetAddress(IPAddress&& address) noexcept { m_address = address; }
 
         constexpr void SetHostOrderPort(std::uint16_t port) noexcept { m_port = port; }
-        void           SetNetworkOrderPort(std::uint16_t port) noexcept { m_port = StoreBigEndian16(port); }
+        void           SetNetworkOrderPort(std::uint16_t port) noexcept { m_port = LoadBigEndian16(port); }
 
         // Fill this endpoint with the IPv4 address information
         void FromSocketAddress(const sockaddr_in& address) noexcept;
@@ -64,7 +64,7 @@ namespace mtasa
         const IPAddress& GetAddress() const noexcept { return m_address; }
 
         std::uint16_t GetHostOrderPort() const noexcept { return m_port; }
-        std::uint16_t GetNetworkOrderPort() const noexcept { return LoadBigEndian16(m_port); }
+        std::uint16_t GetNetworkOrderPort() const noexcept { return StoreBigEndian16(m_port); }
 
     public:
         // Returns true if this is either an IPv4 or IPv6 endpoint (port > 0)

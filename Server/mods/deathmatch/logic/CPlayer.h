@@ -130,7 +130,7 @@ public:
 
     NetServerPlayerID& GetSocket() { return m_PlayerSocket; };
     const char*        GetSourceIP();
-    unsigned short     GetSourcePort() { return m_PlayerSocket.GetPort(); };
+    unsigned short     GetSourcePort() { return m_PlayerSocket.GetHostOrderPort(); };
 
     void         SetPing(uint uiPing) { m_uiPing = uiPing; }
     unsigned int GetPing() { return m_uiPing; }

@@ -33,8 +33,8 @@ enum
 class CPacket
 {
 public:
-    CPacket();
-    virtual ~CPacket(){};
+    CPacket() = default;
+    virtual ~CPacket() = default;
 
     virtual bool            RequiresSourcePlayer() const { return true; }
     virtual bool            HasSimHandler() const { return false; }
@@ -50,10 +50,10 @@ public:
     CPlayer*                 GetSourcePlayer();
     void                     SetSourceSocket(const NetServerPlayerID& Source) { m_Source = Source; };
     const NetServerPlayerID& GetSourceSocket() const { return m_Source; };
-    unsigned long            GetSourceIP() const { return m_Source.GetBinaryAddress(); };
-    unsigned short           GetSourcePort() const { return m_Source.GetPort(); };
+    std::string              GetSourceIP() const { return m_Source.GetAddress().ToString(); };
+    unsigned short           GetSourcePort() const { return m_Source.GetHostOrderPort(); };
 
 protected:
-    CElement*         m_pSourceElement;
-    NetServerPlayerID m_Source;
+    CElement*         m_pSourceElement = nullptr;
+    NetServerPlayerID m_Source{};
 };

@@ -1890,6 +1890,7 @@ bool CStaticFunctionDefinitions::GetPlayerIP(CElement* pElement, SString& strOut
         }
         case CElement::CONSOLE:
         {
+            // TODO(botder): What if the server is running only on IPv6?
             strOutIP = "127.0.0.1";
             break;
         }

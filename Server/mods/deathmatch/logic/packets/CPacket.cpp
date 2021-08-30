@@ -11,13 +11,6 @@
 
 #include "StdInc.h"
 
-CPacket::CPacket()
-{
-    // Init
-    m_pSourceElement = NULL;
-    m_Source = NetServerPlayerID(0, 0);
-}
-
 CPlayer* CPacket::GetSourcePlayer()
 {
     return static_cast<CPlayer*>(m_pSourceElement);

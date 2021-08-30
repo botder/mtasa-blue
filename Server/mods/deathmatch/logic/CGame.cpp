@@ -1752,7 +1752,7 @@ void CGame::Packet_PlayerJoinData(CPlayerJoinDataPacket& Packet)
                     if (bPasswordIsValid)
                     {
                         // If he's not join flooding
-                        if (!m_pMainConfig->GetJoinFloodProtectionEnabled() || !m_FloodProtect.AddConnect(SString("%x", Packet.GetSourceIP())))
+                        if (!m_pMainConfig->GetJoinFloodProtectionEnabled() || !m_FloodProtect.AddConnect(Packet.GetSourceIP()))
                         {
                             // Set the nick and the game version
                             pPlayer->SetNick(szNick);

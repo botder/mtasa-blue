@@ -264,10 +264,9 @@ void CPerfStatPlayerPacketUsageImpl::UpdatePlayerPacketUsage()
                 strSerial = pPlayer->GetSerial();
                 strName = pPlayer->GetNick();
             }
-            else if (pStats->playerId.GetBinaryAddress())
+            else if (pStats->playerId.IsValid())
             {
-                IPAddress address{pStats->playerId.GetBinaryAddress()};
-                strName = address.ToString();
+                strName = pStats->playerId.GetAddress().ToString();
             }
 
             // Custom data packets get sent to all other players

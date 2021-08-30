@@ -239,12 +239,8 @@ bool CPlayer::IsSubscribed(CElement* pElement, const std::string& strName) const
 const char* CPlayer::GetSourceIP()
 {
     if (m_strIP.empty())
-    {
-        char           szIP[22];
-        unsigned short usPort;
-        g_pNetServer->GetPlayerIP(m_PlayerSocket, szIP, &usPort);
-        m_strIP = szIP;
-    }
+        m_strIP = m_PlayerSocket.GetAddress().ToString();
+    
     return m_strIP;
 }
 

@@ -35,17 +35,17 @@ namespace mtasa
         return value;
     }
 
-    static inline std::uint16_t LoadBigEndian32(std::uint32_t value)
+    static inline std::uint32_t LoadBigEndian32(std::uint32_t value)
     {
         std::array<std::uint8_t, 4> bytes{};
         std::copy_n(reinterpret_cast<std::uint8_t*>(&value), sizeof(value), bytes.data());
-        return static_cast<std::uint16_t>(bytes[0]) << 24 |
-               static_cast<std::uint16_t>(bytes[1]) << 16 |
-               static_cast<std::uint16_t>(bytes[2]) << 8 |
-               static_cast<std::uint16_t>(bytes[3]) << 0;
+        return static_cast<std::uint32_t>(bytes[0]) << 24 |
+               static_cast<std::uint32_t>(bytes[1]) << 16 |
+               static_cast<std::uint32_t>(bytes[2]) << 8 |
+               static_cast<std::uint32_t>(bytes[3]) << 0;
     }
 
-    static inline std::uint16_t StoreBigEndian32(std::uint32_t value)
+    static inline std::uint32_t StoreBigEndian32(std::uint32_t value)
     {
         std::array<std::uint8_t, 4> bytes{
             static_cast<std::uint8_t>(value >> 24),

@@ -34,7 +34,7 @@ CLanBroadcast::CLanBroadcast(const std::vector<IPBindableEndpoint>& bindings)
         else if (address.IsIPv6())
         {
             usingIPv6 = true;
-            scopes.insert(address.GetHostOrderScope());
+            scopes.insert(address.GetScope());
 
             if (binding.useDualMode)
                 usingIPv4 = true;

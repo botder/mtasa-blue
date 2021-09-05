@@ -863,9 +863,7 @@ bool CGame::Start(int iArgumentCount, char* szArguments[])
     const IPBindableEndpoint* bindings = addressBindings.data();
     const std::size_t         numBindings = addressBindings.size();
 
-    // TODO:
-    // g_pNetServer->StartNetwork(bindings, numBindings, usServerPort, uiMaxPlayers, serverName.c_str())
-    if (!g_pNetServer->StartNetwork(m_pMainConfig->GetAddressCommaList(IPAddressFamily::IPv4, false).c_str(), usServerPort, uiMaxPlayers, serverName.c_str()))
+    if (!g_pNetServer->StartNetwork(bindings, numBindings, uiMaxPlayers, serverName.c_str()))
     {
         CLogger::ErrorPrintf("Could not bind the server on interface(s) '%s' and port '%u'!\n", addressCommaList.c_str(), usServerPort);
         return false;

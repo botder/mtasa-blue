@@ -67,20 +67,20 @@ namespace mtasa
         std::uint16_t GetNetworkOrderPort() const noexcept { return StoreBigEndian16(m_port); }
 
     public:
-        // Returns true if this is either an IPv4 or IPv6 endpoint (port > 0)
-        constexpr bool IsValid() const noexcept { return m_port && m_address.IsValid(); }
+        // Returns true if this is either an IPv4 or IPv6 endpoint
+        constexpr bool IsValid() const noexcept { return m_address.IsValid(); }
 
-        // Returns true if this is neither an IPv4 nor IPv6 endpoint (port > 0)
+        // Returns true if this is neither an IPv4 nor IPv6 endpoint
         constexpr bool IsInvalid() const noexcept { return !IsValid(); }
 
-        // Returns true if this is a valid IPv4 endpoint (port > 0)
-        constexpr bool IsIPv4() const noexcept { return m_port && m_address.IsIPv4(); }
+        // Returns true if this is a valid IPv4 endpoint
+        constexpr bool IsIPv4() const noexcept { return m_address.IsIPv4(); }
 
-        // Returns true if this is a valid IPv6 endpoint (port > 0)
-        constexpr bool IsIPv6() const noexcept { return m_port && m_address.IsIPv6(); }
+        // Returns true if this is a valid IPv6 endpoint
+        constexpr bool IsIPv6() const noexcept { return m_address.IsIPv6(); }
 
-        // Returns true if this is an unspecified endpoint (0.0.0.0 or ::, port > 0)
-        constexpr bool IsUnspecified() const noexcept { return m_port && m_address.IsUnspecified(); }
+        // Returns true if this is an unspecified endpoint (0.0.0.0 or ::)
+        constexpr bool IsUnspecified() const noexcept { return m_address.IsUnspecified(); }
 
         // Returns a string representation of the endpoint ("a.b.c.d:port" for IPv4, "[x:x:x:x:x:x:x:x]:port" for IPv6)
         std::string ToString() const;

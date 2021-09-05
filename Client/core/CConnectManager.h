@@ -31,6 +31,9 @@ public:
 
     void OnServerExists();
 
+    void                   SetConnectionType(mtasa::IPAddressFamily connectionType) { m_connectionType = connectionType; }
+    mtasa::IPAddressFamily GetConnectionType() const noexcept { return m_connectionType; }
+
     static void OpenServerFirewall(const mtasa::IPAddress& address, ushort usHttpPort = 80, bool bHighPriority = false);
 
     static bool StaticProcessPacket(unsigned char ucPacketID, class NetBitStreamInterface& bitStream);
@@ -44,17 +47,19 @@ public:
 private:
     bool Event_OnCancelClick(CGUIElement* pElement);
 
-    mtasa::IPEndpoint m_endpoint;
-    std::string       m_strHost;
-    std::string       m_strNick;
-    std::string       m_strPassword;
-    bool              m_bIsDetectingVersion;
-    bool              m_bIsConnecting;
-    bool              m_bReconnect;
-    bool              m_bSave;
-    time_t            m_tConnectStarted;
-    bool              m_bHasTriedSecondConnect;
-    SString           m_strDiscordSecretJoin;
+    mtasa::IPAddressFamily m_connectionType = mtasa::IPAddressFamily::Unspecified;
+    mtasa::IPEndpoint      m_endpoint;
+
+    std::string m_strHost;
+    std::string m_strNick;
+    std::string m_strPassword;
+    bool        m_bIsDetectingVersion;
+    bool        m_bIsConnecting;
+    bool        m_bReconnect;
+    bool        m_bSave;
+    time_t      m_tConnectStarted;
+    bool        m_bHasTriedSecondConnect;
+    SString     m_strDiscordSecretJoin;
 
     GUI_CALLBACK* m_pOnCancelClick;
 

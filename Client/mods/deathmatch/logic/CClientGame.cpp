@@ -29,6 +29,8 @@ using SharedUtil::CalcMTASAPath;
 using std::list;
 using std::vector;
 
+using namespace mtasa;
+
 // Hide the "conversion from 'unsigned long' to 'DWORD*' of greater size" warning
 #pragma warning(disable:4312)
 
@@ -1072,7 +1074,7 @@ void CClientGame::DoPulses()
                 g_pCore->ShowMessageBox(_("Local Server"), _("Connecting to local server..."), MB_ICON_INFO);
 
                 // Connect
-                if (g_pNet->StartNetwork("localhost", 22010))
+                if (g_pNet->StartNetwork(IPEndpoint{IPAddress::IPv4Localhost, 22010}))
                 {
                     // We're waiting for connection
                     m_iLocalConnectAttempts = 1;

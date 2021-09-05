@@ -13,6 +13,8 @@
 SThreadCPUTimesStore g_SyncThreadCPUTimes;
 uint                 g_uiNetSentByteCounter = 0;
 
+using namespace mtasa;
+
 namespace
 {
     // Used in StaticProcessPacket and elsewhere
@@ -191,9 +193,9 @@ void CNetServerBuffer::StopThread()
 // BLOCKING
 //
 ///////////////////////////////////////////////////////////////////////////
-bool CNetServerBuffer::StartNetwork(const char* szIP, unsigned short usServerPort, unsigned int uiAllowedPlayers, const char* szServerName)
+bool CNetServerBuffer::StartNetwork(const IPBindableEndpoint* bindings, size_t numBindings, unsigned int uiAllowedPlayers, const char* szServerName)
 {
-    SStartNetworkArgs* pArgs = new SStartNetworkArgs(szIP, usServerPort, uiAllowedPlayers, szServerName);
+    SStartNetworkArgs* pArgs = new SStartNetworkArgs(bindings, numBindings, uiAllowedPlayers, szServerName);
     AddCommandAndWait(pArgs);
     return pArgs->result;
 }
@@ -1114,7 +1116,7 @@ void CNetServerBuffer::ProcessCommand(CNetJobData* pJobData)
 
     switch (pJobData->pArgs->type)
     {
-        CALLREALNET4R(bool, StartNetwork, const char*, szIP, unsigned short, usServerPort, unsigned int, uiAllowedPlayers, const char*, szServerName)
+        CALLREALNET4R(bool, StartNetwork, const IPBindableEndpoint*, bindings, size_t, numBindings, unsigned int, uiAllowedPlayers, const char*, szServerName)
         CALLREALNET0(StopNetwork)
         CALLREALNET0(DoPulse)
         CALLREALNET1(RegisterPacketHandler, PPACKETHANDLER, pfnPacketHandler)

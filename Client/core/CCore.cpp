@@ -2241,5 +2241,7 @@ void CCore::SetConnectionType(IPAddressFamily connectionType)
 
     m_connectionType = connectionType;
 
+    m_pConnectManager->SetConnectionType(connectionType);
+
     CServerBrowser::GetSingleton().SetConnectionType(connectionType);
 }

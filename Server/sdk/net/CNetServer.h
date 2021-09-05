@@ -15,6 +15,7 @@
 #include "net/bitstream.h"
 #include "ns_playerid.h"
 #include "net/CNetHTTPDownloadManagerInterface.h"
+#include <mtasa/IPBindableEndpoint.h>
 
 #define MAX_CALL_REMOTE_QUEUES  100
 
@@ -101,8 +102,7 @@ public:
         STATS_OUTGOING_TRAFFIC = 1
     };
 
-    // szIP can be NULL if autochoosing is wanted.
-    virtual bool StartNetwork(const char* szIP, unsigned short usServerPort, unsigned int uiAllowedPlayers, const char* szServerName) = 0;
+    virtual bool StartNetwork(const mtasa::IPBindableEndpoint* bindings, size_t numBindings, unsigned int uiAllowedPlayers, const char* szServerName) = 0;
     virtual void StopNetwork() = 0;
 
     virtual void DoPulse() = 0;

@@ -15,6 +15,7 @@
 #include "net_common.h"
 #include "net/bitstream.h"
 #include "net/CNetHTTPDownloadManagerInterface.h"
+#include <mtasa/IPEndpoint.h>
 
 #define MAX_CALL_REMOTE_QUEUES  100
 
@@ -69,7 +70,7 @@ public:
         STATS_OUTGOING_TRAFFIC = 1
     };
 
-    virtual bool StartNetwork(const char* szServerHost, unsigned short usServerPort, bool bPacketTag = false) = 0;
+    virtual bool StartNetwork(const mtasa::IPEndpoint& endpoint, bool bPacketTag = false) = 0;
     virtual void StopNetwork() = 0;
 
     virtual void SetFakeLag(unsigned short usPacketLoss, unsigned short usMinExtraPing, unsigned short usExtraPingVariance, int iKBPSLimit) = 0;

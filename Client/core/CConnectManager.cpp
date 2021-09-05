@@ -52,6 +52,13 @@ bool CConnectManager::Connect(const char* szHost, unsigned short usPort, const c
     assert(szNick);
     assert(szPassword);
 
+    if (!usPort)
+    {
+        SString strBuffer = _("Connecting failed. Invalid port provided!");
+        CCore::GetSingleton().ShowMessageBox(_("Error") + _E("CC21"), strBuffer, MB_BUTTON_OK | MB_ICON_ERROR);
+        return false;
+    }
+
     m_bNotifyServerBrowser = bNotifyServerBrowser;
 
     // For detecting startup problems
@@ -98,10 +105,6 @@ bool CConnectManager::Connect(const char* szHost, unsigned short usPort, const c
     m_strNick = szNick;
     m_strPassword = szPassword;
 
-    // TODO(botder): Change this to `Translate` if we have support for IPv6
-    m_endpoint.SetAddress(IPAddress::TranslateToIPv4(szHost));
-    m_endpoint.SetHostOrderPort(usPort);
-
     if (szSecret)
         m_strDiscordSecretJoin = szSecret;
     else
@@ -110,24 +113,45 @@ bool CConnectManager::Connect(const char* szHost, unsigned short usPort, const c
     m_strLastHost = m_strHost;
     m_usLastPort = usPort;
     m_strLastPassword = m_strPassword;
-    
-    // Verify the endpoint
-    if (!m_endpoint)
+
+    // No connect if disk space is low
+    if (!CCore::GetSingleton().CheckDiskSpace())
+        return false;
+
+    // Translate the host into address(es)
+    std::vector<IPAddress> addresses = IPAddress::Translate(szHost);
+
+    if (addresses.empty())
     {
         SString strBuffer = _("Connecting failed. Invalid host provided!");
         CCore::GetSingleton().ShowMessageBox(_("Error") + _E("CC21"), strBuffer, MB_BUTTON_OK | MB_ICON_ERROR);            // Invalid host provided
         return false;
     }
 
-    // No connect if disk space is low
-    if (!CCore::GetSingleton().CheckDiskSpace())
-        return false;
+    // Sort addresses with default 'operator<' method (otherwise IPv6 comes first)
+    std::sort(addresses.begin(), addresses.end());
 
     // Set our packet handler
     pNet->RegisterPacketHandler(CConnectManager::StaticProcessPacket);
 
     // Try to start a network to connect
-    if (usPort && !pNet->StartNetwork(m_endpoint.GetAddress().ToString().c_str(), usPort, CVARS_GET_VALUE<bool>("packet_tag")))
+    bool usePacketTag = CVARS_GET_VALUE<bool>("packet_tag");
+
+    for (const IPAddress& address : addresses)
+    {
+        if (m_connectionType != IPAddressFamily::Unspecified && address.GetAddressFamily() != m_connectionType)
+            continue;
+
+        IPEndpoint endpoint{address, usPort};
+
+        if (!pNet->StartNetwork(endpoint, usePacketTag))
+            continue;
+
+        m_endpoint = endpoint;
+        break;
+    }
+
+    if (!m_endpoint)
     {
         SString strBuffer(_("Connecting to %s at port %u failed!"), m_strHost.c_str(), usPort);
         CCore::GetSingleton().ShowMessageBox(_("Error") + _E("CC22"), strBuffer, MB_BUTTON_OK | MB_ICON_ERROR);            // Failed to connect
@@ -257,7 +281,7 @@ void CConnectManager::DoPulse()
         if (iConnectTimeDelta >= 4 && !m_bHasTriedSecondConnect && g_pCore->GetNetwork()->GetExtendedErrorCode() == 0)
         {
             m_bHasTriedSecondConnect = true;
-            g_pCore->GetNetwork()->StartNetwork(m_endpoint.GetAddress().ToString().c_str(), m_endpoint.GetHostOrderPort(), CVARS_GET_VALUE<bool>("packet_tag"));
+            g_pCore->GetNetwork()->StartNetwork(m_endpoint, CVARS_GET_VALUE<bool>("packet_tag"));
         }
 
         // Time to timeout the connection?

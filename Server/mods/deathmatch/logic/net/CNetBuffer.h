@@ -58,7 +58,7 @@ public:
     virtual ~CNetServerBuffer();
 
     // CNetServer interface
-    virtual bool StartNetwork(const char* szIP, unsigned short usServerPort, unsigned int uiAllowedPlayers, const char* szServerName);
+    virtual bool StartNetwork(const mtasa::IPBindableEndpoint* bindings, size_t numBindings, unsigned int uiAllowedPlayers, const char* szServerName);
     virtual void StopNetwork();
 
     virtual void DoPulse();
@@ -130,7 +130,7 @@ public:
 
     typedef NetServerPlayerID NetServerPlayerIDRef;
 
-    DECLARE_FUNC_ARGS4R(bool, StartNetwork, const char*, szIP, unsigned short, usServerPort, unsigned int, uiAllowedPlayers, const char*, szServerName);
+    DECLARE_FUNC_ARGS4R(bool, StartNetwork, const mtasa::IPBindableEndpoint*, bindings, size_t, numBindings, unsigned int, uiAllowedPlayers, const char*, szServerName);
     DECLARE_FUNC_ARGS0(StopNetwork);
     DECLARE_FUNC_ARGS0(DoPulse);
     DECLARE_FUNC_ARGS1(RegisterPacketHandler, PPACKETHANDLER, pfnPacketHandler);

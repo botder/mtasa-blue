@@ -5,7 +5,7 @@ project "curl"
 	targetname "curl"
 
 	includedirs { "include", "lib", "../mbedtls/2.25.0/include", "../zlib" }
-	defines { "BUILDING_LIBCURL", "CURL_STATICLIB", "HTTP_ONLY", "USE_ZLIB", "HAVE_LIBZ", "HAVE_ZLIB_H", "HAVE_CONFIG_H" }
+	defines { "BUILDING_LIBCURL", "CURL_STATICLIB", "HTTP_ONLY", "USE_ZLIB", "HAVE_LIBZ", "HAVE_ZLIB_H", "HAVE_CONFIG_H", "ENABLE_IPV6" }
 	warnings "off"
 
 	files {

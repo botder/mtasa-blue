@@ -87,8 +87,10 @@ public:
     virtual bool                   SendPacket(unsigned char ucPacketID, NetBitStreamInterface* bitStream, NetPacketPriority packetPriority,
                                               NetPacketReliability packetReliability, ePacketOrdering packetOrdering = PACKET_ORDERING_DEFAULT) = 0;
 
-    virtual void        SetClientPort(unsigned short usClientPort) = 0;
-    virtual const char* GetConnectedServer(bool bIncludePort = false) = 0;
+    virtual void SetClientPort(unsigned short usClientPort) = 0;
+
+    virtual const char*              GetConnectedServer(bool includePort = false) = 0;
+    virtual const mtasa::IPEndpoint& GetConnectedEndpoint() = 0;
 
     virtual bool               GetNetworkStatistics(NetStatistics* pDest) = 0;
     virtual const SPacketStat* GetPacketStats() = 0;

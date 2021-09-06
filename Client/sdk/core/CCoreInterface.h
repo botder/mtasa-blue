@@ -26,6 +26,7 @@
 #include "CDiscordManagerInterface.h"
 #include "xml/CXML.h"
 #include <gui/CGUI.h>
+#include <mtasa/IPAddressFamily.h>
 
 typedef bool (*pfnProcessMessage)(HWND, UINT, WPARAM, LPARAM);
 
@@ -178,6 +179,8 @@ public:
     virtual CDiscordManagerInterface* GetDiscordManager() = 0;
 
     virtual bool IsChatInputBlocked() = 0;
+
+    virtual mtasa::IPAddressFamily GetActiveConnectionType() const noexcept = 0;
 };
 
 class CClientTime

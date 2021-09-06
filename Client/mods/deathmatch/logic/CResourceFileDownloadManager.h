@@ -21,7 +21,8 @@ struct SHttpServerInfo
 class CResourceFileDownloadManager
 {
 public:
-    ZERO_ON_NEW
+    CResourceFileDownloadManager();
+
     void AddServer(const SString& strUrl, int iMaxConnectionsPerClient, EDownloadModeType downloadChannel, uint uiConnectionAttempts, uint uiConnectTimeoutMs);
     void AddPendingFileDownload(CDownloadableResource* pDownloadableResource);
     void UpdatePendingDownloads();
@@ -40,6 +41,7 @@ protected:
     std::vector<CDownloadableResource*> m_PendingFileDownloadList;
     std::vector<CDownloadableResource*> m_ActiveFileDownloadList;
     std::vector<SHttpServerInfo>        m_HttpServerList;
-    bool                                m_bIsTransferingFiles;
+    bool                                m_bIsTransferingFiles = false;
     SString                             m_strLastHTTPError;
+    mtasa::IPAddressFamily              m_connectionType;
 };

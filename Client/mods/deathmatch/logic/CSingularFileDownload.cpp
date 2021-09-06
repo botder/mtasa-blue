@@ -34,6 +34,7 @@ CSingularFileDownload::CSingularFileDownload(CResource* pResource, const char* s
     {
         SHttpRequestOptions options;
         options.bCheckContents = true;
+        options.connectionType = g_pCore->GetActiveConnectionType();
         CNetHTTPDownloadManagerInterface* pHTTP = g_pCore->GetNetwork()->GetHTTPDownloadManager(EDownloadMode::RESOURCE_SINGULAR_FILES);
         pHTTP->QueueFile(strHTTPURL.c_str(), szName, this, DownloadFinishedCallBack, options);
         m_bComplete = false;

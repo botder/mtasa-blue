@@ -33,6 +33,7 @@ public:
 
     void                   SetConnectionType(mtasa::IPAddressFamily connectionType) { m_connectionType = connectionType; }
     mtasa::IPAddressFamily GetConnectionType() const noexcept { return m_connectionType; }
+    mtasa::IPAddressFamily GetActiveConnectionType() const noexcept { return m_endpoint.GetAddressFamily(); }
 
     static void OpenServerFirewall(const mtasa::IPAddress& address, ushort usHttpPort = 80, bool bHighPriority = false);
 

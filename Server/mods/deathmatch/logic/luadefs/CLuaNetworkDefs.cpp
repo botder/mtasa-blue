@@ -15,6 +15,8 @@
 #define MIN_SERVER_REQ_CALLREMOTE_OPTIONS_TABLE       "1.5.4-9.11342"
 #define MIN_SERVER_REQ_CALLREMOTE_OPTIONS_FORMFIELDS  "1.5.4-9.11413"
 
+using namespace mtasa;
+
 void CLuaNetworkDefs::LoadFunctions()
 {
     constexpr static const std::pair<const char*, lua_CFunction> functions[]{
@@ -190,6 +192,16 @@ int CLuaNetworkDefs::FetchRemote(lua_State* luaVM)
         optionsMap.ReadStringMap("headers", httpRequestOptions.requestHeaders);
         optionsMap.ReadStringMap("formFields", httpRequestOptions.formFields);
 
+        unsigned int ipVersion = 0;
+        optionsMap.ReadNumber("ipVersion", ipVersion, 0);
+
+        if (ipVersion == 4)
+            httpRequestOptions.connectionType = IPAddressFamily::IPv4;
+        else if (ipVersion == 6)
+            httpRequestOptions.connectionType = IPAddressFamily::IPv6;
+        else if (ipVersion != 0)
+            argStream.SetCustomError(*SString("IP version %u is not supported", ipVersion));
+
         if (httpRequestOptions.formFields.empty())
             MinServerReqCheck(argStream, MIN_SERVER_REQ_CALLREMOTE_OPTIONS_TABLE, "'options' table is being used");
         else
@@ -343,6 +355,19 @@ int CLuaNetworkDefs::GetRemoteRequestInfo(lua_State* luaVM)
 
         info.PushString("connectionTimeout");
         info.PushNumber(pRemoteCall->GetOptions().uiConnectTimeoutMs);
+
+        info.PushString("ipVersion");
+        switch (pRemoteCall->GetOptions().connectionType)
+        {
+            case IPAddressFamily::IPv4:
+                info.PushNumber(4);
+                break;
+            case IPAddressFamily::IPv6:
+                info.PushNumber(6);
+                break;
+            default:
+                info.PushNumber(0);
+        }
 
         // download info
         SDownloadStatus downloadInfo = pRemoteCall->GetDownloadStatus();

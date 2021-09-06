@@ -39,7 +39,6 @@ class CCore;
 #include <ijsify.h>
 #include <core/CWebCoreInterface.h>
 #include "CTrayIcon.h"
-#include <mtasa/IPAddressFamily.h>
 
 #define DIRECTINPUT_VERSION 0x0800
 #include <dinput.h>
@@ -283,6 +282,7 @@ public:
 
     void                   SetConnectionType(mtasa::IPAddressFamily connectionType);
     mtasa::IPAddressFamily GetConnectionType() const noexcept { return m_connectionType; }
+    mtasa::IPAddressFamily GetActiveConnectionType() const noexcept override { return m_pConnectManager->GetActiveConnectionType(); }
 
 private:
     void ApplyCoreInitSettings();
@@ -378,6 +378,7 @@ private:
     bool                   m_bDummyProgressUpdateAlways;
     bool                   m_bIsRenderingGrass;
     bool                   m_bFakeLagCommandEnabled;
+
     mtasa::IPAddressFamily m_connectionType = mtasa::IPAddressFamily::Unspecified;
 
     // Command line

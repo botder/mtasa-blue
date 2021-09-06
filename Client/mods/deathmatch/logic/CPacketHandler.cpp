@@ -14,6 +14,7 @@
 #include "CServerInfo.h"
 
 using std::list;
+using namespace mtasa;
 
 class CCore;
 
@@ -430,7 +431,9 @@ void CPacketHandler::Packet_ServerJoined(NetBitStreamInterface& bitStream)
     }
 
     // Last (or only) HTTP server is internal
-    SString strInternalHTTPDownloadURL = SString("http://%s:%d", g_pNet->GetConnectedServer(), usHTTPDownloadPort);
+    IPEndpoint internalHTTPEndpoint = g_pNet->GetConnectedEndpoint();
+    internalHTTPEndpoint.SetHostOrderPort(usHTTPDownloadPort);
+    SString strInternalHTTPDownloadURL = "http://" + internalHTTPEndpoint.ToString();
     g_pClientGame->GetResourceFileDownloadManager()->AddServer(strInternalHTTPDownloadURL, 1, EDownloadMode::RESOURCE_INITIAL_FILES_INTERNAL, 10, 10000);
 
     // Set appropriate server for stupid SingularFileDownloadManager

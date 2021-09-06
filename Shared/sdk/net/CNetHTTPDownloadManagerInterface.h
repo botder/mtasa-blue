@@ -15,7 +15,7 @@
 #include <cassert>
 #include "SString.h"
 #include "SharedUtil.IntTypes.h"
-
+#include <mtasa/IPAddressFamily.h>
 
 struct SHttpRequestOptions
 {
@@ -36,6 +36,7 @@ struct SHttpRequestOptions
     uint                       uiMaxRedirects = 8;
     SString                    strUsername;
     SString                    strPassword;
+    mtasa::IPAddressFamily     connectionType = mtasa::IPAddressFamily::Unspecified;
 };
 
 struct SHttpDownloadResult
@@ -97,20 +98,21 @@ struct SHttpRequestOptionsTx
 {
     SHttpRequestOptionsTx() {}
     SHttpRequestOptionsTx(const SHttpRequestOptions& in);
-    bool              bIsLegacy = false;
-    bool              bIsLocal = false;
-    bool              bCheckContents = false;
-    bool              bResumeFile = false;
-    SStringContent    strPostData;
-    bool              bPostBinary = false;
-    SStringMapContent formFields;
-    uint              uiConnectionAttempts = 10;
-    uint              uiConnectTimeoutMs = 10000;
-    SStringContent    strRequestMethod;
-    SStringMapContent requestHeaders;
-    uint              uiMaxRedirects = 8;
-    SStringContent    strUsername;
-    SStringContent    strPassword;
+    bool                   bIsLegacy = false;
+    bool                   bIsLocal = false;
+    bool                   bCheckContents = false;
+    bool                   bResumeFile = false;
+    SStringContent         strPostData;
+    bool                   bPostBinary = false;
+    SStringMapContent      formFields;
+    uint                   uiConnectionAttempts = 10;
+    uint                   uiConnectTimeoutMs = 10000;
+    SStringContent         strRequestMethod;
+    SStringMapContent      requestHeaders;
+    uint                   uiMaxRedirects = 8;
+    SStringContent         strUsername;
+    SStringContent         strPassword;
+    mtasa::IPAddressFamily connectionType = mtasa::IPAddressFamily::Unspecified;
 };
 
 // Convert SHttpRequestOptionsTx to SHttpRequestOptions
@@ -130,6 +132,7 @@ inline SHttpRequestOptions::SHttpRequestOptions(const SHttpRequestOptionsTx& in)
     uiMaxRedirects = in.uiMaxRedirects;
     strUsername = in.strUsername;
     strPassword = in.strPassword;
+    connectionType = in.connectionType;
 }
 
 // Convert SHttpRequestOptions to SHttpRequestOptionsTx
@@ -149,6 +152,7 @@ inline SHttpRequestOptionsTx::SHttpRequestOptionsTx(const SHttpRequestOptions& i
     uiMaxRedirects = in.uiMaxRedirects;
     strUsername = in.strUsername;
     strPassword = in.strPassword;
+    connectionType = in.connectionType;
 }
 
 struct SDownloadStatus

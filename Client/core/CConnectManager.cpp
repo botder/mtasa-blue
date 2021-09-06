@@ -499,13 +499,15 @@ void CConnectManager::OpenServerFirewall(const mtasa::IPAddress& address, ushort
         uiTimeOut = 1000;
     }
 
+    IPEndpoint endpoint{address, usHttpPort};
+
     if (usHttpPort)
     {
         // Send to server http port if known
         SHttpRequestOptions options;
         options.uiConnectionAttempts = 1;
         options.uiConnectTimeoutMs = uiTimeOut;
-        SString strDummyUrl("http://%s:%d/mta_client_firewall_probe/", address.ToString().c_str(), usHttpPort);
+        SString strDummyUrl("http://%s/mta_client_firewall_probe/", endpoint.ToString().c_str());
         g_pCore->GetNetwork()->GetHTTPDownloadManager(EDownloadMode::CONNECT_TCP_SEND)->QueueFile(strDummyUrl, NULL, NULL, NULL, options);
     }
     if (usHttpPort == 0 || bHighPriority)
@@ -514,7 +516,7 @@ void CConnectManager::OpenServerFirewall(const mtasa::IPAddress& address, ushort
         SHttpRequestOptions options;
         options.uiConnectionAttempts = 1;
         options.uiConnectTimeoutMs = uiTimeOut;
-        SString strDummyUrl("http://%s/mta_client_firewall_probe/", address.ToString().c_str());
+        SString strDummyUrl("http://%s/mta_client_firewall_probe/", endpoint.ToString().c_str());
         g_pCore->GetNetwork()->GetHTTPDownloadManager(EDownloadMode::CONNECT_TCP_SEND)->QueueFile(strDummyUrl, NULL, NULL, NULL, options);
     }
 }

@@ -10,6 +10,11 @@
 
 #include "StdInc.h"
 
+CResourceFileDownloadManager::CResourceFileDownloadManager()
+{
+    m_connectionType = g_pCore->GetActiveConnectionType();
+}
+
 ///////////////////////////////////////////////////////////////
 //
 // CResourceFileDownloadManager::AddServer
@@ -257,6 +262,7 @@ bool CResourceFileDownloadManager::BeginResourceFileDownload(CDownloadableResour
     options.uiConnectTimeoutMs = serverInfo.uiConnectTimeoutMs;
     options.bCheckContents = true;
     options.bIsLocal = g_pClientGame->IsLocalGame();
+    options.connectionType = m_connectionType;
 
     bool bUniqueDownload = pHTTP->QueueFile(strHTTPDownloadURLFull, pResourceFile->GetName(), pResourceFile, StaticDownloadFinished, options);
 

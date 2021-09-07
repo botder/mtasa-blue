@@ -55,7 +55,7 @@ bool CConnectManager::Connect(const char* szHost, unsigned short usPort, const c
     if (!usPort)
     {
         SString strBuffer = _("Connecting failed. Invalid port provided!");
-        CCore::GetSingleton().ShowMessageBox(_("Error") + _E("CC21"), strBuffer, MB_BUTTON_OK | MB_ICON_ERROR);
+        CCore::GetSingleton().ShowMessageBox(_("Error") + _E("CC54"), strBuffer, MB_BUTTON_OK | MB_ICON_ERROR);
         return false;
     }
 
@@ -135,12 +135,15 @@ bool CConnectManager::Connect(const char* szHost, unsigned short usPort, const c
     pNet->RegisterPacketHandler(CConnectManager::StaticProcessPacket);
 
     // Try to start a network to connect
-    bool usePacketTag = CVARS_GET_VALUE<bool>("packet_tag");
+    bool         usePacketTag = CVARS_GET_VALUE<bool>("packet_tag");
+    unsigned int connectionAttempts = 0;
 
     for (const IPAddress& address : addresses)
     {
         if (m_connectionType != IPAddressFamily::Unspecified && address.GetAddressFamily() != m_connectionType)
             continue;
+
+        ++connectionAttempts;
 
         IPEndpoint endpoint{address, usPort};
 
@@ -149,6 +152,15 @@ bool CConnectManager::Connect(const char* szHost, unsigned short usPort, const c
 
         m_endpoint = endpoint;
         break;
+    }
+
+    if (!connectionAttempts && m_connectionType != IPAddressFamily::Unspecified)
+    {
+        SString strBuffer(
+            _("Connecting to %s at port %u failed!\nYour preferred connection type disallows connecting to this host. Change it in the settings."),
+            m_strHost.c_str(), usPort);
+        CCore::GetSingleton().ShowMessageBox(_("Error") + _E("CC55"), strBuffer, MB_BUTTON_OK | MB_ICON_ERROR);            // Failed to connect
+        return false;
     }
 
     if (!m_endpoint)
@@ -174,9 +186,10 @@ bool CConnectManager::Connect(const char* szHost, unsigned short usPort, const c
     OpenServerFirewall(m_endpoint.GetAddress(), CServerBrowser::GetSingletonPtr()->FindServerHttpPort(m_strHost, usPort), true);
 
     // Display the status box
-    SString strBuffer(_("Connecting to %s:%u ..."), m_strHost.c_str(), usPort);
+    std::string serverAddress = m_endpoint.ToString();
+    SString     strBuffer(_("Connecting to %s ..."), serverAddress.c_str());
     CCore::GetSingleton().ShowMessageBox(_("CONNECTING"), strBuffer, MB_BUTTON_CANCEL | MB_ICON_INFO, m_pOnCancelClick);
-    WriteDebugEvent(SString("Connecting to %s:%u ...", m_strHost.c_str(), usPort));
+    WriteDebugEvent(SString("Connecting to %s ...", serverAddress.c_str()));
 
     return true;
 }

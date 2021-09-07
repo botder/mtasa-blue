@@ -15,11 +15,6 @@ using namespace mtasa;
 
 void CQueryReceiver::RequestQuery(const IPEndpoint& endpoint)
 {
-    SocketAddress address{};
-
-    if (!endpoint.ToSocketAddress(reinterpret_cast<sockaddr&>(address), sizeof(address)))
-        return;
-
     if (!m_socket.Exists())
     {
         IPSocket socket{endpoint.GetAddressFamily(), IPSocketProtocol::UDP};
@@ -30,12 +25,8 @@ void CQueryReceiver::RequestQuery(const IPEndpoint& endpoint)
         m_socket = std::move(socket);
     }
 
-    // TODO(botder): Change this code when CNet::SendTo supports IPv6
     // Trailing data to work around 1 byte UDP packet filtering
-    if (m_socket.IsIPv4())
-        g_pCore->GetNetwork()->SendTo(m_socket.GetHandle(), "r mtasa", 7, 0, reinterpret_cast<sockaddr*>(&address), sizeof(address));
-    else
-        (void)m_socket.SendTo(endpoint, "r mtasa", 7);
+    g_pCore->GetNetwork()->SendTo(m_socket.GetHandle(), "r mtasa", 7, 0, endpoint);
 
     m_ElapsedTime.Reset();
 }

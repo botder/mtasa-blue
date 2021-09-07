@@ -38,6 +38,11 @@ namespace mtasa
         constexpr void SetHostOrderPort(std::uint16_t port) noexcept { m_port = port; }
         void           SetNetworkOrderPort(std::uint16_t port) noexcept { m_port = LoadBigEndian16(port); }
 
+        // Fill this endpoint with the IP address from the string ("ipv4:port" or "[ipv6]:port" or "ipv4" or "ipv6" or "[ipv6]").
+        // Parameter `allowPortWildcard` converts a ":*" port wildcard to port zero.
+        // The port is set to zero, if the string doesn't provide one.
+        bool FromString(const char* buffer, std::size_t length, bool allowPortWildcard = false) noexcept;
+
         // Fill this endpoint with the IPv4 address information
         void FromSocketAddress(const sockaddr_in& address) noexcept;
 
@@ -83,7 +88,8 @@ namespace mtasa
         constexpr bool IsUnspecified() const noexcept { return m_address.IsUnspecified(); }
 
         // Returns a string representation of the endpoint ("a.b.c.d:port" for IPv4, "[x:x:x:x:x:x:x:x]:port" for IPv6)
-        std::string ToString() const;
+        // Parameter `usePortWildcard` converts a zero port to a ":*" port wildcard
+        std::string ToString(bool usePortWildcard = false) const;
 
     public:
         constexpr int Compare(const IPEndpoint& other) const noexcept
@@ -101,7 +107,7 @@ namespace mtasa
         constexpr bool operator<=(const IPEndpoint& other) const noexcept { return Compare(other) <= 0; }
         constexpr bool operator>=(const IPEndpoint& other) const noexcept { return Compare(other) >= 0; }
 
-        explicit constexpr operator bool() const noexcept { return !IsInvalid(); }
+        explicit constexpr operator bool() const noexcept { return IsValid(); }
 
     private:
         // Internet Protocol address.

@@ -413,7 +413,7 @@ namespace mtasa
 
         constexpr bool operator>=(const IPAddress& other) const noexcept { return Compare(other) >= 0; }
 
-        explicit constexpr operator bool() const noexcept { return !IsInvalid(); }
+        explicit constexpr operator bool() const noexcept { return IsValid(); }
 
     public:
         // Creates an ip address that represents localhost (127.0.0.1 for IPv4, ::1 for IPv6)

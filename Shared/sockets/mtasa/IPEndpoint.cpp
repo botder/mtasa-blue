@@ -23,6 +23,131 @@ static_assert(sizeof(sockaddr_in6::sin6_addr) == 16, "Invalid size of sockaddr_i
 
 namespace mtasa
 {
+    bool IPEndpoint::FromString(const char* buffer, std::size_t length, bool allowPortWildcard) noexcept
+    {
+        if (!buffer || length < 2)            // Shortest IP address is "::"
+            return false;
+
+        // Parse the address
+        const char* addressFirst = nullptr;
+        const char* addressLast = nullptr;
+
+        if (buffer[0] == '[')
+        {
+            // Find the closing square bracket character
+            size_t ipDelimiter = 1;
+            while (ipDelimiter < length && buffer[ipDelimiter] != ']')
+            {
+                ipDelimiter++;
+            }
+
+            // Shortest IPv6 address is "[::]" (requires: ipDelimiter >= 3)
+            if (ipDelimiter < 3 || ipDelimiter == length)
+                return false;
+
+            addressFirst = &buffer[1];
+            addressLast = &buffer[ipDelimiter];
+            buffer += ipDelimiter + 1;
+            length -= ipDelimiter + 1;
+
+            // Move the buffer pointer to the port delimiter, if there is one
+            if (length > 0)
+            {
+                if (length < 2 || buffer[0] != ':')
+                    return false;
+
+                buffer++;
+                length--;
+            }
+        }
+        else
+        {
+            // Find the port delimiter character
+            size_t portDelimiter = 0;
+            while (portDelimiter < length && buffer[portDelimiter] != ':')
+            {
+                portDelimiter++;
+            }
+
+            if (portDelimiter == length || portDelimiter <= 4)            // IPv4 address without port or IPv6 address without port
+            {
+                addressFirst = &buffer[0];
+                addressLast = addressFirst + length;
+                length = 0;
+            }
+            else if (portDelimiter >= 7 && (length - portDelimiter) > 1)            // IPv4 address with port
+            {
+                addressFirst = &buffer[0];
+                addressLast = &buffer[portDelimiter];
+
+                // Move the buffer pointer to the port delimiter
+                buffer += portDelimiter + 1;
+                length -= portDelimiter + 1;
+            }
+            else
+            {
+                return false;
+            }
+        }
+
+        // Parse the port number
+        const char* portFirst = nullptr;
+        const char* portLast = nullptr;
+
+        if (length > 0)
+        {
+            std::size_t portDigits = 1;
+            while (portDigits < 5 && portDigits < length && isdigit(buffer[portDigits]))
+            {
+                portDigits++;
+            }
+
+            if (portDigits != length)
+                return false;
+
+            portFirst = &buffer[0];
+            portLast = &buffer[portDigits];
+        }
+
+        // Check if we are going to exceed our buffer capacities
+        if ((addressLast - addressFirst) > 128 || (portLast - portFirst) > 5)
+            return false;
+
+        // Copy of the address with a null terminator
+        std::array<char, 128 + 1> addressBuffer{};
+        std::copy(addressFirst, addressLast, addressBuffer.data());
+
+        // Copy of the port number with a null terminator
+        std::array<char, 5 + 1> portBuffer{};
+
+        if (portFirst != nullptr)
+            std::copy(portFirst, portLast, portBuffer.data());
+
+        // Convert wildcard '*' port to zero (custom logic/special case)
+        if (allowPortWildcard && portFirst != nullptr)
+        {
+            if (*portFirst == '*' && (portLast - portFirst) == 1)
+                portBuffer[0] = '0';
+        }
+
+        // Translate the input using `getaddrinfo`
+        struct addrinfo* info = nullptr;
+
+        struct addrinfo hints{};
+        hints.ai_family = AF_UNSPEC;
+        hints.ai_socktype = SOCK_STREAM;
+        hints.ai_flags = AI_NUMERICHOST | AI_NUMERICSERV;
+
+        if (!getaddrinfo(addressBuffer.data(), portBuffer.data(), &hints, &info))
+        {
+            bool success = FromSocketAddress(reinterpret_cast<sockaddr&>(*info->ai_addr));
+            freeaddrinfo(info);
+            return success;
+        }
+
+        return false;
+    }
+
     void IPEndpoint::FromSocketAddress(const sockaddr_in& address) noexcept
     {
         m_address = IPAddress{address};
@@ -99,7 +224,7 @@ namespace mtasa
         return false;
     }
 
-    std::string IPEndpoint::ToString() const
+    std::string IPEndpoint::ToString(bool usePortWildcard) const
     {
         IPAddressFamily addressFamily = m_address.GetAddressFamily();
         std::string     address;
@@ -115,6 +240,10 @@ namespace mtasa
         {
             address += ':';
             address += std::to_string(m_port);
+        }
+        else if (usePortWildcard)
+        {
+            address += ":*";
         }
 
         return address;

@@ -42,30 +42,35 @@ public:
     SString GetJoinSecret();
 
     std::string    m_strLastHost;
-    unsigned short m_usLastPort;
+    unsigned short m_usLastPort = 0;
     std::string    m_strLastPassword;
 
 private:
+    bool StartConnectionAttempt();
+
     bool Event_OnCancelClick(CGUIElement* pElement);
 
     mtasa::IPAddressFamily m_connectionType = mtasa::IPAddressFamily::Unspecified;
     mtasa::IPEndpoint      m_endpoint;
 
+    std::vector<mtasa::IPEndpoint> m_endpoints;
+
     std::string m_strHost;
     std::string m_strNick;
     std::string m_strPassword;
-    bool        m_bIsDetectingVersion;
-    bool        m_bIsConnecting;
-    bool        m_bReconnect;
-    bool        m_bSave;
-    time_t      m_tConnectStarted;
-    bool        m_bHasTriedSecondConnect;
+    bool        m_bIsDetectingVersion = false;
+    bool        m_bIsConnecting = false;
+    bool        m_bReconnect = false;
+    bool        m_bSave = true;
+    time_t      m_tConnectStarted = 0;
+    size_t      m_connectionAttemptRound = 0;
+    size_t      m_connectionAttemptIndex = 0;
     SString     m_strDiscordSecretJoin;
 
-    GUI_CALLBACK* m_pOnCancelClick;
+    std::unique_ptr<GUI_CALLBACK> m_onCancelClick;
 
-    CServerListItem* m_pServerItem;
-    bool             m_bNotifyServerBrowser;
+    std::unique_ptr<CServerListItem> m_serverItem;
+    bool                             m_bNotifyServerBrowser = false;
 
     bool CheckNickProvided(const char* szNick);
 };

@@ -12,38 +12,20 @@
 #include "StdInc.h"
 #include "net/packetenums.h"
 
-using namespace std;
 using namespace mtasa;
 
-static CConnectManager* g_pConnectManager = NULL;
+static CConnectManager* g_pConnectManager = nullptr;
 extern CCore*           g_pCore;
 
 CConnectManager::CConnectManager()
 {
     g_pConnectManager = this;
-
-    m_bReconnect = false;
-    m_bIsDetectingVersion = false;
-    m_bIsConnecting = false;
-    m_bSave = true;
-    m_tConnectStarted = 0;
-
-    m_pOnCancelClick = new GUI_CALLBACK(&CConnectManager::Event_OnCancelClick, this);
-
-    m_pServerItem = NULL;
-    m_bNotifyServerBrowser = false;
+    m_onCancelClick.reset(new GUI_CALLBACK(&CConnectManager::Event_OnCancelClick, this));
 }
 
 CConnectManager::~CConnectManager()
 {
-    if (m_pOnCancelClick)
-    {
-        delete m_pOnCancelClick;
-        m_pOnCancelClick = NULL;
-    }
-
-    SAFE_DELETE(m_pServerItem);
-    g_pConnectManager = NULL;
+    g_pConnectManager = nullptr;
 }
 
 bool CConnectManager::Connect(const char* szHost, unsigned short usPort, const char* szNick, const char* szPassword, bool bNotifyServerBrowser, const char* szSecret)
@@ -131,66 +113,48 @@ bool CConnectManager::Connect(const char* szHost, unsigned short usPort, const c
     // Sort addresses with default 'operator<' method (otherwise IPv6 comes first)
     std::sort(addresses.begin(), addresses.end());
 
-    // Set our packet handler
-    pNet->RegisterPacketHandler(CConnectManager::StaticProcessPacket);
-
-    // Try to start a network to connect
-    bool         usePacketTag = CVARS_GET_VALUE<bool>("packet_tag");
-    unsigned int connectionAttempts = 0;
+    // Copy only user allowed endpoints
+    m_endpoints.clear();
+    m_endpoints.reserve(addresses.size());
 
     for (const IPAddress& address : addresses)
     {
         if (m_connectionType != IPAddressFamily::Unspecified && address.GetAddressFamily() != m_connectionType)
             continue;
 
-        ++connectionAttempts;
-
-        IPEndpoint endpoint{address, usPort};
-
-        if (!pNet->StartNetwork(endpoint, usePacketTag))
-            continue;
-
-        m_endpoint = endpoint;
-        break;
+        m_endpoints.emplace_back(address, usPort);
     }
 
-    if (!connectionAttempts && m_connectionType != IPAddressFamily::Unspecified)
+    if (m_endpoints.empty())
     {
         SString strBuffer(
             _("Connecting to %s at port %u failed!\nYour preferred connection type disallows connecting to this host. Change it in the settings."),
             m_strHost.c_str(), usPort);
-        CCore::GetSingleton().ShowMessageBox(_("Error") + _E("CC55"), strBuffer, MB_BUTTON_OK | MB_ICON_ERROR);            // Failed to connect
+        CCore::GetSingleton().ShowMessageBox(_("Error") + _E("CC55"), strBuffer, MB_BUTTON_OK | MB_ICON_ERROR);
         return false;
     }
 
-    if (!m_endpoint)
+    // Set our packet handler
+    pNet->RegisterPacketHandler(CConnectManager::StaticProcessPacket);
+
+    // Try to start a network to connect
+    m_connectionAttemptRound = 0;
+    m_connectionAttemptIndex = 0;
+
+    if (!StartConnectionAttempt())
     {
         SString strBuffer(_("Connecting to %s at port %u failed!"), m_strHost.c_str(), usPort);
         CCore::GetSingleton().ShowMessageBox(_("Error") + _E("CC22"), strBuffer, MB_BUTTON_OK | MB_ICON_ERROR);            // Failed to connect
         return false;
     }
 
-    m_bIsConnecting = true;
-    m_tConnectStarted = time(NULL);
-    m_bHasTriedSecondConnect = false;
-
     // Load server password
     if (m_strPassword.empty())
         m_strPassword = CServerBrowser::GetSingletonPtr()->GetServerPassword(m_strHost + ":" + SString("%u", usPort));
-
-    // Start server version detection
-    SAFE_DELETE(m_pServerItem);
-    m_pServerItem = new CServerListItem(m_endpoint);
-    m_pServerItem->m_iTimeoutLength = 2000;
-    m_bIsDetectingVersion = true;
-    OpenServerFirewall(m_endpoint.GetAddress(), CServerBrowser::GetSingletonPtr()->FindServerHttpPort(m_strHost, usPort), true);
-
+    
     // Display the status box
-    std::string serverAddress = m_endpoint.ToString();
-    SString     strBuffer(_("Connecting to %s ..."), serverAddress.c_str());
-    CCore::GetSingleton().ShowMessageBox(_("CONNECTING"), strBuffer, MB_BUTTON_CANCEL | MB_ICON_INFO, m_pOnCancelClick);
-    WriteDebugEvent(SString("Connecting to %s ...", serverAddress.c_str()));
-
+    SString strBuffer(_("Connecting to %s at port %u ..."), m_strHost.c_str(), usPort);
+    CCore::GetSingleton().ShowMessageBox(_("CONNECTING"), strBuffer, MB_BUTTON_CANCEL | MB_ICON_INFO, m_onCancelClick.get());
     return true;
 }
 
@@ -229,6 +193,43 @@ bool CConnectManager::Reconnect(const char* szHost, unsigned short usPort, const
     return true;
 }
 
+bool CConnectManager::StartConnectionAttempt()
+{
+    m_endpoint = {};
+
+    CNet* network = g_pCore->GetNetwork();
+    bool  usePacketTag = CVARS_GET_VALUE<bool>("packet_tag");
+
+    for (; m_connectionAttemptRound < 2; m_connectionAttemptRound++, m_connectionAttemptIndex = 0)
+    {
+        for (; m_connectionAttemptIndex < m_endpoints.size(); /* manual increment */)
+        {
+            const IPEndpoint& endpoint = m_endpoints[m_connectionAttemptIndex];
+
+            WriteDebugEvent(SString("Connecting to %s (slot: %zu/%zu, round: %zu)", endpoint.ToString().c_str(), m_connectionAttemptIndex + 1,
+                                    m_endpoints.size(), m_connectionAttemptRound + 1));
+
+            m_connectionAttemptIndex++;
+
+            if (!network->StartNetwork(endpoint, usePacketTag))
+                continue;
+
+            m_endpoint = endpoint;
+            m_bIsConnecting = true;
+            m_tConnectStarted = time(nullptr);
+
+            // Start server version detection
+            m_serverItem = std::make_unique<CServerListItem>(m_endpoint);
+            m_serverItem->m_iTimeoutLength = 2000;
+            m_bIsDetectingVersion = true;
+            OpenServerFirewall(m_endpoint.GetAddress(), CServerBrowser::GetSingletonPtr()->FindServerHttpPort(m_strHost, m_usLastPort), true);
+            return true;
+        }
+    }
+
+    return false;
+}
+
 bool CConnectManager::Event_OnCancelClick(CGUIElement* pElement)
 {
     // The user clicked cancel, so abort connecting
@@ -255,7 +256,7 @@ bool CConnectManager::Abort()
     m_bIsConnecting = false;
     m_bIsDetectingVersion = false;
     m_tConnectStarted = 0;
-    SAFE_DELETE(m_pServerItem);
+    m_serverItem.reset();
 
     // Success
     return true;
@@ -269,18 +270,19 @@ void CConnectManager::DoPulse()
         // Are we also getting the server version?
         if (m_bIsDetectingVersion)
         {
-            m_pServerItem->Pulse(true);
+            m_serverItem->Pulse(true);
+
             // Got some sort of result?
-            if (m_pServerItem->bSkipped || m_pServerItem->bScanned)
+            if (m_serverItem->bSkipped || m_serverItem->bScanned)
             {
                 OnServerExists();
-
                 m_bIsDetectingVersion = false;
+
                 // Is different version?
-                if (m_pServerItem->bScanned && m_pServerItem->strVersion != MTA_DM_ASE_VERSION)
+                if (m_serverItem->bScanned && m_serverItem->strVersion != MTA_DM_ASE_VERSION)
                 {
                     // Version mis-match. See about launching compatible .exe
-                    GetVersionUpdater()->InitiateSidegradeLaunch(m_pServerItem->strVersion, m_strHost.c_str(), m_endpoint.GetHostOrderPort(), m_strNick.c_str(),
+                    GetVersionUpdater()->InitiateSidegradeLaunch(m_serverItem->strVersion, m_strHost.c_str(), m_endpoint.GetHostOrderPort(), m_strNick.c_str(),
                                                                  m_strPassword.c_str());
                     Abort();
                     return;
@@ -288,89 +290,81 @@ void CConnectManager::DoPulse()
             }
         }
 
-        int iConnectTimeDelta = time(NULL) - m_tConnectStarted;
+        int           iConnectTimeDelta = time(NULL) - m_tConnectStarted;
+        unsigned char ucError = CCore::GetSingleton().GetNetwork()->GetConnectionError();
 
-        // Try connect again if no response after 4 seconds
-        if (iConnectTimeDelta >= 4 && !m_bHasTriedSecondConnect && g_pCore->GetNetwork()->GetExtendedErrorCode() == 0)
+        // If there is no error and 4 seconds passed, try to connect again
+        if (!ucError && iConnectTimeDelta >= 4)
         {
-            m_bHasTriedSecondConnect = true;
-            g_pCore->GetNetwork()->StartNetwork(m_endpoint, CVARS_GET_VALUE<bool>("packet_tag"));
-        }
-
-        // Time to timeout the connection?
-        if (iConnectTimeDelta >= 8)
-        {
-            // Show a message that the connection timed out and abort
-            g_pCore->ShowNetErrorMessageBox(_("Error") + _E("CC23"), _("Connection timed out"), "connect-timed-out", true);
-            Abort();
-        }
-        else
-        {
-            // Some error?
-            unsigned char ucError = CCore::GetSingleton().GetNetwork()->GetConnectionError();
-            if (ucError != 0)
+            if (!StartConnectionAttempt())
             {
-                SString strError;
-                SString strErrorCode;
-                switch (ucError)
-                {
-                    case RID_RSA_PUBLIC_KEY_MISMATCH:
-                        strError = _("Disconnected: unknown protocol error");
-                        strErrorCode = _E("CC24");            // encryption key mismatch
-                        break;
-                    case RID_INCOMPATIBLE_PROTOCOL_VERSION:
-                        strError = _("Disconnected: unknown protocol error");
-                        strErrorCode = _E("CC34");            // old raknet version
-                        break;
-                    case RID_REMOTE_DISCONNECTION_NOTIFICATION:
-                        strError = _("Disconnected: disconnected remotely");
-                        strErrorCode = _E("CC25");
-                        break;
-                    case RID_REMOTE_CONNECTION_LOST:
-                        strError = _("Disconnected: connection lost remotely");
-                        strErrorCode = _E("CC26");
-                        break;
-                    case RID_CONNECTION_BANNED:
-                        strError = _("Disconnected: you are banned from this server");
-                        strErrorCode = _E("CC27");
-                        break;
-                    case RID_NO_FREE_INCOMING_CONNECTIONS:
-                        CServerInfo::GetSingletonPtr()->Show(eWindowTypes::SERVER_INFO_QUEUE, m_strHost.c_str(), m_endpoint.GetHostOrderPort(),
-                                                             m_strPassword.c_str());
-                        break;
-                    case RID_DISCONNECTION_NOTIFICATION:
-                        strError = _("Disconnected: disconnected from the server");
-                        strErrorCode = _E("CC28");
-                        break;
-                    case RID_CONNECTION_LOST:
-                        strError = _("Disconnected: connection to the server was lost");
-                        strErrorCode = _E("CC29");
-                        break;
-                    case RID_INVALID_PASSWORD:
-                        CServerInfo::GetSingletonPtr()->Show(eWindowTypes::SERVER_INFO_PASSWORD, m_strHost.c_str(), m_endpoint.GetHostOrderPort(),
-                                                             m_strPassword.c_str());
-                        break;
-                    default:
-                        strError = _("Disconnected: connection was refused");
-                        strErrorCode = _E("CC30");
-                        break;
-                }
-
-                // Display an error, reset the error status and exit
-
-                // Only display the error if we set one
-                if (strError.length() > 0)
-                {
-                    CCore::GetSingleton().ShowNetErrorMessageBox(_("Error") + strErrorCode, strError);
-                }
-                else            // Otherwise, remove the message box and hide quick connect
-                {
-                    CCore::GetSingleton().RemoveMessageBox(false);
-                }
-
-                CCore::GetSingleton().GetNetwork()->SetConnectionError(0);
+                // Show a message that the connection timed out and abort
+                g_pCore->ShowNetErrorMessageBox(_("Error") + _E("CC23"), _("Connection timed out"), "connect-timed-out", true);
                 Abort();
             }
+        }
+        else if (ucError)
+        {
+            SString strError;
+            SString strErrorCode;
+            switch (ucError)
+            {
+                case RID_RSA_PUBLIC_KEY_MISMATCH:
+                    strError = _("Disconnected: unknown protocol error");
+                    strErrorCode = _E("CC24");            // encryption key mismatch
+                    break;
+                case RID_INCOMPATIBLE_PROTOCOL_VERSION:
+                    strError = _("Disconnected: unknown protocol error");
+                    strErrorCode = _E("CC34");            // old raknet version
+                    break;
+                case RID_REMOTE_DISCONNECTION_NOTIFICATION:
+                    strError = _("Disconnected: disconnected remotely");
+                    strErrorCode = _E("CC25");
+                    break;
+                case RID_REMOTE_CONNECTION_LOST:
+                    strError = _("Disconnected: connection lost remotely");
+                    strErrorCode = _E("CC26");
+                    break;
+                case RID_CONNECTION_BANNED:
+                    strError = _("Disconnected: you are banned from this server");
+                    strErrorCode = _E("CC27");
+                    break;
+                case RID_NO_FREE_INCOMING_CONNECTIONS:
+                    CServerInfo::GetSingletonPtr()->Show(eWindowTypes::SERVER_INFO_QUEUE, m_strHost.c_str(), m_endpoint.GetHostOrderPort(),
+                                                         m_strPassword.c_str());
+                    break;
+                case RID_DISCONNECTION_NOTIFICATION:
+                    strError = _("Disconnected: disconnected from the server");
+                    strErrorCode = _E("CC28");
+                    break;
+                case RID_CONNECTION_LOST:
+                    strError = _("Disconnected: connection to the server was lost");
+                    strErrorCode = _E("CC29");
+                    break;
+                case RID_INVALID_PASSWORD:
+                    CServerInfo::GetSingletonPtr()->Show(eWindowTypes::SERVER_INFO_PASSWORD, m_strHost.c_str(), m_endpoint.GetHostOrderPort(),
+                                                         m_strPassword.c_str());
+                    break;
+                default:
+                    strError = _("Disconnected: connection was refused");
+                    strErrorCode = _E("CC30");
+                    break;
+            }
+
+            // Display an error, reset the error status and exit
+
+            // Only display the error if we set one
+            if (strError.length() > 0)
+            {
+                CCore::GetSingleton().ShowNetErrorMessageBox(_("Error") + strErrorCode, strError);
+            }
+            else            // Otherwise, remove the message box and hide quick connect
+            {
+                CCore::GetSingleton().RemoveMessageBox(false);
+            }
+
+            CCore::GetSingleton().GetNetwork()->SetConnectionError(0);
+            Abort();
         }
 
         // Pulse the network interface

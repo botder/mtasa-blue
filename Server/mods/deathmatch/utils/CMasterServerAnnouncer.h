@@ -252,7 +252,7 @@ public:
 
         SString strUrl = strInUrl;
         strUrl = strUrl.Replace("%GAME%", SString("%u", usServerPort));
-        strUrl = strUrl.Replace("%ASE%", SString("%u", usServerPort + 123));
+        strUrl = strUrl.Replace("%ASE%", SString("%u", usServerPort + SERVER_LIST_QUERY_PORT_OFFSET));
         strUrl = strUrl.Replace("%HTTP%", SString("%u", usHTTPPort));
         strUrl = strUrl.Replace("%VER%", strVersion);
         strUrl = strUrl.Replace("%EXTRA%", strExtra);

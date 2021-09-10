@@ -198,8 +198,6 @@ CGame::CGame() : m_FloodProtect(4, 30000, 30000)            // Max of 4 connecti
 
     m_bCloudsEnabled = true;
 
-    m_pOpenPortsTester = NULL;
-
     m_bTrafficLightsLocked = false;
     m_ucTrafficLightState = 0;
     m_llLastTrafficUpdate = 0;
@@ -328,7 +326,7 @@ CGame::~CGame()
     SAFE_DELETE(m_pBuildingRemovalManager);
     SAFE_DELETE(m_pCustomWeaponManager);
     SAFE_DELETE(m_pFunctionUseLogger);
-    SAFE_DELETE(m_pOpenPortsTester);
+    m_openPortsTester.reset();
     SAFE_DELETE(m_pMasterServerAnnouncer);
     SAFE_DELETE(m_pASE);
     SAFE_RELEASE(m_pHqComms);
@@ -614,6 +612,37 @@ bool CGame::Start(int iArgumentCount, char* szArguments[])
     unsigned short                         usServerPort = m_pMainConfig->GetServerPort();
     unsigned short                         httpPort = m_pMainConfig->GetHTTPPort();
     unsigned int                           uiMaxPlayers = m_pMainConfig->GetMaxPlayers();
+
+    // Determine our connection type from the address bindings
+    bool usingIPv4 = false;
+    bool usingIPv6 = false;
+
+    for (const IPBindableEndpoint& binding : addressBindings)
+    {
+        switch (binding.endpoint.GetAddressFamily())
+        {
+            case IPAddressFamily::IPv4:
+                usingIPv4 = true;
+                break;
+            case IPAddressFamily::IPv6:
+                usingIPv6 = true;
+
+                if (binding.useDualMode)
+                    usingIPv4 = true;
+                break;
+            case IPAddressFamily::Unspecified:
+            default:
+                break;
+        }
+
+        if (usingIPv4 && usingIPv6)
+            break;
+    }
+
+    if (usingIPv4 && !usingIPv6)
+        m_connectionType = IPAddressFamily::IPv4;
+    else if (!usingIPv4 && usingIPv6)
+        m_connectionType = IPAddressFamily::IPv6;
 
     // Start async task scheduler
     m_pAsyncTaskScheduler = new SharedUtil::CAsyncTaskScheduler(2);
@@ -952,7 +981,7 @@ bool CGame::Start(int iArgumentCount, char* szArguments[])
     CLogger::LogPrint("Server started and is ready to accept connections!\n");
 
     // Create port tester
-    m_pOpenPortsTester = new COpenPortsTester();
+    m_openPortsTester = std::make_unique<COpenPortsTester>(m_connectionType);
 
     // Add help hint
     CLogger::LogPrint("To stop the server, type 'shutdown' or press Ctrl-C\n");
@@ -988,8 +1017,8 @@ void CGame::PrintLogOutputFromNetModule()
 
 void CGame::StartOpenPortsTest()
 {
-    if (m_pOpenPortsTester)
-        m_pOpenPortsTester->Start();
+    if (m_openPortsTester)
+        m_openPortsTester->Start();
 }
 
 bool CGame::StaticProcessPacket(unsigned char ucPacketID, const NetServerPlayerID& Socket, NetBitStreamInterface* pBitStream, SNetExtraInfo* pNetExtraInfo)

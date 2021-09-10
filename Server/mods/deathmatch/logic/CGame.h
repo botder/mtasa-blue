@@ -463,6 +463,8 @@ public:
     bool IsClientTransferBoxVisible() const { return m_showClientTransferBox; }
     void SetClientTransferBoxVisible(bool visible) { m_showClientTransferBox = visible; }
 
+    mtasa::IPAddressFamily GetConnectionType() const noexcept { return m_connectionType; }
+
 private:
     void AddBuiltInEvents();
     void RelayPlayerPuresync(class CPacket& Packet);
@@ -634,9 +636,9 @@ private:
     // Clouds Enabled
     bool m_bCloudsEnabled;
 
-    COpenPortsTester*       m_pOpenPortsTester;
-    CMasterServerAnnouncer* m_pMasterServerAnnouncer;
-    CHqComms*               m_pHqComms;
+    std::unique_ptr<COpenPortsTester> m_openPortsTester;
+    CMasterServerAnnouncer*           m_pMasterServerAnnouncer;
+    CHqComms*                         m_pHqComms;
 
     CLightsyncManager m_lightsyncManager;
 
@@ -655,4 +657,7 @@ private:
 
     bool m_DevelopmentModeEnabled;
     bool m_showClientTransferBox = true;
+
+    // Connection type for outgoing traffic
+    mtasa::IPAddressFamily m_connectionType = mtasa::IPAddressFamily::Unspecified;
 };

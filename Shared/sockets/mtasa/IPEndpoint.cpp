@@ -16,6 +16,8 @@
 #else
     #include <sys/socket.h>
     #include <netinet/in.h>
+    #include <arpa/inet.h>
+    #include <netdb.h>
 #endif
 
 static_assert(sizeof(sockaddr_in::sin_addr) == 4, "Invalid size of sockaddr_in::sin_addr");

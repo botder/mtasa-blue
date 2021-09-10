@@ -367,7 +367,7 @@ namespace mtasa
         std::string ToString() const;
 
         // Fills the buffer with a string representation of the ip address ("a.b.c.d" for IPv4, "x:x:x:x:x:x:x:x" for IPv6)
-        // For an IPv4 address the buffer size should be at least 16 and for an IPv6 address it should be at least 46.
+        // For an IPv4 address the buffer size should be at least 16 and for an IPv6 address it should be at least 62 (45 + 16 for scope + null).
         // Returns the length of the string or zero on failure.
         std::size_t ToString(char* buffer, std::size_t bufferSize) const;
 

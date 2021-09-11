@@ -12,13 +12,14 @@
 
 struct SMasterServerDefinition
 {
-    bool    bAcceptsPush;
-    bool    bDoReminders;
-    bool    bHideProblems;
-    bool    bHideSuccess;
-    uint    uiReminderIntervalMins;
-    SString strDesc;
-    SString strURL;
+    bool                   bAcceptsPush;
+    bool                   bDoReminders;
+    bool                   bHideProblems;
+    bool                   bHideSuccess;
+    uint                   uiReminderIntervalMins;
+    SString                strDesc;
+    SString                strURL;
+    mtasa::IPAddressFamily connectionType;
 };
 
 enum
@@ -34,21 +35,30 @@ enum
 // A remote master server to announce our existence to
 //
 ////////////////////////////////////////////////////////////////////
-class CMasterServer : public CRefCountable
+class CMasterServer final
 {
 public:
-    ZERO_ON_NEW
-
     CMasterServer(const SMasterServerDefinition& definition) : m_Definition(definition)
     {
-        m_Stage = ANNOUNCE_STAGE_INITIAL;
-        m_uiInitialAnnounceRetryAttempts = 5;
-        m_uiInitialAnnounceRetryInterval = 1000 * 60 * 5;            // 5 mins initial announce retry interval
-        m_uiPushInterval = 1000 * 60 * 10;                           // 10 mins push interval
+#if MTA_DEBUG
+        const char* connectionType = "?";
+
+        switch (definition.connectionType)
+        {
+            case mtasa::IPAddressFamily::IPv4:
+                connectionType = "IPv4";
+                break;
+            case mtasa::IPAddressFamily::IPv6:
+                connectionType = "IPv6";
+                break;
+            default:
+                break;
+        }
+
+        OutputDebugLine(SString("Added master server (%s): %s", connectionType, definition.strURL.c_str()));
+#endif
     }
 
-protected:
-    ~CMasterServer() {}            // Must use Release()
 public:
     //
     // Pulse this master server
@@ -78,10 +88,10 @@ public:
                 m_llLastAnnounceTime = llTickCountNow;
 
                 // Send request
-                this->AddRef();            // Keep object alive
                 m_bStatusBusy = true;
                 SHttpRequestOptions options;
                 options.uiConnectionAttempts = 2;
+                options.connectionType = m_Definition.connectionType;
                 GetDownloadManager()->QueueFile(m_Definition.strURL, NULL, this, StaticDownloadFinishedCallback, options);
             }
         }
@@ -100,6 +110,7 @@ public:
                 options.strPostData = ASE::GetInstance()->QueryLight();
                 options.bPostBinary = true;
                 options.uiConnectionAttempts = 1;
+                options.connectionType = m_Definition.connectionType;
                 GetDownloadManager()->QueueFile(m_Definition.strURL, NULL, NULL, NULL, options);
             }
         }
@@ -112,7 +123,6 @@ public:
     {
         CMasterServer* pMasterServer = (CMasterServer*)result.pObj;
         pMasterServer->DownloadFinishedCallback(result);
-        pMasterServer->Release();            // No need to keep object alive now
     }
 
     //
@@ -182,13 +192,13 @@ public:
     static CNetHTTPDownloadManagerInterface* GetDownloadManager() { return g_pNetServer->GetHTTPDownloadManager(EDownloadMode::ASE); }
 
 protected:
-    bool                          m_bStatusBusy;
-    uint                          m_Stage;
-    uint                          m_uiInitialAnnounceRetryAttempts;
-    uint                          m_uiInitialAnnounceRetryInterval;
-    uint                          m_uiPushInterval;
-    long long                     m_llLastAnnounceTime;
-    long long                     m_llLastPushTime;
+    bool                          m_bStatusBusy = false;
+    uint                          m_Stage = ANNOUNCE_STAGE_INITIAL;
+    uint                          m_uiInitialAnnounceRetryAttempts = 5;
+    uint                          m_uiInitialAnnounceRetryInterval = 5 * 60000;            // 5 mins initial announce retry interval
+    uint                          m_uiPushInterval = 10 * 60000;                           // 10 mins push interval
+    long long                     m_llLastAnnounceTime = 0;
+    long long                     m_llLastPushTime = 0;
     const SMasterServerDefinition m_Definition;
 };
 
@@ -197,26 +207,69 @@ protected:
 // A list of remote master servers to announce our existence to
 //
 ////////////////////////////////////////////////////////////////////
-class CMasterServerAnnouncer
+class CMasterServerAnnouncer final
 {
+    using Replacement = std::pair<std::string, std::string>;
+    using PrimaryAddress = std::pair<mtasa::IPAddressFamily, std::string>;
+
 public:
-    ZERO_ON_NEW
-
-    ~CMasterServerAnnouncer()
+    CMasterServerAnnouncer()
     {
-        while (!m_MasterServerList.empty())
+        CMainConfig*  config = g_pGame->GetConfig();
+        bool          hasPassword = config->HasPassword();
+        bool          aseLanListen = config->GetAseLanListenEnabled();
+        std::uint16_t gamePort = config->GetServerPort();
+        unsigned int  maxPlayers = config->GetMaxPlayers();
+        SString       aseMode = config->GetSetting("ase");
+
+        SString version("%d.%d.%d-%d.%05d", MTASA_VERSION_MAJOR, MTASA_VERSION_MINOR, MTASA_VERSION_MAINTENANCE, MTASA_VERSION_TYPE, MTASA_VERSION_BUILD);
+        SString extra("%d_%d_%d_%s_%d", 0, maxPlayers, hasPassword, *aseMode, aseLanListen);
+        
+        m_replacements = {
+            Replacement{"%GAME%", std::to_string(gamePort)},
+            Replacement{"%ASE%", std::to_string(gamePort + SERVER_LIST_QUERY_PORT_OFFSET)},
+            Replacement{"%HTTP%", std::to_string(config->GetHTTPPort())},
+            Replacement{"%VER%", version},
+            Replacement{"%EXTRA%", extra},
+        };
+
+        bool hasPrimaryIPv4 = false;
+        bool hasPrimaryIPv6 = false;
+
+        for (const mtasa::IPBindableEndpoint& binding : config->GetAddressBindings())
         {
-            m_MasterServerList.back()->Release();
-            m_MasterServerList.pop_back();
-        }
-    }
+            std::string ip = (binding.endpoint.GetAddress().IsUnspecified()) ? "" : binding.endpoint.GetAddress().ToString();
 
-    //
-    // Make list of master servers to contact
-    //
-    void InitServerList()
-    {
-        assert(m_MasterServerList.empty());
+            switch (binding.endpoint.GetAddressFamily())
+            {
+                case mtasa::IPAddressFamily::IPv4:
+                    if (!hasPrimaryIPv4)
+                    {
+                        hasPrimaryIPv4 = true;
+                        m_primaryAddresses.emplace_back(mtasa::IPAddressFamily::IPv4, ip);
+                    }
+                    break;
+                case mtasa::IPAddressFamily::IPv6:
+                    if (!hasPrimaryIPv6)
+                    {
+                        hasPrimaryIPv6 = true;
+                        m_primaryAddresses.emplace_back(mtasa::IPAddressFamily::IPv6, ip);
+
+                        if (binding.useDualMode)
+                        {
+                            hasPrimaryIPv4 = true;
+                            m_primaryAddresses.emplace_back(mtasa::IPAddressFamily::IPv4, ip);
+                        }
+                    }
+                    break;
+                case mtasa::IPAddressFamily::Unspecified:
+                    break;
+            }
+
+            if (hasPrimaryIPv4 || hasPrimaryIPv6)
+                break;
+        }
+
         AddServer(true, true, false, false, 60 * 24, "Querying MTA master server...", QUERY_URL_MTA_MASTER_SERVER);
     }
 
@@ -224,42 +277,24 @@ public:
                    const SString& strInUrl)
     {
         // Check if server is already present
-        for (auto pMasterServer : m_MasterServerList)
+        for (std::unique_ptr<CMasterServer>& masterServer : m_masterServers)
         {
-            if (pMasterServer->GetDefinition().strURL.BeginsWithI(strInUrl.SplitLeft("%")))
+            if (masterServer->GetDefinition().strURL.BeginsWithI(strInUrl.SplitLeft("%")))
                 return;
         }
 
-        // TODO(botder): Support IPv6 here
-        std::vector<mtasa::IPBindableEndpoint> bindings = g_pGame->GetConfig()->GetAddressFamilyBindings(mtasa::IPAddressFamily::IPv4);
+        SString basicUrl = strInUrl;
 
-        if (bindings.empty())
-            return;
+        for (const Replacement& pair : m_replacements)
+            basicUrl = basicUrl.Replace(pair.first.c_str(), pair.second.c_str());
 
-        const mtasa::IPAddress& primaryBinding = bindings[0].endpoint.GetAddress();
-        std::string             primaryAddress = (primaryBinding.IsUnspecified()) ? "" : primaryBinding.ToString();
-
-        CMainConfig* pMainConfig = g_pGame->GetConfig();
-        ushort       usServerPort = pMainConfig->GetServerPort();
-        ushort       usHTTPPort = pMainConfig->GetHTTPPort();
-        uint         uiMaxPlayerCount = pMainConfig->GetMaxPlayers();
-        bool         bPassworded = pMainConfig->HasPassword();
-        SString      strAseMode = pMainConfig->GetSetting("ase");
-        bool         bAseLanListen = pMainConfig->GetAseLanListenEnabled();
-
-        SString strVersion("%d.%d.%d-%d.%05d", MTASA_VERSION_MAJOR, MTASA_VERSION_MINOR, MTASA_VERSION_MAINTENANCE, MTASA_VERSION_TYPE, MTASA_VERSION_BUILD);
-        SString strExtra("%d_%d_%d_%s_%d", 0, uiMaxPlayerCount, bPassworded, *strAseMode, bAseLanListen);
-
-        SString strUrl = strInUrl;
-        strUrl = strUrl.Replace("%GAME%", SString("%u", usServerPort));
-        strUrl = strUrl.Replace("%ASE%", SString("%u", usServerPort + SERVER_LIST_QUERY_PORT_OFFSET));
-        strUrl = strUrl.Replace("%HTTP%", SString("%u", usHTTPPort));
-        strUrl = strUrl.Replace("%VER%", strVersion);
-        strUrl = strUrl.Replace("%EXTRA%", strExtra);
-        strUrl = strUrl.Replace("%IP%", primaryAddress.c_str());
-
-        SMasterServerDefinition masterServerDefinition = {bAcceptsPush, bDoReminders, bHideProblems, bHideSuccess, uiReminderIntervalMins, strDesc, strUrl};
-        m_MasterServerList.push_back(new CMasterServer(masterServerDefinition));
+        for (const PrimaryAddress& primaryAddress : m_primaryAddresses)
+        {
+            SString                 masterServerUrl = basicUrl.Replace("%IP%", primaryAddress.second.c_str());
+            SMasterServerDefinition masterServerDefinition = {bAcceptsPush,           bDoReminders, bHideProblems,   bHideSuccess,
+                                                              uiReminderIntervalMins, strDesc,      masterServerUrl, primaryAddress.first};
+            m_masterServers.push_back(std::make_unique<CMasterServer>(masterServerDefinition));
+        }
     }
 
     //
@@ -267,15 +302,12 @@ public:
     //
     void Pulse()
     {
-        if (m_MasterServerList.empty())
-            InitServerList();
-
-        for (uint i = 0; i < m_MasterServerList.size(); i++)
-        {
-            m_MasterServerList[i]->Pulse();
-        }
+        for (std::unique_ptr<CMasterServer>& masterServer : m_masterServers)
+            masterServer->Pulse();
     }
 
-protected:
-    std::vector<CMasterServer*> m_MasterServerList;
+private:
+    std::vector<std::unique_ptr<CMasterServer>> m_masterServers;
+    std::vector<Replacement>                    m_replacements;
+    std::vector<PrimaryAddress>                 m_primaryAddresses;
 };

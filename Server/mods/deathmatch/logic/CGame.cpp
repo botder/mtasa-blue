@@ -327,9 +327,9 @@ CGame::~CGame()
     SAFE_DELETE(m_pCustomWeaponManager);
     SAFE_DELETE(m_pFunctionUseLogger);
     m_openPortsTester.reset();
-    SAFE_DELETE(m_pMasterServerAnnouncer);
+    m_masterServerAnnouncer.reset();
     SAFE_DELETE(m_pASE);
-    SAFE_RELEASE(m_pHqComms);
+    m_hqComms.reset();
     CSimControl::Shutdown();
 
     // Clear our global pointer
@@ -465,11 +465,11 @@ void CGame::DoPulse()
 
     CLOCK_CALL1(CPerfStatManager::GetSingleton()->DoPulse(););
 
-    if (m_pMasterServerAnnouncer)
-        m_pMasterServerAnnouncer->Pulse();
+    if (m_masterServerAnnouncer)
+        m_masterServerAnnouncer->Pulse();
 
-    if (m_pHqComms)
-        m_pHqComms->Pulse();
+    if (m_hqComms)
+        m_hqComms->Pulse();
 
     CLOCK_CALL1(m_pFunctionUseLogger->Pulse(););
     CLOCK_CALL1(m_lightsyncManager.DoPulse(););
@@ -518,8 +518,7 @@ bool CGame::Start(int iArgumentCount, char* szArguments[])
                                     m_pVehicleManager, m_pTeamManager, m_pPedManager, m_pColManager, m_pWaterManager, m_pClock, m_pGroups,
                                     &m_Events, m_pScriptDebugging, &m_ElementDeleter);
     m_pACLManager = new CAccessControlListManager;
-    m_pHqComms = new CHqComms;
-
+    
     m_pRegisteredCommands = new CRegisteredCommands(m_pACLManager);
     m_pLuaManager = new CLuaManager(m_pObjectManager, m_pPlayerManager, m_pVehicleManager, m_pBlipManager, m_pRadarAreaManager, m_pRegisteredCommands,
                                     m_pMapManager, &m_Events);
@@ -922,8 +921,11 @@ bool CGame::Start(int iArgumentCount, char* szArguments[])
     if (m_pMainConfig->GetSerialVerificationEnabled())
         m_pASE->SetRuleValue("SerialVerification", "yes");
     ApplyAseSetting();
-    m_pMasterServerAnnouncer = new CMasterServerAnnouncer();
-    m_pMasterServerAnnouncer->Pulse();
+
+    m_hqComms = std::make_unique<CHqComms>(m_connectionType);
+
+    m_masterServerAnnouncer = std::make_unique<CMasterServerAnnouncer>();
+    m_masterServerAnnouncer->Pulse();
 
     // Now load the rest of the config
     if (!m_pMainConfig->LoadExtended())

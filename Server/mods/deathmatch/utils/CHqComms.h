@@ -20,15 +20,11 @@ enum
 // Check with MTA HQ for status updates
 //
 ////////////////////////////////////////////////////////////////////
-class CHqComms : public CRefCountable
+class CHqComms final
 {
 public:
-    ZERO_ON_NEW
-
-    CHqComms()
+    CHqComms(mtasa::IPAddressFamily connectionType) : m_connectionType{connectionType}
     {
-        m_iPollInterval = TICKS_FROM_MINUTES(60);
-        m_strURL = HQCOMMS_URL;
         m_strCrashLogFilename = g_pServerInterface->GetAbsolutePath(PathJoin(SERVER_DUMP_PATH, "server_pending_upload.log"));
         m_strCrashDumpMeta = g_pServerInterface->GetAbsolutePath(PathJoin(SERVER_DUMP_PATH, "server_pending_upload_filename"));
     }
@@ -39,13 +35,17 @@ public:
     void Pulse()
     {
         // Check for min client version info
-        if (m_Stage == HQCOMMS_STAGE_NONE || (m_Stage == HQCOMMS_STAGE_TIMER && m_CheckTimer.Get() > (uint)m_iPollInterval))
+        if (m_Stage == HQCOMMS_STAGE_NONE || (m_Stage == HQCOMMS_STAGE_TIMER && m_CheckTimer.Get() > m_pollInterval))
         {
             m_CheckTimer.Reset();
             m_Stage = HQCOMMS_STAGE_QUERY;
 
-            // TODO(botder): Support IPv6 here (don't forget the `GetAddressCommaList` line below)
-            std::vector<mtasa::IPBindableEndpoint> bindings = g_pGame->GetConfig()->GetAddressFamilyBindings(mtasa::IPAddressFamily::IPv4);
+            std::vector<mtasa::IPBindableEndpoint> bindings;
+
+            if (m_connectionType == mtasa::IPAddressFamily::Unspecified)
+                bindings = g_pGame->GetConfig()->GetAddressBindings();
+            else
+                bindings = g_pGame->GetConfig()->GetAddressFamilyBindings(m_connectionType);
 
             if (bindings.empty())
                 return;
@@ -87,7 +87,7 @@ public:
             bitStream->WriteStr(strCrashDumpContent);
 
             bitStream->WriteStr(MTA_OS_STRING);
-            bitStream->WriteStr(g_pGame->GetConfig()->GetAddressCommaList(mtasa::IPAddressFamily::IPv4, false));
+            bitStream->WriteStr(g_pGame->GetConfig()->GetAddressCommaList(m_connectionType, false));
 
             bitStream->Write(g_pGame->GetConfig()->IsDatabaseCredentialsProtectionEnabled() ? 1 : 0);
             bitStream->Write(g_pGame->GetConfig()->IsFakeLagCommandEnabled() ? 1 : 0);
@@ -96,11 +96,11 @@ public:
             bitStream->WriteStr(SString::Join(",", g_pGame->GetConfig()->GetOwnerEmailAddressList()));
 
             // Send request
-            this->AddRef();            // Keep object alive
             SHttpRequestOptions options;
             options.strPostData = SStringX((const char*)bitStream->GetData(), bitStream->GetNumberOfBytesUsed());
             options.bPostBinary = true;
             options.uiConnectionAttempts = 2;
+            options.connectionType = m_connectionType;
             GetDownloadManager()->QueueFile(m_strURL, NULL, this, StaticDownloadFinishedCallback, options);
         }
     }
@@ -112,7 +112,6 @@ public:
     {
         CHqComms* pHqComms = (CHqComms*)result.pObj;
         pHqComms->DownloadFinishedCallback(result);
-        pHqComms->Release();            // No need to keep object alive now
     }
 
     //
@@ -142,16 +141,16 @@ public:
     // Interval until next HQ check
     void ProcessPollInterval(CBitStream& bitStream)
     {
-        int iPollInterval = 0;
-        bitStream->Read(iPollInterval);
-        if (iPollInterval)
-            m_iPollInterval = std::max(TICKS_FROM_MINUTES(5), iPollInterval);
+        unsigned int pollInterval = 0;
+
+        if (bitStream->Read(pollInterval) && pollInterval)
+            m_pollInterval = std::max<unsigned int>(TICKS_FROM_MINUTES(5), pollInterval);
     }
 
     // Auto update of min client check
     void ProcessMinClientVersion(CBitStream& bitStream)
     {
-        int     iForceSetting = 0;
+        int         iForceSetting = 0;
         CMtaVersion strResultMinClientVersion;
 
         bitStream->Read(iForceSetting);
@@ -251,15 +250,17 @@ public:
     //
     static CNetHTTPDownloadManagerInterface* GetDownloadManager() { return g_pNetServer->GetHTTPDownloadManager(EDownloadMode::ASE); }
 
-protected:
-    ~CHqComms() {}            // Must use Release()
+private:
+    
 
-    int          m_iPollInterval;
-    int          m_iPrevBadFileHashesRev;
-    uint         m_Stage;
-    CElapsedTime m_CheckTimer;
-    SString      m_strURL;
-    SString      m_strPrevMessage;
-    SString      m_strCrashLogFilename;
-    SString      m_strCrashDumpMeta;            // Filename of file which contains the latest crash dump filename
+private:
+    mtasa::IPAddressFamily m_connectionType;
+    unsigned int           m_pollInterval = TICKS_FROM_MINUTES(60);
+    int                    m_iPrevBadFileHashesRev = 0;
+    uint                   m_Stage = HQCOMMS_STAGE_NONE;
+    CElapsedTime           m_CheckTimer;
+    SString                m_strURL = HQCOMMS_URL;
+    SString                m_strPrevMessage;
+    SString                m_strCrashLogFilename;
+    SString                m_strCrashDumpMeta;            // Filename of file which contains the latest crash dump filename
 };

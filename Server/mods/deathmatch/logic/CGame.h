@@ -251,7 +251,7 @@ public:
     CBuildingRemovalManager*         GetBuildingRemovalManager() { return m_pBuildingRemovalManager; }
     CCustomWeaponManager*            GetCustomWeaponManager() { return m_pCustomWeaponManager; }
     CFunctionUseLogger*              GetFunctionUseLogger() { return m_pFunctionUseLogger; }
-    CMasterServerAnnouncer*          GetMasterServerAnnouncer() { return m_pMasterServerAnnouncer; }
+    CMasterServerAnnouncer*          GetMasterServerAnnouncer() { return m_masterServerAnnouncer.get(); }
     SharedUtil::CAsyncTaskScheduler* GetAsyncTaskScheduler() { return m_pAsyncTaskScheduler; }
 
     std::shared_ptr<CTrainTrackManager> GetTrainTrackManager() { return m_pTrainTrackManager; }
@@ -636,9 +636,9 @@ private:
     // Clouds Enabled
     bool m_bCloudsEnabled;
 
-    std::unique_ptr<COpenPortsTester> m_openPortsTester;
-    CMasterServerAnnouncer*           m_pMasterServerAnnouncer;
-    CHqComms*                         m_pHqComms;
+    std::unique_ptr<COpenPortsTester>       m_openPortsTester;
+    std::unique_ptr<CMasterServerAnnouncer> m_masterServerAnnouncer;
+    std::unique_ptr<CHqComms>               m_hqComms;
 
     CLightsyncManager m_lightsyncManager;
 

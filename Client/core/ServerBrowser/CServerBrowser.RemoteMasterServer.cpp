@@ -127,6 +127,7 @@ void CRemoteMasterServer::Refresh()
     AddRef();            // Keep alive
     SHttpRequestOptions options;
     options.uiConnectionAttempts = 1;
+    options.connectionType = g_pCore->GetConnectionType();
     GetHTTP()->QueueFile(m_strURL, NULL, this, &CRemoteMasterServer::StaticDownloadFinished, options);
 }
 

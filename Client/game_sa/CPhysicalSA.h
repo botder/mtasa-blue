@@ -36,9 +36,9 @@ public:
     uint32 bApplyGravity : 1;
     uint32 bDisableFriction : 1;
     uint32 bCollidable : 1;
-    uint32 b0x10 : 1;
-    uint32 bDisableMovement : 1;
-    uint32 b0x40 : 1;
+    uint32 bDisableTurnForce : 1;
+    uint32 bDisableMoveForce : 1;
+    uint32 bInfiniteMass : 1;
     uint32 b0x80 : 1;
 
     uint32 bSubmergedInWater : 1;            // 65

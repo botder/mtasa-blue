@@ -10,8 +10,31 @@
  *****************************************************************************/
 
 #include "multiplayersa_init.h"
+#include <type_traits>
 
 #pragma once
+
+extern "C" LONG WINAPI DetourAttach(_Inout_ PVOID* ppPointer, _In_ PVOID pDetour);
+
+namespace mtasa
+{
+    template <typename FunctionT>
+    struct is_function_ptr : std::integral_constant<bool, std::is_pointer<FunctionT>::value && std::is_function<typename std::remove_pointer<FunctionT>::type>::value>
+    {
+    };
+
+    template <typename FunctionT, std::enable_if_t<is_function_ptr<FunctionT>::value, bool> = true>
+    inline bool DetourAddress(intptr_t target, FunctionT replacement)
+    {
+        return !DetourAttach(&reinterpret_cast<PVOID&>(target), replacement);
+    }
+
+    template <typename FunctionT, std::enable_if_t<is_function_ptr<FunctionT>::value, bool> = true>
+    inline bool DetourFunction(FunctionT& target, FunctionT replacement)
+    {
+        return !DetourAttach(&reinterpret_cast<PVOID&>(target), replacement);
+    }
+}
 
 VOID  HookInstallMethod(DWORD dwInstallAddress, DWORD dwHookFunction);
 VOID  HookInstallCall(DWORD dwInstallAddress, DWORD dwHookFunction);

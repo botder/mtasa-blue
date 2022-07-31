@@ -13,7 +13,10 @@ project "Multiplayer SA"
 	cppdialect "C++14" 
 
 	filter "system:windows"
-		includedirs { "../../vendor/sparsehash/src/windows" }
+		includedirs {
+			"../../vendor/sparsehash/src/windows",
+			"../../vendor/detours/4.0.1/src",
+		}
 
 	filter {}
 		includedirs {
@@ -36,6 +39,8 @@ project "Multiplayer SA"
 		"*.h",
 		"*.cpp"
 	}
+
+	links { "detours" }
 
 	filter "architecture:not x86"
 		flags { "ExcludeFromBuild" }

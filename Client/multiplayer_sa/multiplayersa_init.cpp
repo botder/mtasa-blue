@@ -12,6 +12,7 @@
 #include "StdInc.h"
 #define DECLARE_PROFILER_SECTION_multiplayersa_init
 #include "profiler/SharedUtil.Profiler.h"
+#include <detours.h>
 
 CGame*          pGameInterface = 0;
 CMultiplayerSA* pMultiplayer = 0;
@@ -33,8 +34,13 @@ MTAEXPORT CMultiplayer* InitMultiplayerInterface(CCoreInterface* pCore)
     assert(g_pNet);
 
     // create an instance of our multiplayer class
-    pMultiplayer = new CMultiplayerSA;
-    pMultiplayer->InitHooks();
+    pMultiplayer = new CMultiplayerSA();
+    {
+        DetourTransactionBegin();
+        DetourUpdateThread(GetCurrentThread());
+        pMultiplayer->InitHooks();
+        assert(DetourTransactionCommit() == NO_ERROR);
+    }
 
     // return the multiplayer class ptr
     return (CMultiplayer*)pMultiplayer;

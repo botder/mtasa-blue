@@ -25,6 +25,7 @@ SString             CLuaMain::ms_strExpectedUndumpHash;
 
 #include "luascripts/coroutine_debug.lua.h"
 #include "luascripts/exports.lua.h"
+#include "luascripts/imports.lua.h"
 #include "luascripts/inspect.lua.h"
 
 CLuaMain::CLuaMain(CLuaManager* pLuaManager, CResource* pResourceOwner, bool bEnableOOP)
@@ -181,6 +182,7 @@ void CLuaMain::LoadEmbeddedScripts()
 {
     DECLARE_PROFILER_SECTION(OnPreLoadScript)
     LoadScript(EmbeddedLuaCode::exports);
+    LoadScript(EmbeddedLuaCode::imports);
     LoadScript(EmbeddedLuaCode::coroutine_debug);
     LoadScript(EmbeddedLuaCode::inspect);
     DECLARE_PROFILER_SECTION(OnPostLoadScript)

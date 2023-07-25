@@ -59,6 +59,7 @@ extern CNetServer* g_pRealNetServer;
 
 #include "luascripts/coroutine_debug.lua.h"
 #include "luascripts/exports.lua.h"
+#include "luascripts/imports.lua.h"
 #include "luascripts/inspect.lua.h"
 
 CLuaMain::CLuaMain(CLuaManager* pLuaManager, CObjectManager* pObjectManager, CPlayerManager* pPlayerManager, CVehicleManager* pVehicleManager,
@@ -239,6 +240,7 @@ void CLuaMain::Initialize()
 void CLuaMain::LoadEmbeddedScripts()
 {
     LoadScript(EmbeddedLuaCode::exports);
+    LoadScript(EmbeddedLuaCode::imports);
     LoadScript(EmbeddedLuaCode::coroutine_debug);
     LoadScript(EmbeddedLuaCode::inspect);
 }
